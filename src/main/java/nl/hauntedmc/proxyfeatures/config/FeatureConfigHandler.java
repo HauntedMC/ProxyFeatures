@@ -19,7 +19,7 @@ public class FeatureConfigHandler {
      */
     public Object getSetting(String key) {
         try {
-            return config.node("features", featureName, (Object[]) key.split("\\.")).get(Object.class);
+            return config.node("features", featureName, key.split("\\.")).get(Object.class);
         } catch (SerializationException e) {
             throw new RuntimeException(e);
         }
@@ -29,6 +29,6 @@ public class FeatureConfigHandler {
      * Get a boolean setting.
      */
     public boolean getBoolean(String key, boolean defaultValue) {
-        return config.node("features", featureName, (Object[]) key.split("\\.")).getBoolean(defaultValue);
+        return config.node("features", featureName, key.split("\\.")).getBoolean(defaultValue);
     }
 }

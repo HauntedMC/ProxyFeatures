@@ -3,7 +3,9 @@ package nl.hauntedmc.proxyfeatures.commands;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.features.BaseFeature;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
                     sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission"));
                     return;
                 }
-                sender.sendMessage(Component.text("STATUS"));
+                sendPluginStatus(sender);
                 break;
 
             case "list":
@@ -42,7 +44,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
                     sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission"));
                     return;
                 }
-                sender.sendMessage(Component.text("LIST"));
+                listLoadedFeatures(sender);
                 break;
 
             case "reload":
@@ -121,50 +123,50 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         }
         return CompletableFuture.completedFuture(completions);
     }
+    private void sendPluginStatus(CommandSource sender) {
+        List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+        List<String> loadedCommands = new ArrayList<>();
+        int loadedFeatureCount = loadedFeatures.size();
+        int activeTaskCount = 0;
+        int registeredListenerCount = 0;
+        int registeredCommandCount = 0;
+
+        for (BaseFeature<?> feature : loadedFeatures) {
+            registeredCommandCount += feature.getLifecycleManager().getCommandManager().getRegisteredCommandCount();
+            loadedCommands.addAll(feature.getLifecycleManager().getCommandManager()
+                    .getRegisteredCommands()
+                    .values()
+                    .stream()
+                    .map(FeatureCommand::getName)
+                    .toList());
+            activeTaskCount += feature.getLifecycleManager().getTaskManager().getActiveTaskCount();
+            registeredListenerCount += feature.getLifecycleManager().getListenerManager().getRegisteredListenerCount();
+        }
+
+        sender.sendMessage(Component.text("ProxyFeatures Status:", NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("- Number of loaded features: " + loadedFeatureCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of active tasks: " + activeTaskCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of registered listeners: " + registeredListenerCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of registered commands: " + registeredCommandCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Registered commands: " + loadedCommands, NamedTextColor.WHITE));
+    }
+
+    private void listLoadedFeatures(CommandSource sender) {
+        List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+
+        if (loadedFeatures.isEmpty()) {
+            sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.empty"));
+            return;
+        }
+
+        sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.header"));
+        for (BaseFeature<?> feature : loadedFeatures) {
+            sender.sendMessage(plugin.getLocalizationHandler().getMessage(
+                    "command.list.entry",
+                    Map.of("feature", feature.getFeatureName(), "version", feature.getFeatureVersion())
+            ));
+        }
+    }
 }
 
-//    private void sendPluginStatus(CommandSource sender) {
-//        List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
-//        List<String> loadedCommands = new ArrayList<>();
-//        int loadedFeatureCount = loadedFeatures.size();
-//        int activeTaskCount = 0;
-//        int registeredListenerCount = 0;
-//        int registeredCommandCount = 0;
-//
-//        for (BaseFeature<?> feature : loadedFeatures) {
-//            registeredCommandCount += feature.getLifecycleManager().getCommandManager().getRegisteredCommandCount();
-//            loadedCommands.addAll(feature.getLifecycleManager().getCommandManager()
-//                    .getRegisteredCommands()
-//                    .values()
-//                    .stream()
-//                    .map(cmd -> cmd.getName())
-//                    .toList());
-//            activeTaskCount += feature.getLifecycleManager().getTaskManager().getActiveTaskCount();
-//            registeredListenerCount += feature.getLifecycleManager().getListenerManager().getRegisteredListenerCount();
-//        }
-//
-//        sender.sendMessage(Component.text("proxyfeatures Status:", NamedTextColor.YELLOW));
-//        sender.sendMessage(Component.text("- Number of loaded features: " + loadedFeatureCount, NamedTextColor.WHITE));
-//        sender.sendMessage(Component.text("- Number of active tasks: " + activeTaskCount, NamedTextColor.WHITE));
-//        sender.sendMessage(Component.text("- Number of registered listeners: " + registeredListenerCount, NamedTextColor.WHITE));
-//        sender.sendMessage(Component.text("- Number of registered commands: " + registeredCommandCount, NamedTextColor.WHITE));
-//        sender.sendMessage(Component.text("- Registered commands: " + loadedCommands, NamedTextColor.WHITE));
-//    }
-//
-//    private void listLoadedFeatures(CommandSource sender) {
-//        List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
-//
-//        if (loadedFeatures.isEmpty()) {
-//            sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.empty"));
-//            return;
-//        }
-//
-//        sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.header"));
-//        for (BaseFeature<?> feature : loadedFeatures) {
-//            sender.sendMessage(plugin.getLocalizationHandler().getMessage(
-//                    "command.list.entry",
-//                    Map.of("feature", feature.getFeatureName(), "version", feature.getFeatureVersion())
-//            ));
-//        }
-//    }
 

@@ -11,18 +11,21 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyReloadEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 
+import com.velocitypowered.api.scheduler.Scheduler;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.config.ConfigHandler;
-import nl.hauntedmc.proxyfeatures.lifecycle.FeatureLoadManager;
+import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
 import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.nio.file.Path;
-import java.util.Objects;
+import java.util.Collection;
 
 @Plugin(id = "proxyfeatures",
         name = "ProxyFeatures",
@@ -36,7 +39,7 @@ public class ProxyFeatures {
     private FeatureLoadManager featureLoadManager;
     private LocalizationHandler localizationHandler;
 
-    private final ProxyServer proxy;
+    private static ProxyServer proxy = null;
     private final Logger logger;
     private final Path dataDirectory;
     @Inject
@@ -46,7 +49,7 @@ public class ProxyFeatures {
     public ProxyFeatures(ProxyServer proxy,
                      Logger logger,
                      @DataDirectory Path dataDirectory) {
-        this.proxy = proxy;
+        ProxyFeatures.proxy = proxy;
         this.logger = logger;
         this.dataDirectory = dataDirectory;
         logger.info("ProxyFeatures is loading...");
@@ -110,7 +113,7 @@ public class ProxyFeatures {
     }
 
     private void registerCommonListeners() {
-        EventManager eventManager = proxy.getEventManager();
+        //EventManager eventManager = proxy.getEventManager();
         //eventManager.register(this, new SomeListener(this));
     }
 
@@ -132,5 +135,25 @@ public class ProxyFeatures {
 
     public CommentedConfigurationNode getConfig() {
         return configHandler.getConfig();
+    }
+
+    public PluginManager getPluginManager() {
+        return proxy.getPluginManager();
+    }
+
+    public EventManager getEventManager() {
+        return proxy.getEventManager();
+    }
+
+    public CommandManager getCommandManager() {
+        return proxy.getCommandManager();
+    }
+
+    public static Collection<Player> getAllPlayers() {
+        return proxy.getAllPlayers();
+    }
+
+    public Scheduler getScheduler() {
+        return proxy.getScheduler();
     }
 }

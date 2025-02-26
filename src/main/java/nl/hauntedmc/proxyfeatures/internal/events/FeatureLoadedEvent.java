@@ -1,0 +1,16 @@
+package nl.hauntedmc.proxyfeatures.internal.events;
+
+/**
+ * Event triggered when a feature is loaded.
+ */
+public class FeatureLoadedEvent {
+    private final String featureName;
+
+    public FeatureLoadedEvent(String featureName) {
+        this.featureName = featureName;
+    }
+
+    public String getFeatureName() {
+        return featureName;
+    }
+}
