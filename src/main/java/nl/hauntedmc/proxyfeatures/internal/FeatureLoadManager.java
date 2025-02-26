@@ -34,7 +34,7 @@ public class FeatureLoadManager {
         plugin.getLogger().info("[FeatureScanner] Scanning for features...");
         try (var scanResult = new io.github.classgraph.ClassGraph()
                 .enableClassInfo()
-                .acceptPackages("nl.hauntedmc.serverfeatures.features")
+                .acceptPackages("nl.hauntedmc.proxyfeatures.features")
                 .scan()) {
             scanResult.getSubclasses(BaseFeature.class.getName()).forEach(classInfo -> {
                 try {

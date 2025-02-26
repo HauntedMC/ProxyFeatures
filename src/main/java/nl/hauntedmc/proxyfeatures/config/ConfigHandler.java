@@ -83,9 +83,9 @@ public class ConfigHandler {
     public void injectFeatureDefaults(String featureName, Map<String, Object> defaultValues) {
         boolean updated = false;
         for (Map.Entry<String, Object> entry : defaultValues.entrySet()) {
-            if (config.node("features", featureName, entry.getKey().split("\\.")).virtual()) {
+            if (config.node("features", featureName, entry.getKey()).virtual()) {
                 try {
-                    config.node("features", featureName, entry.getKey().split("\\.")).set(entry.getValue());
+                    config.node("features", featureName, entry.getKey()).set(entry.getValue());
                 } catch (SerializationException e) {
                     throw new RuntimeException(e);
                 }
