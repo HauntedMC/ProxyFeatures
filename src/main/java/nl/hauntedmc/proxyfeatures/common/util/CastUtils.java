@@ -8,14 +8,14 @@ public class CastUtils {
 
     private CastUtils(){}
 
-    public static List<String> safeCastToListOfString(Object obj) {
+    public static <T> List<T> safeCastToList(Object obj, Class<T> clazz) {
         if (obj instanceof List<?> rawList) {
-            List<String> result = new ArrayList<>();
+            List<T> result = new ArrayList<>();
             for (Object item : rawList) {
-                if (item instanceof String) {
-                    result.add((String) item);
+                if (clazz.isInstance(item)) {
+                    result.add(clazz.cast(item));
                 } else {
-                    throw new ClassCastException("Expected a String, but found: " + item.getClass());
+                    throw new ClassCastException("Expected a " + clazz.getName() + ", but found: " + item.getClass());
                 }
             }
             return result;
