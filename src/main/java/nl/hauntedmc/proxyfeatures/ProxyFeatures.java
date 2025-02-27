@@ -17,6 +17,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 
 import com.velocitypowered.api.scheduler.Scheduler;
+import net.kyori.adventure.audience.Audience;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.config.ConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
@@ -149,11 +150,20 @@ public class ProxyFeatures {
         return proxy.getCommandManager();
     }
 
-    public static Collection<Player> getAllPlayers() {
-        return proxy.getAllPlayers();
-    }
-
     public Scheduler getScheduler() {
         return proxy.getScheduler();
+    }
+
+    public ProxyServer getProxy() {
+        return proxy;
+    }
+
+    /**
+     * Hack to get all players when we dont have an instance of getPlugin
+     * TODO: should be refactored in the final design
+     * @return All players on this proxy
+     */
+    public static Collection<Player> getAllPlayers() {
+        return proxy.getAllPlayers();
     }
 }

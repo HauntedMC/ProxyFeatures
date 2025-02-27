@@ -120,9 +120,27 @@ public class ProxyFeaturesCommand implements SimpleCommand {
             completions.add("enable");
             completions.add("disable");
             completions.add("status");
+        } else if (args.length == 2) {
+            switch (args[0].toLowerCase()) {
+                case "reload":
+                case "disable":
+                    completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                            .map(BaseFeature::getFeatureName)
+                            .toList());
+                    break;
+
+                case "enable":
+                    completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getAvailableFeatures().keySet().stream()
+                            .filter(feature -> plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                                    .noneMatch(loadedFeature -> loadedFeature.getFeatureName().equalsIgnoreCase(feature)))
+                            .toList());
+                    break;
+            }
         }
         return CompletableFuture.completedFuture(completions);
     }
+
+
     private void sendPluginStatus(CommandSource sender) {
         List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
         List<String> loadedCommands = new ArrayList<>();
