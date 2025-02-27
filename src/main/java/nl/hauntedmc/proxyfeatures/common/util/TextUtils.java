@@ -10,6 +10,8 @@ import java.util.Map;
 
 public class TextUtils {
 
+    private TextUtils(){}
+
     public static Component serializeMultilineComponent(String text) {
         return Component.join(JoinConfiguration.separator(Component.newline()),
                 Arrays.stream(text.split("<newline>"))

@@ -40,12 +40,12 @@ public class HubCommand extends FeatureCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("proxyfeatures.hub.command.use");
+        return invocation.source().hasPermission("proxyfeatures.feature.hub.use");
     }
 
     @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        return null;
+        return CompletableFuture.completedFuture(List.of(""));
     }
 
     @Override
