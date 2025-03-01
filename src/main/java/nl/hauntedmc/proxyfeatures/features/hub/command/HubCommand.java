@@ -22,19 +22,19 @@ public class HubCommand extends FeatureCommand {
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
-            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command"));
+            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command", source));
             return;
         }
         Optional<RegisteredServer> lobby = feature.getPlugin().getProxy().getServer("lobby");
 
         if (lobby.isPresent()) {
             if (lobby.get().getPlayersConnected().contains(player)) {
-                source.sendMessage(feature.getLocalizationHandler().getMessage("hub.already_connected"));
+                source.sendMessage(feature.getLocalizationHandler().getMessage("hub.already_connected", player));
                 return;
             }
             player.createConnectionRequest(lobby.get()).connect();
         } else {
-            player.sendMessage(feature.getLocalizationHandler().getMessage("hub.not_available"));
+            player.sendMessage(feature.getLocalizationHandler().getMessage("hub.not_available", player));
         }
     }
 

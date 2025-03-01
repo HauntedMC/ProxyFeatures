@@ -1,6 +1,5 @@
 package nl.hauntedmc.proxyfeatures.features.textcommands;
 
-import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.BaseFeature;
 import nl.hauntedmc.proxyfeatures.features.textcommands.command.TextCommand;
@@ -26,8 +25,7 @@ public class TextCommands extends BaseFeature<Meta> {
 
     @Override
     public MessageMap getDefaultMessages() {
-        MessageMap messageMap = new MessageMap();
-        return messageMap;
+        return new MessageMap();
     }
 
     @Override
@@ -68,6 +66,5 @@ public class TextCommands extends BaseFeature<Meta> {
 
     @Override
     public void disable() {
-
     }
 }

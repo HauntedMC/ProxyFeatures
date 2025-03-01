@@ -54,7 +54,7 @@ public class VersionCheck extends BaseFeature<Meta> {
                     Component.join(
                             JoinConfiguration.separator(Component.text(" ")),
                             Component.text("Verbinding verbroken:", NamedTextColor.RED),
-                            getLocalizationHandler().getMessage("versioncheck.unsupported_version")
+                            getLocalizationHandler().getMessage("versioncheck.unsupported_version", player)
                     )
             ));
         }

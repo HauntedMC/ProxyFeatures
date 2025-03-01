@@ -26,7 +26,7 @@ public class TextCommand extends FeatureCommand {
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
-            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command"));
+            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command", source));
             return;
         }
         
