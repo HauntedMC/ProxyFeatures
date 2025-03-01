@@ -31,7 +31,7 @@ import java.util.Collection;
 
 @Plugin(id = "proxyfeatures",
         name = "ProxyFeatures",
-        version = "1.0.0",
+        version = "1.1.0",
         url = "https://www.hauntedmc.nl",
         description = "ProxyFeatures",
         authors = {"HauntedMC"},

@@ -47,6 +47,22 @@ public class ProxyFeaturesCommand implements SimpleCommand {
                 listLoadedFeatures(sender);
                 break;
 
+            case "softreload":
+                if (!sender.hasPermission("proxyfeatures.command.reload")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission"));
+                    return;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.usage"));
+                    return;
+                }
+                if (plugin.getFeatureLoadManager().softReloadFeature(args[1])) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.success", Map.of("feature", args[1])));
+                } else {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.fail"));
+                }
+                return;
+
             case "reload":
                 if (!sender.hasPermission("proxyfeatures.command.reload")) {
                     sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission"));
@@ -115,14 +131,16 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             completions.add("list");
+            completions.add("disable");
+            completions.add("enable");
             completions.add("reload");
             completions.add("reloadlocal");
-            completions.add("enable");
-            completions.add("disable");
+            completions.add("softreload");
             completions.add("status");
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
                 case "reload":
+                case "softreload":
                 case "disable":
                     completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
                             .map(BaseFeature::getFeatureName)

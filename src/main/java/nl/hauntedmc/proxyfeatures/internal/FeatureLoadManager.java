@@ -167,6 +167,18 @@ public class FeatureLoadManager {
         return true;
     }
 
+    public boolean softReloadFeature(String featureName) {
+        if (!featureRegistry.isFeatureLoaded(featureName)) {
+            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
+            return false;
+        }
+        BaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        feature.getConfigHandler().reloadConfig();
+        feature.getLocalizationHandler().reloadLocalization();
+        plugin.getLogger().info("Feature " + featureName + " soft reloaded.");
+        return true;
+    }
+
     /**
      * Reloads a feature dynamically, ensuring dependent features reload afterward.
      */
@@ -218,5 +230,4 @@ public class FeatureLoadManager {
 
         plugin.getLogger().info("All features have been unloaded.");
     }
-
 }

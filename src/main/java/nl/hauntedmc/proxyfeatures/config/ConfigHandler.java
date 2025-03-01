@@ -16,7 +16,7 @@ import java.util.Set;
 public class ConfigHandler {
     private final ProxyFeatures plugin;
 
-    private CommentedConfigurationNode config;
+    protected CommentedConfigurationNode config;
 
     private final Path configFile;
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
