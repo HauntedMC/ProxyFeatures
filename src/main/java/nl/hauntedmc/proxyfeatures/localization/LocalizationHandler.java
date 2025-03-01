@@ -228,6 +228,6 @@ public class LocalizationHandler {
      */
     private Language getPlayerLanguage(Player player) {
         // Example: Always return English. Modify this method to return the player's actual language.
-        return Language.EN;
+        return Language.DE;
     }
 }
