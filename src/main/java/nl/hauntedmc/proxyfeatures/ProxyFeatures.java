@@ -36,8 +36,8 @@ import java.util.Collection;
         description = "ProxyFeatures",
         authors = {"HauntedMC"},
         dependencies = {
-                @Dependency(id = "DataRegistry"),
-                @Dependency(id = "DataProvider")
+                @Dependency(id = "dataregistry"),
+                @Dependency(id = "dataprovider")
         })
 public class ProxyFeatures {
 
