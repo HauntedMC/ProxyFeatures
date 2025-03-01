@@ -148,6 +148,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         int activeTaskCount = 0;
         int registeredListenerCount = 0;
         int registeredCommandCount = 0;
+        int activeConnCount = 0;
 
         for (BaseFeature<?> feature : loadedFeatures) {
             registeredCommandCount += feature.getLifecycleManager().getCommandManager().getRegisteredCommandCount();
@@ -159,10 +160,12 @@ public class ProxyFeaturesCommand implements SimpleCommand {
                     .toList());
             activeTaskCount += feature.getLifecycleManager().getTaskManager().getActiveTaskCount();
             registeredListenerCount += feature.getLifecycleManager().getListenerManager().getRegisteredListenerCount();
+            activeConnCount += feature.getLifecycleManager().getDataManager().getActiveConnCount();
         }
 
         sender.sendMessage(Component.text("ProxyFeatures Status:", NamedTextColor.YELLOW));
         sender.sendMessage(Component.text("- Number of loaded features: " + loadedFeatureCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of active database connections: " + activeConnCount, NamedTextColor.WHITE));
         sender.sendMessage(Component.text("- Number of active tasks: " + activeTaskCount, NamedTextColor.WHITE));
         sender.sendMessage(Component.text("- Number of registered listeners: " + registeredListenerCount, NamedTextColor.WHITE));
         sender.sendMessage(Component.text("- Number of registered commands: " + registeredCommandCount, NamedTextColor.WHITE));

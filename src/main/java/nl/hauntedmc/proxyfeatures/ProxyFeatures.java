@@ -10,6 +10,7 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyReloadEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
+import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
@@ -33,7 +34,11 @@ import java.util.Collection;
         version = "1.0.0",
         url = "https://www.hauntedmc.nl",
         description = "ProxyFeatures",
-        authors = {"HauntedMC"})
+        authors = {"HauntedMC"},
+        dependencies = {
+                @Dependency(id = "DataRegistry"),
+                @Dependency(id = "DataProvider")
+        })
 public class ProxyFeatures {
 
     private ConfigHandler configHandler;
