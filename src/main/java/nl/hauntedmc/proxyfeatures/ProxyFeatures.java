@@ -18,7 +18,6 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 
 import com.velocitypowered.api.scheduler.Scheduler;
-import net.kyori.adventure.audience.Audience;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.config.ConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
