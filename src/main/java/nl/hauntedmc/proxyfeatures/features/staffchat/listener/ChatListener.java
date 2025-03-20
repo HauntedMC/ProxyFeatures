@@ -22,24 +22,25 @@ public class ChatListener {
         Player player = event.getPlayer();
         String message = event.getMessage();
 
-        // Loop through each channel and check if the message starts with its prefix.
-        for (ChatChannel channel : handler.getChannels()) {
-            String prefix = channel.getPrefix();
-            if (message.startsWith(prefix)) {
-                if (!player.hasPermission(channel.getPermission())) {
-                    return;
-                }
+        if (message.isEmpty()) {
+            return;
+        }
 
-                // A player has gotten the channel permissions after joining. We have to add the player to the channel.
-                if (!handler.getViewers(channel).contains(player)) {
-                    handler.addViewer(channel, player);
-                }
-
-                event.setResult(PlayerChatEvent.ChatResult.denied());
-                String channelMessage = message.substring(prefix.length()).trim();
-                handler.sendChannelMessage(channel, player, channelMessage);
+        // If prefixes are one character long, perform a direct lookup.
+        String prefix = message.substring(0, 1);
+        ChatChannel channel = handler.getChannels().get(prefix);
+        if (channel != null && message.startsWith(prefix)) {
+            if (!player.hasPermission(channel.getPermission())) {
                 return;
             }
+
+            // Ensure the player is added as a viewer if not already.
+            if (!handler.getViewers(channel).contains(player)) {
+                handler.addViewer(channel, player);
+            }
+            event.setResult(PlayerChatEvent.ChatResult.denied());
+            String channelMessage = message.substring(prefix.length()).trim();
+            handler.sendChannelMessage(channel, player, channelMessage);
         }
     }
 }

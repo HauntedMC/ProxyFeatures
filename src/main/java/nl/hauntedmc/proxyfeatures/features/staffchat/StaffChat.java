@@ -35,6 +35,10 @@ public class StaffChat extends BaseFeature<Meta> {
         messageMap.add("staffchat.staff_format", "&8[&bStaffChat&68] &7[{server}] &7{player}: &b{message}");
         messageMap.add("staffchat.team_format", "&8[&eTeamChat&6] &7[{server}] &7{player}: &e{message}");
         messageMap.add("staffchat.admin_format", "&8[&cAdminChat&6] &7[{server}] &7{player}: &c{message}");
+        // Extra system messages for staff channel:
+        messageMap.add("staffchat.staff_join", "&6[&bStaffChat&6] &a{player} &7is gejoined.");
+        messageMap.add("staffchat.staff_leave", "&6[&bStaffChat&6] &c{player} &7is geleaved.");
+        messageMap.add("staffchat.staff_switch", "&6[&bStaffChat&6] &a{player} &7is geswitched van &c{from}&7 naar &c{to}&7.");
         return messageMap;
     }
 
@@ -43,7 +47,7 @@ public class StaffChat extends BaseFeature<Meta> {
         this.chatChannelHandler = new ChatChannelHandler(this);
 
         getPlugin().getProxy().getAllPlayers().forEach(player -> {
-            chatChannelHandler.getChannels().forEach(channel -> {
+            chatChannelHandler.getChannels().values().forEach(channel -> {
                 if (player.hasPermission(channel.getPermission())) {
                     chatChannelHandler.addViewer(channel, player);
                 }
