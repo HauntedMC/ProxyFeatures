@@ -7,7 +7,7 @@
     <groupId>nl.hauntedmc</groupId>
     <artifactId>proxyfeatures</artifactId>
     <name>ProxyFeatures</name>
-    <version>1.2.1</version>
+    <version>1.2.2</version>
     <url>https://www.hauntedmc.nl</url>
     <packaging>jar</packaging>
 
