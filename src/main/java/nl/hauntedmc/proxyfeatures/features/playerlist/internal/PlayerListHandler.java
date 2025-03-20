@@ -2,8 +2,10 @@ package nl.hauntedmc.proxyfeatures.features.playerlist.internal;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import de.myzelyam.api.vanish.VelocityVanishAPI;
 import net.kyori.adventure.text.JoinConfiguration;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.common.util.PlayerUtils;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -27,15 +29,19 @@ public class PlayerListHandler {
         ProxyFeatures plugin = feature.getPlugin();
         return plugin.getProxy().getServer(serverName)
                 .map(RegisteredServer::getPlayersConnected)
-                .orElseGet(java.util.Collections::emptyList);
+                .orElseGet(Collections::emptyList);
     }
 
     /**
      * Formats a global list of servers using localized messages.
-     * All text (including color codes and placeholders) is retrieved via flat keys.
+     * Excludes vanished players from both the global count and per-server count.
      */
     public Component formatGlobalList(Collection<RegisteredServer> servers, Player audience) {
-        int totalPlayers = feature.getPlugin().getProxy().getAllPlayers().size();
+        // Get all players from the proxy and filter out vanished ones.
+        List<Player> allPlayers = feature.getPlugin().getProxy().getAllPlayers().stream()
+                .filter(player -> !PlayerUtils.isVanished(player))
+                .toList();
+        int totalPlayers = allPlayers.size();
 
         String currentServerName = audience.getCurrentServer()
                 .map(s -> s.getServerInfo().getName())
@@ -57,17 +63,23 @@ public class PlayerListHandler {
         lines.add(totalMessage);
         lines.add(Component.empty());
 
-        // Order servers by the number of online players in descending order.
+        // Order servers by the number of non-vanished online players in descending order.
         List<RegisteredServer> sortedServers = servers.stream()
-                .sorted((s1, s2) -> Integer.compare(
-                        s2.getPlayersConnected().size(),
-                        s1.getPlayersConnected().size()))
+                .sorted((s1, s2) -> {
+                    int count1 = (int) s1.getPlayersConnected().stream().filter(p -> !PlayerUtils.isVanished(p)).count();
+                    int count2 = (int) s2.getPlayersConnected().stream().filter(p -> !PlayerUtils.isVanished(p)).count();
+                    return Integer.compare(count2, count1);
+                })
                 .toList();
 
         // Server list.
         for (RegisteredServer server : sortedServers) {
             String serverName = server.getServerInfo().getName();
-            int online = server.getPlayersConnected().size();
+            // Only count non-vanished players.
+            List<Player> onlinePlayers = server.getPlayersConnected().stream()
+                    .filter(player -> !PlayerUtils.isVanished(player))
+                    .toList();
+            int online = onlinePlayers.size();
             boolean isCurrent = serverName.equals(currentServerName);
 
             boolean isServerOnline = true;
@@ -133,15 +145,21 @@ public class PlayerListHandler {
 
     /**
      * Formats the player list for a specific server using localized messages.
+     * Excludes vanished players from the count and lists.
      */
     public Component formatPlayerList(String serverName, Collection<Player> players, Player audience) {
+        // Exclude vanished players.
+        List<Player> visiblePlayers = players.stream()
+                .filter(player -> !PlayerUtils.isVanished(player))
+                .toList();
+
         // Separate players into staff and non-staff groups, sorted alphabetically by username.
-        List<Player> staffPlayers = players.stream()
+        List<Player> staffPlayers = visiblePlayers.stream()
                 .filter(player -> player.hasPermission("proxyfeatures.feature.playerlist.staff"))
                 .sorted(Comparator.comparing(Player::getUsername, String::compareToIgnoreCase))
                 .toList();
 
-        List<Player> nonStaffPlayers = players.stream()
+        List<Player> nonStaffPlayers = visiblePlayers.stream()
                 .filter(player -> !player.hasPermission("proxyfeatures.feature.playerlist.staff"))
                 .sorted(Comparator.comparing(Player::getUsername, String::compareToIgnoreCase))
                 .toList();
@@ -149,7 +167,7 @@ public class PlayerListHandler {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.empty());
 
-        int playerCount = players.size();
+        int playerCount = visiblePlayers.size();
         Component playerCountMessage;
         if (playerCount == 0) {
             playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_none", audience, Map.of("server", serverName));
@@ -171,7 +189,7 @@ public class PlayerListHandler {
             lines.add(playerListLine);
         }
 
-        // Format staff players if the list is not empty
+        // Format staff players if the list is not empty.
         if (!staffPlayers.isEmpty()) {
             lines.add(Component.empty());
             String staffNames = staffPlayers.stream()
