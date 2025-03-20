@@ -2,7 +2,6 @@ package nl.hauntedmc.proxyfeatures.features.playerlist.internal;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import de.myzelyam.api.vanish.VelocityVanishAPI;
 import net.kyori.adventure.text.JoinConfiguration;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.common.util.PlayerUtils;
@@ -50,7 +49,6 @@ public class PlayerListHandler {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.empty());
 
-        // Total players message.
         Component totalMessage;
         if (totalPlayers == 0) {
             totalMessage = feature.getLocalizationHandler().getMessage("playerlist.total_players_none", audience);
@@ -72,7 +70,6 @@ public class PlayerListHandler {
                 })
                 .toList();
 
-        // Server list.
         for (RegisteredServer server : sortedServers) {
             String serverName = server.getServerInfo().getName();
             // Only count non-vanished players.
@@ -84,7 +81,6 @@ public class PlayerListHandler {
 
             boolean isServerOnline = true;
             try {
-                // Ping with a timeout of 50ms.
                 server.ping().get(50, TimeUnit.MILLISECONDS);
             } catch (Exception ex) {
                 isServerOnline = false;
@@ -95,14 +91,11 @@ public class PlayerListHandler {
                     ? feature.getLocalizationHandler().getMessage("playerlist.server_bullet_online", audience)
                     : feature.getLocalizationHandler().getMessage("playerlist.server_bullet_offline", audience);
 
-            // Localized dash separator.
             Component dash = feature.getLocalizationHandler().getMessage("playerlist.server_dash", audience);
 
-            // Localized online count.
             Component onlineComponent = feature.getLocalizationHandler().getMessage("playerlist.server_online_count", audience,
                     Map.of("online", String.valueOf(online)));
 
-            // Localized server name (different for current vs. other).
             Component nameComponent = isCurrent
                     ? feature.getLocalizationHandler().getMessage("playerlist.server_name_current", audience, Map.of("server", serverName))
                     : feature.getLocalizationHandler().getMessage("playerlist.server_name_other", audience, Map.of("server", serverName));
@@ -135,7 +128,6 @@ public class PlayerListHandler {
         }
 
         lines.add(Component.empty());
-        // Global tip.
         Component tip = feature.getLocalizationHandler().getMessage("playerlist.global_tip", audience);
         lines.add(tip);
         lines.add(Component.empty());
@@ -189,7 +181,6 @@ public class PlayerListHandler {
             lines.add(playerListLine);
         }
 
-        // Format staff players if the list is not empty.
         if (!staffPlayers.isEmpty()) {
             lines.add(Component.empty());
             String staffNames = staffPlayers.stream()

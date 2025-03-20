@@ -7,7 +7,6 @@ import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.common.util.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +34,6 @@ public class GlobalListCommand extends FeatureCommand {
 
         Collection<RegisteredServer> servers = feature.getPlugin().getProxy().getAllServers().stream().toList();
 
-        // Filter out blacklisted servers.
         var filteredServers = servers.stream()
                 .filter(server -> !blacklist.contains(server.getServerInfo().getName()))
                 .toList();

@@ -43,11 +43,9 @@ public class ListCommand extends FeatureCommand {
             String serverName = currentServerOpt.get().getServerInfo().getName();
 
             var players = feature.getPlayerListHandler().getPlayersOnServer(serverName);
-            // Pass the player as audience for localization.
             Component message = feature.getPlayerListHandler().formatPlayerList(serverName, players, player);
             player.sendMessage(message);
         } else if (args.length == 1) {
-            // One argument provided: list players on the specified server.
             String targetServer = args[0];
             Optional<RegisteredServer> serverOpt = feature.getPlugin().getProxy().getServer(targetServer);
             if (serverOpt.isEmpty() || blacklist.contains(targetServer)) {
