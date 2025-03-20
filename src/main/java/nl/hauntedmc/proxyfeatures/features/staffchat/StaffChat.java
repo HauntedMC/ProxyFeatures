@@ -2,7 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.staffchat;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.BaseFeature;
-import nl.hauntedmc.proxyfeatures.features.staffchat.internal.StaffChatHandler;
+import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler;
 import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ChatListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.meta.Meta;
@@ -13,37 +13,42 @@ import java.util.Map;
 
 public class StaffChat extends BaseFeature<Meta> {
 
-    private StaffChatHandler staffChatHandler;
+    private ChatChannelHandler chatChannelHandler;
 
     public StaffChat(ProxyFeatures plugin) {
-        super(plugin, new Meta()); // No meta needed; otherwise create one similar to PlayerList or Logger.
+        super(plugin, new Meta());
     }
 
     @Override
     public Map<String, Object> getDefaultConfig() {
         Map<String, Object> defaults = new HashMap<>();
         defaults.put("enabled", false);
-        defaults.put("prefix", "!");
+        defaults.put("staff_prefix", "!");
+        defaults.put("team_prefix", "@");
+        defaults.put("admin_prefix", "#");
         return defaults;
     }
 
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap messageMap = new MessageMap();
-        messageMap.add("staffchat.format", "&6[&bStaffChat&6] &7[{server}] &7{player}: &6{message}");
+        messageMap.add("staffchat.staff_format", "&8[&bStaffChat&68] &7[{server}] &7{player}: &b{message}");
+        messageMap.add("staffchat.team_format", "&8[&eTeamChat&6] &7[{server}] &7{player}: &e{message}");
+        messageMap.add("staffchat.admin_format", "&8[&cAdminChat&6] &7[{server}] &7{player}: &c{message}");
         return messageMap;
     }
 
     @Override
     public void initialize() {
-        this.staffChatHandler = new StaffChatHandler(this);
+        this.chatChannelHandler = new ChatChannelHandler(this);
 
         getPlugin().getProxy().getAllPlayers().forEach(player -> {
-            if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
-                staffChatHandler.addViewer(player);
-            }
+            chatChannelHandler.getChannels().forEach(channel -> {
+                if (player.hasPermission(channel.getPermission())) {
+                    chatChannelHandler.addViewer(channel, player);
+                }
+            });
         });
-
         getLifecycleManager().getListenerManager().registerListener(new ChatListener(this));
         getLifecycleManager().getListenerManager().registerListener(new ConnectListener(this));
     }
@@ -52,7 +57,7 @@ public class StaffChat extends BaseFeature<Meta> {
     public void disable() {
     }
 
-    public StaffChatHandler getStaffChatHandler() {
-        return staffChatHandler;
+    public ChatChannelHandler getChatChannelHandler() {
+        return chatChannelHandler;
     }
 }

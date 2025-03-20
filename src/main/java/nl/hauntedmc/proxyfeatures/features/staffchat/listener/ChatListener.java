@@ -2,18 +2,19 @@ package nl.hauntedmc.proxyfeatures.features.staffchat.listener;
 
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
-import nl.hauntedmc.proxyfeatures.features.staffchat.StaffChat;
-import nl.hauntedmc.proxyfeatures.features.staffchat.internal.StaffChatHandler;
 import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.features.staffchat.StaffChat;
+import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannel;
+import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler;
 
 public class ChatListener {
 
     private final StaffChat feature;
-    private final StaffChatHandler handler;
+    private final ChatChannelHandler handler;
 
     public ChatListener(StaffChat feature) {
         this.feature = feature;
-        this.handler = feature.getStaffChatHandler();
+        this.handler = feature.getChatChannelHandler();
     }
 
     @Subscribe
@@ -21,19 +22,24 @@ public class ChatListener {
         Player player = event.getPlayer();
         String message = event.getMessage();
 
-        // Get the prefix from the configuration.
-        String prefix = (String) feature.getConfigHandler().getSetting("prefix");
-        if (message.startsWith(prefix)) {
-            // Verify the sender has the permission.
-            if (!player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
+        // Loop through each channel and check if the message starts with its prefix.
+        for (ChatChannel channel : handler.getChannels()) {
+            String prefix = channel.getPrefix();
+            if (message.startsWith(prefix)) {
+                if (!player.hasPermission(channel.getPermission())) {
+                    return;
+                }
+
+                // A player has gotten the channel permissions after joining. We have to add the player to the channel.
+                if (!handler.getViewers(channel).contains(player)) {
+                    handler.addViewer(channel, player);
+                }
+
+                event.setResult(PlayerChatEvent.ChatResult.denied());
+                String channelMessage = message.substring(prefix.length()).trim();
+                handler.sendChannelMessage(channel, player, channelMessage);
                 return;
             }
-            // Cancel the event so it does not appear in the normal chat.
-            event.setResult(PlayerChatEvent.ChatResult.denied());
-            // Remove the prefix from the message.
-            String staffMessage = message.substring(prefix.length()).trim();
-            // Resend the message to staff viewers.
-            handler.sendStaffChatMessage(player, staffMessage);
         }
     }
 }
