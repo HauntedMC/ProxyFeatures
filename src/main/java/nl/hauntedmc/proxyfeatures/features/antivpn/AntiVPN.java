@@ -41,6 +41,8 @@ public class AntiVPN extends BaseFeature<Meta> { // Using Object for meta; adjus
         messages.add("antivpn.blocked_region", "&7Connection blocked: &cCountry/Region is not allowed&7.<newline><newline>&8If this is wrong please contact support at https://hauntedmc.nl/support");
         messages.add("antivpn.blocked_vpn", "&7Connection blocked: &cVPN/Proxy is not allowed&7.<newline><newline>&8If this is wrong please contact support at https://hauntedmc.nl/support");
         messages.add("antivpn.error", "&7Connection blocked: There was an error verifying your connection. Please try again later.");
+        messages.add("antivpn.notify_region", "&7[&cAntiVPN&7] &f{player} &fprobeerde in te loggen vanuit een &cgeblokkeerde regio ({country})&f en is geblokkeerd.");
+        messages.add("antivpn.notify_vpn", "&7[&cAntiVPN&7] &f{player} &fprobeerde in te loggen met een &cVPN/Proxy&f en is geblokkeerd.");
         return messages;
     }
 

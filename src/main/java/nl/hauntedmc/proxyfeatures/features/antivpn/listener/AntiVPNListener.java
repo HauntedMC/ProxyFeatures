@@ -7,9 +7,11 @@ import nl.hauntedmc.proxyfeatures.common.util.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.antivpn.AntiVPN;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPCheckResult;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPChecker;
+import net.kyori.adventure.text.Component;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Map;
 
 public class AntiVPNListener {
 
@@ -39,7 +41,6 @@ public class AntiVPNListener {
         boolean useRegionCheck = (boolean) feature.getConfigHandler().getSetting("use_region_check");
         if (useRegionCheck) {
             IPCheckResult result = ipChecker.check(ip);
-
             if (result == null) {
                 event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
                         feature.getLocalizationHandler().getMessage("antivpn.error", null)
@@ -47,6 +48,11 @@ public class AntiVPNListener {
                 return;
             }
             if (!allowedCountries.contains(result.getCountryCode())) {
+                // Notify staff about a region block.
+                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_region", null,
+                        Map.of("player", event.getUsername(), "country", result.getCountryCode()));
+                notifyStaff(notifyMessage);
+
                 event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
                         feature.getLocalizationHandler().getMessage("antivpn.blocked_region", null)
                 ));
@@ -65,10 +71,23 @@ public class AntiVPNListener {
                 return;
             }
             if (result.isVpn()) {
+                // Notify staff about a VPN/proxy block.
+                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_vpn", null,
+                        Map.of("player", event.getUsername()));
+                notifyStaff(notifyMessage);
+
                 event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
                         feature.getLocalizationHandler().getMessage("antivpn.blocked_vpn", null)
                 ));
             }
         }
+    }
+
+    private void notifyStaff(Component message) {
+        feature.getPlugin().getProxy().getAllPlayers().forEach(player -> {
+            if (player.hasPermission("proxyfeatures.feature.antivpn.notify")) {
+                player.sendMessage(message);
+            }
+        });
     }
 }
