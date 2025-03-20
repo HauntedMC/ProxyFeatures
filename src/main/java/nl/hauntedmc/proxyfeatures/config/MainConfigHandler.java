@@ -1,66 +1,27 @@
 package nl.hauntedmc.proxyfeatures.config;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
 import org.spongepowered.configurate.CommentedConfigurationNode;
-import org.spongepowered.configurate.loader.ConfigurationLoader;
-import org.spongepowered.configurate.serialize.SerializationException;
-import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-public class ConfigHandler {
-    private final ProxyFeatures plugin;
-
+public class MainConfigHandler {
+    protected final ResourceHandler configResource;
     protected CommentedConfigurationNode config;
 
-    private final Path configFile;
-    private final ConfigurationLoader<CommentedConfigurationNode> loader;
-    public ConfigHandler(ProxyFeatures plugin) {
-        this.plugin = plugin;
-        // Use the plugin's data directory to locate config.yml
-        this.configFile = plugin.getDataDirectory().resolve("config.yml");
-        this.loader = YamlConfigurationLoader.builder()
-                .path(configFile)
-                .build();
-
-        ensureConfigFileExists();
-        reloadConfig();
+    public MainConfigHandler(ProxyFeatures plugin) {
+        this.configResource = new ResourceHandler(plugin, "config.yml");
+        this.config = configResource.getConfig();
     }
 
     /**
-     * Ensures the configuration file exists. If not, copies the default from resources.
-     */
-    private void ensureConfigFileExists() {
-        try {
-            Files.createDirectories(configFile.getParent());
-            if (!Files.exists(configFile)) {
-                try (InputStream in = plugin.getClass().getResourceAsStream("/config.yml")) {
-                    if (in != null) {
-                        Files.copy(in, configFile);
-                    } else {
-                        plugin.getLogger().error("Default config.yml not found in resources!");
-                    }
-                }
-            }
-        } catch (IOException e) {
-            plugin.getLogger().error("Error ensuring config file exists", e);
-        }
-    }
-
-    /**
-     * Reloads config from disk.
+     * Reloads config from disk using the ResourceHandler.
      */
     public void reloadConfig() {
-        try {
-            this.config = loader.load();
-        } catch (IOException e) {
-            plugin.getLogger().error("Error reloading config file", e);
-        }
+        configResource.reload();
+        this.config = configResource.getConfig();
     }
 
     /**
@@ -70,10 +31,10 @@ public class ConfigHandler {
         if (config.node("features", featureName).virtual()) {
             try {
                 config.node("features", featureName, "enabled").set(false);
-            } catch (SerializationException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            saveConfig();
+            configResource.save();
         }
     }
 
@@ -86,14 +47,14 @@ public class ConfigHandler {
             if (config.node("features", featureName, entry.getKey()).virtual()) {
                 try {
                     config.node("features", featureName, entry.getKey()).set(entry.getValue());
-                } catch (SerializationException e) {
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
                 updated = true;
             }
         }
         if (updated) {
-            saveConfig();
+            configResource.save();
         }
     }
 
@@ -104,13 +65,16 @@ public class ConfigHandler {
         return config.node("features", featureName, "enabled").getBoolean(false);
     }
 
+    /**
+     * Sets a feature’s enabled state.
+     */
     public void setFeatureEnabled(String featureName, boolean enabled) {
         try {
             config.node("features", featureName, "enabled").set(enabled);
-        } catch (SerializationException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        saveConfig();
+        configResource.save();
     }
 
     /**
@@ -126,19 +90,12 @@ public class ConfigHandler {
                     }
                 }
             }
-            saveConfig();
-        }
-    }
-
-    private void saveConfig() {
-        try {
-            loader.save(config);
-        } catch (IOException e) {
-            plugin.getLogger().error("Error saving config file", e);
+            configResource.save();
         }
     }
 
     public CommentedConfigurationNode getConfig() {
         return config;
     }
+
 }

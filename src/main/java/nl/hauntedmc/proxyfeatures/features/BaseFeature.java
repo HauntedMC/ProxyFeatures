@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.config.FeatureConfigHandler;
+import nl.hauntedmc.proxyfeatures.internal.FeatureConfigHandler;
 import nl.hauntedmc.proxyfeatures.lifecycle.FeatureLifecycleManager;
 import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
 import nl.hauntedmc.proxyfeatures.localization.MessageMap;
