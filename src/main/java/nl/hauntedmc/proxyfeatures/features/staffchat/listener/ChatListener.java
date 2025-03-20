@@ -26,21 +26,18 @@ public class ChatListener {
             return;
         }
 
-        // If prefixes are one character long, perform a direct lookup.
+        // Use the first character as prefix.
         String prefix = message.substring(0, 1);
-        ChatChannel channel = handler.getChannels().get(prefix);
+        ChatChannel channel = handler.getChannelByPrefix(prefix);
         if (channel != null && message.startsWith(prefix)) {
             if (!player.hasPermission(channel.getPermission())) {
                 return;
             }
-
-            // Ensure the player is added as a viewer if not already.
-            if (!handler.getViewers(channel).contains(player)) {
-                handler.addViewer(channel, player);
-            }
+            // Add the player as a viewer if not already present.
+            channel.addViewer(player);
             event.setResult(PlayerChatEvent.ChatResult.denied());
             String channelMessage = message.substring(prefix.length()).trim();
-            handler.sendChannelMessage(channel, player, channelMessage);
+            channel.broadcastMessage(feature, player, channelMessage);
         }
     }
 }

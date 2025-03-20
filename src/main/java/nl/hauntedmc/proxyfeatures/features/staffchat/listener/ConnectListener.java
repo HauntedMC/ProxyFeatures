@@ -30,9 +30,11 @@ public class ConnectListener {
                 .findFirst();
     }
 
-    // Broadcasts a message to all viewers in a given channel.
+    /**
+     * Broadcasts a message to all viewers in the given channel.
+     */
     private void broadcastToChannel(ChatChannel channel, Component message) {
-        for (Player viewer : handler.getViewers(channel)) {
+        for (Player viewer : channel.getViewers()) {
             if (viewer.hasPermission(channel.getPermission())) {
                 viewer.sendMessage(message);
             }
@@ -42,13 +44,13 @@ public class ConnectListener {
     @Subscribe
     public void onPlayerJoin(PostLoginEvent event) {
         Player player = event.getPlayer();
-        // Add the player to all channels for which they have permission.
+        // Add the player as a viewer to all channels for which they have permission.
         for (ChatChannel channel : handler.getChannels().values()) {
             if (player.hasPermission(channel.getPermission())) {
-                handler.addViewer(channel, player);
+                channel.addViewer(player);
             }
         }
-        // Extra behavior for the staff channel: send join message.
+        // Special behavior for the staff channel.
         if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
             getStaffChannel().ifPresent(staffChannel -> {
                 Component joinMessage = feature.getLocalizationHandler().getMessage("staffchat.staff_join", player,
@@ -63,9 +65,9 @@ public class ConnectListener {
         Player player = event.getPlayer();
         // Remove the player from all channels.
         for (ChatChannel channel : handler.getChannels().values()) {
-            handler.removeViewer(channel, player);
+            channel.removeViewer(player);
         }
-        // Extra behavior for the staff channel: send leave message.
+        // Special behavior for the staff channel.
         if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
             getStaffChannel().ifPresent(staffChannel -> {
                 Component leaveMessage = feature.getLocalizationHandler().getMessage("staffchat.staff_leave", player,
@@ -78,11 +80,11 @@ public class ConnectListener {
     @Subscribe
     public void onServerSwitch(ServerConnectedEvent event) {
         Player player = event.getPlayer();
-        // Only process actual server switches (ignore initial join without a previous server)
+
         if (event.getPreviousServer().isEmpty()) {
             return;
         }
-        // Extra behavior for the staff channel: send switch message.
+        // Special behavior for the staff channel.
         if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
             getStaffChannel().ifPresent(staffChannel -> {
                 String from = event.getPreviousServer().get().getServerInfo().getName();
