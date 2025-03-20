@@ -8,10 +8,7 @@ import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -38,9 +35,7 @@ public class PlayerListHandler {
      * All text (including color codes and placeholders) is retrieved via flat keys.
      */
     public Component formatGlobalList(Collection<RegisteredServer> servers, Player audience) {
-        int totalPlayers = servers.stream()
-                .mapToInt(server -> server.getPlayersConnected().size())
-                .sum();
+        int totalPlayers = feature.getPlugin().getProxy().getAllPlayers().size();
 
         String currentServerName = audience.getCurrentServer()
                 .map(s -> s.getServerInfo().getName())
@@ -140,30 +135,53 @@ public class PlayerListHandler {
      * Formats the player list for a specific server using localized messages.
      */
     public Component formatPlayerList(String serverName, Collection<Player> players, Player audience) {
+        // Separate players into staff and non-staff groups, sorted alphabetically by username.
+        List<Player> staffPlayers = players.stream()
+                .filter(player -> player.hasPermission("proxyfeatures.feature.playerlist.staff"))
+                .sorted(Comparator.comparing(Player::getUsername, String::compareToIgnoreCase))
+                .toList();
+
+        List<Player> nonStaffPlayers = players.stream()
+                .filter(player -> !player.hasPermission("proxyfeatures.feature.playerlist.staff"))
+                .sorted(Comparator.comparing(Player::getUsername, String::compareToIgnoreCase))
+                .toList();
+
         List<Component> lines = new ArrayList<>();
         lines.add(Component.empty());
 
-        int count = players.size();
-        Component countMessage;
-        if (count == 0) {
-            countMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_none", audience, Map.of("server", serverName));
-        } else if (count == 1) {
-            countMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_one", audience, Map.of("server", serverName));
+        int playerCount = players.size();
+        Component playerCountMessage;
+        if (playerCount == 0) {
+            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_none", audience, Map.of("server", serverName));
+        } else if (playerCount == 1) {
+            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_one", audience, Map.of("server", serverName));
         } else {
-            countMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_multiple", audience,
-                    Map.of("server", serverName, "count", String.valueOf(count)));
+            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_multiple", audience,
+                    Map.of("server", serverName, "count", String.valueOf(playerCount)));
         }
-        lines.add(countMessage);
+        lines.add(playerCountMessage);
 
-        if (!players.isEmpty()) {
+        if (!nonStaffPlayers.isEmpty()) {
             lines.add(Component.empty());
-            String playerNames = players.stream()
+            String playerNames = nonStaffPlayers.stream()
                     .map(Player::getUsername)
                     .collect(Collectors.joining(", "));
             Component playerListLine = feature.getLocalizationHandler().getMessage("playerlist.server_players_list", audience,
                     Map.of("players", playerNames));
             lines.add(playerListLine);
         }
+
+        // Format staff players if the list is not empty
+        if (!staffPlayers.isEmpty()) {
+            lines.add(Component.empty());
+            String staffNames = staffPlayers.stream()
+                    .map(Player::getUsername)
+                    .collect(Collectors.joining(", "));
+            Component staffListLine = feature.getLocalizationHandler().getMessage("playerlist.server_staff_list", audience,
+                    Map.of("players", staffNames));
+            lines.add(staffListLine);
+        }
+
         lines.add(Component.empty());
         Component tip = feature.getLocalizationHandler().getMessage("playerlist.server_tip_global", audience);
         lines.add(tip);

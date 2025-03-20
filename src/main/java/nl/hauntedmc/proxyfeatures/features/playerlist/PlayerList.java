@@ -59,6 +59,7 @@ public class PlayerList extends BaseFeature<Meta> {
         messageMap.add("playerlist.server_count_one", "&eEr is 1 speler online op {server}.");
         messageMap.add("playerlist.server_count_multiple", "&eEr zijn {count} spelers online op {server}.");
         messageMap.add("playerlist.server_players_list", "&b  Spelers: &7{players}");
+        messageMap.add("playerlist.server_staff_list", "&b  Staff: &7{players}");
         messageMap.add("playerlist.server_tip_global", "&bTip: &7Gebruik &e/glist&7 voor een globaal overzicht.");
 
         return messageMap;

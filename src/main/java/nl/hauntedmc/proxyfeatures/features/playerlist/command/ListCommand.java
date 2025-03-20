@@ -67,7 +67,7 @@ public class ListCommand extends FeatureCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("proxyfeatures.feature.playerlist.use");
+        return invocation.source().hasPermission("proxyfeatures.feature.playerlist.command.list");
     }
 
     @Override
