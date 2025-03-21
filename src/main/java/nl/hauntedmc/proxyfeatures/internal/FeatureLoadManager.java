@@ -2,7 +2,7 @@ package nl.hauntedmc.proxyfeatures.internal;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.BaseFeature;
-import nl.hauntedmc.proxyfeatures.config.ConfigHandler;
+import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.events.FeatureDisabledEvent;
 import nl.hauntedmc.proxyfeatures.internal.events.FeatureLoadedEvent;
 import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
@@ -13,14 +13,14 @@ import java.util.*;
 public class FeatureLoadManager {
 
     private final ProxyFeatures plugin;
-    private final ConfigHandler configHandler;
+    private final MainConfigHandler mainConfigHandler;
     private final FeatureRegistry featureRegistry;
     private final FeatureDependencyManager dependencyManager;
     private final LocalizationHandler localizationHandler;
 
     public FeatureLoadManager(ProxyFeatures plugin) {
         this.plugin = plugin;
-        this.configHandler = plugin.getConfigHandler();
+        this.mainConfigHandler = plugin.getConfigHandler();
         this.localizationHandler = plugin.getLocalizationHandler();
         this.featureRegistry = new FeatureRegistry();
         this.dependencyManager = new FeatureDependencyManager(this, plugin);
@@ -50,7 +50,7 @@ public class FeatureLoadManager {
             });
         }
         plugin.getLogger().info("Discovered features: {}", featureRegistry.getAvailableFeatures().keySet());
-        configHandler.cleanupUnusedFeatures(featureRegistry.getAvailableFeatures().keySet());
+        mainConfigHandler.cleanupUnusedFeatures(featureRegistry.getAvailableFeatures().keySet());
     }
 
     /**
@@ -107,7 +107,7 @@ public class FeatureLoadManager {
             plugin.getLogger().warn("Feature not found: {}", featureName);
             return false;
         }
-        configHandler.setFeatureEnabled(featureName, true);
+        mainConfigHandler.setFeatureEnabled(featureName, true);
         return loadFeature(featureName);
     }
 
@@ -124,11 +124,11 @@ public class FeatureLoadManager {
         BaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
         if (feature == null) return false;
 
-        configHandler.registerFeature(featureName);
-        configHandler.injectFeatureDefaults(featureName, feature.getDefaultConfig());
+        mainConfigHandler.registerFeature(featureName);
+        mainConfigHandler.injectFeatureDefaults(featureName, feature.getDefaultConfig());
         localizationHandler.registerDefaultMessages(feature.getDefaultMessages());
 
-        if (configHandler.isFeatureEnabled(featureName)) {
+        if (mainConfigHandler.isFeatureEnabled(featureName)) {
             if (!dependencyManager.areDependenciesMet(feature)) {
                 plugin.getLogger().warn("Feature {} is missing dependencies and cannot be enabled.", featureName);
                 return false;
@@ -154,7 +154,7 @@ public class FeatureLoadManager {
             return false;
         }
         feature.cleanup();
-        configHandler.setFeatureEnabled(featureName, false);
+        mainConfigHandler.setFeatureEnabled(featureName, false);
         plugin.getLogger().info("Feature disabled: {}", featureName);
         featureRegistry.deregisterLoadedFeature(featureName);
         FeatureEventManager.triggerEvent(new FeatureDisabledEvent(featureName));
@@ -188,7 +188,7 @@ public class FeatureLoadManager {
             return false;
         }
 
-        configHandler.reloadConfig();
+        mainConfigHandler.reloadConfig();
         localizationHandler.reloadLocalization();
         BaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
         feature.cleanup();

@@ -19,7 +19,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 
 import com.velocitypowered.api.scheduler.Scheduler;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
-import nl.hauntedmc.proxyfeatures.config.ConfigHandler;
+import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
 import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ import java.util.Collection;
 
 @Plugin(id = "proxyfeatures",
         name = "ProxyFeatures",
-        version = "1.1.0",
+        version = "1.2.2",
         url = "https://www.hauntedmc.nl",
         description = "ProxyFeatures",
         authors = {"HauntedMC"},
@@ -40,7 +40,7 @@ import java.util.Collection;
         })
 public class ProxyFeatures {
 
-    private ConfigHandler configHandler;
+    private MainConfigHandler mainConfigHandler;
     private FeatureLoadManager featureLoadManager;
     private LocalizationHandler localizationHandler;
 
@@ -71,7 +71,7 @@ public class ProxyFeatures {
         PacketEvents.getAPI().init();
 
         // General plugin initialization
-        configHandler = new ConfigHandler(this);
+        mainConfigHandler = new MainConfigHandler(this);
         localizationHandler = new LocalizationHandler(this);
         featureLoadManager = new FeatureLoadManager(this);
         registerBaseCommand();
@@ -126,8 +126,8 @@ public class ProxyFeatures {
         return featureLoadManager;
     }
 
-    public ConfigHandler getConfigHandler() {
-        return configHandler;
+    public MainConfigHandler getConfigHandler() {
+        return mainConfigHandler;
     }
 
     public LocalizationHandler getLocalizationHandler() {
@@ -139,7 +139,7 @@ public class ProxyFeatures {
     }
 
     public CommentedConfigurationNode getConfig() {
-        return configHandler.getConfig();
+        return mainConfigHandler.getConfig();
     }
 
     public PluginManager getPluginManager() {

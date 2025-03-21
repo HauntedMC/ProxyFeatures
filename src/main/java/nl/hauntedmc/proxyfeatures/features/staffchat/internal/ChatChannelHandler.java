@@ -1,0 +1,59 @@
+package nl.hauntedmc.proxyfeatures.features.staffchat.internal;
+
+import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.features.staffchat.StaffChat;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Acts as a registry for all chat channels.
+ */
+public class ChatChannelHandler {
+
+    private final Map<String, ChatChannel> channels;
+
+    public ChatChannelHandler(StaffChat feature) {
+        this.channels = new HashMap<>();
+
+        // Initialize channels using configuration values.
+        String staffPrefix = (String) feature.getConfigHandler().getSetting("staff_prefix");
+        channels.put(staffPrefix, new ChatChannel("staff", "proxyfeatures.feature.staffchat.staff", "staffchat.staff_format", staffPrefix));
+
+        String teamPrefix = (String) feature.getConfigHandler().getSetting("team_prefix");
+        channels.put(teamPrefix, new ChatChannel("team", "proxyfeatures.feature.staffchat.team", "staffchat.team_format", teamPrefix));
+
+        String adminPrefix = (String) feature.getConfigHandler().getSetting("admin_prefix");
+        channels.put(adminPrefix, new ChatChannel("admin", "proxyfeatures.feature.staffchat.admin", "staffchat.admin_format", adminPrefix));
+    }
+
+    public Map<String, ChatChannel> getChannels() {
+        return channels;
+    }
+
+    /**
+     * Retrieves a channel by its prefix.
+     *
+     * @param prefix the channel prefix
+     * @return the corresponding ChatChannel or null if not found
+     */
+    public ChatChannel getChannelByPrefix(String prefix) {
+        return channels.get(prefix);
+    }
+
+    /**
+     * Initializes the viewer lists for all channels based on currently connected players.
+     *
+     * @param players a collection of connected players
+     */
+    public void initializeViewers(Collection<Player> players) {
+        for (Player player : players) {
+            for (ChatChannel channel : channels.values()) {
+                if (player.hasPermission(channel.getPermission())) {
+                    channel.addViewer(player);
+                }
+            }
+        }
+    }
+}
