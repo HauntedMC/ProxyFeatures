@@ -118,8 +118,6 @@ public class ProxyFeatures {
     }
 
     private void registerCommonListeners() {
-        //EventManager eventManager = proxy.getEventManager();
-        //eventManager.register(this, new SomeListener(this));
     }
 
     public FeatureLoadManager getFeatureLoadManager() {
