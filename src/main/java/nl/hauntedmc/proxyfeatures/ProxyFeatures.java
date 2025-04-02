@@ -1,6 +1,5 @@
 package nl.hauntedmc.proxyfeatures;
 
-import com.github.retrooper.packetevents.PacketEvents;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.velocitypowered.api.command.CommandManager;
@@ -68,8 +67,6 @@ public class ProxyFeatures {
      */
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
-        PacketEvents.getAPI().init();
-
         // General plugin initialization
         mainConfigHandler = new MainConfigHandler(this);
         localizationHandler = new LocalizationHandler(this);

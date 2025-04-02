@@ -5,12 +5,13 @@ import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.BaseFeature;
 import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-public class FeatureDependencyManager {
+public class FeatureDependencyManager implements Serializable {
 
     private final FeatureLoadManager featureLoadManager;
     private final ProxyFeatures plugin;
