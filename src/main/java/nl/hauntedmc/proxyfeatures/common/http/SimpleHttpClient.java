@@ -1,4 +1,4 @@
-package nl.hauntedmc.proxyfeatures.features.hlink.internal.util;
+package nl.hauntedmc.proxyfeatures.common.http;
 
 import org.apache.hc.core5.http.NameValuePair;
 

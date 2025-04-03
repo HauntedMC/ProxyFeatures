@@ -1,0 +1,49 @@
+package nl.hauntedmc.proxyfeatures.features.hlink.internal.hook;
+
+import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
+import net.luckperms.api.event.EventBus;
+import net.luckperms.api.event.node.NodeMutateEvent;
+import net.luckperms.api.event.EventSubscription;
+import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
+import com.velocitypowered.api.proxy.Player;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+public class LuckPermsHook {
+
+    private static final List<EventSubscription<?>> subscriptions = new ArrayList<>();
+
+    /**
+     * Subscribes to LuckPerms events and updates the player's data when their direct group assignments change.
+     *
+     * @param feature The HLink feature instance.
+     */
+    public static void subscribeLuckPermsHook(HLink feature) {
+        LuckPerms api = LuckPermsProvider.get();
+        EventBus eventBus = api.getEventBus();
+
+        EventSubscription<NodeMutateEvent> nodeSubscription = eventBus.subscribe(
+                feature.getPlugin(),
+                NodeMutateEvent.class,
+                event -> {
+                    String friendlyName = event.getTarget().getFriendlyName();
+                    Optional<Player> playerOpt = feature.getPlugin().getProxy().getPlayer(friendlyName);
+                    playerOpt.ifPresent(player -> feature.getHLinkHandler().updatePlayerData(player));
+                }
+        );
+        subscriptions.add(nodeSubscription);
+    }
+
+    /**
+     * Unsubscribes from all LuckPerms events that were subscribed via this hook.
+     */
+    public static void unsubscribeLuckPermsHook() {
+        for (EventSubscription<?> sub : subscriptions) {
+            sub.close();
+        }
+        subscriptions.clear();
+    }
+}
