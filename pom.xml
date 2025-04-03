@@ -69,6 +69,8 @@
                             <artifactSet>
                                 <includes>
                                     <include>io.github.classgraph:classgraph</include>
+                                    <include>org.apache.httpcomponents.client5:httpclient5</include>
+                                    <include>org.apache.httpcomponents.core5:httpcore5</include>
                                 </includes>
                             </artifactSet>
                         </configuration>
@@ -77,14 +79,6 @@
                 <configuration>
                     <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
                     <relocations>
-                        <relocation>
-                            <pattern>cloud.commandframework</pattern>
-                            <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.cloud</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>io.leangen.geantyref</pattern>
-                            <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.typetoken</shadedPattern>
-                        </relocation>
                     </relocations>
                     <filters>
                         <filter>
@@ -98,19 +92,6 @@
                         </filter>
                     </filters>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.deycen.code.betterjava</groupId>
-                <artifactId>betterjava-maven-plugin</artifactId>
-                <version>1.0.0</version>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>com.google.code.maven-replacer-plugin</groupId>
@@ -255,6 +236,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>LATEST</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.4.3</version>
         </dependency>
         <dependency>
             <groupId>javax.annotation</groupId>
