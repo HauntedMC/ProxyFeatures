@@ -16,19 +16,6 @@ public class SimpleHttpClient {
 
     private static final HttpClient client = HttpClient.newHttpClient();
 
-    public static String get(String url) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 200 && response.statusCode() < 300) {
-            return response.body();
-        } else {
-            throw new IOException("Unexpected response code: " + response.statusCode());
-        }
-    }
-
     public static String post(String url, List<NameValuePair> args) throws Exception {
         String form = args.stream()
                 .map(p -> URLEncoder.encode(p.getName(), StandardCharsets.UTF_8)
