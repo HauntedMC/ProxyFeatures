@@ -26,14 +26,14 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         String[] args = invocation.arguments();
 
         if (args.length == 0) {
-            sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.usage", sender));
+            sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.usage").forAudience(sender).build());
             return;
         }
 
         switch (args[0].toLowerCase()) {
             case "status":
                 if (!sender.hasPermission("proxyfeatures.command.status")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
                     return;
                 }
                 sendPluginStatus(sender);
@@ -41,7 +41,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
 
             case "list":
                 if (!sender.hasPermission("proxyfeatures.command.list")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
                     return;
                 }
                 listLoadedFeatures(sender);
@@ -49,73 +49,73 @@ public class ProxyFeaturesCommand implements SimpleCommand {
 
             case "softreload":
                 if (!sender.hasPermission("proxyfeatures.command.reload")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
                     return;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.usage", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.usage").forAudience(sender).build());
                     return;
                 }
                 if (plugin.getFeatureLoadManager().softReloadFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.success", sender, Map.of("feature", args[1])));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
                 } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.fail", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.fail").forAudience(sender).build());
                 }
                 return;
 
             case "reload":
                 if (!sender.hasPermission("proxyfeatures.command.reload")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
                     return;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.usage", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.usage").forAudience(sender).build());
                     return;
                 }
                 if (plugin.getFeatureLoadManager().reloadFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.success", sender, Map.of("feature", args[1])));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
                 } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.fail", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.fail").forAudience(sender).build());
                 }
                 break;
 
             case "enable":
                 if (!sender.hasPermission("proxyfeatures.command.enable")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
                     return;
                 }
                 if (args.length < 2) return;
                 if (plugin.getFeatureLoadManager().enableFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.success", sender, Map.of("feature", args[1])));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
                 } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.fail", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.fail").forAudience(sender).build());
                 }
                 break;
 
             case "disable":
                 if (!sender.hasPermission("proxyfeatures.command.disable")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
                     return;
                 }
                 if (args.length < 2) return;
                 if (plugin.getFeatureLoadManager().disableFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.success", sender, Map.of("feature", args[1])));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
                 } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.fail", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.fail").forAudience(sender).build());
                 }
                 break;
 
             case "reloadlocal":
                 if (!sender.hasPermission("proxyfeatures.command.reloadlocal")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission", sender));
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
                     return;
                 }
                 plugin.getLocalizationHandler().reloadLocalization();
-                sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reloadlocal.success", sender));
+                sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reloadlocal.success").forAudience(sender).build());
                 break;
 
             default:
-                sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.unknown_command", sender));
+                sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.unknown_command").forAudience(sender).build());
                 break;
         }
     }
@@ -194,16 +194,16 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
 
         if (loadedFeatures.isEmpty()) {
-            sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.empty", sender));
+            sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.empty").forAudience(sender).build());
             return;
         }
 
-        sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.header", sender));
+        sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.header").forAudience(sender).build());
         for (BaseFeature<?> feature : loadedFeatures) {
             sender.sendMessage(plugin.getLocalizationHandler().getMessage(
-                    "command.list.entry", sender,
-                    Map.of("feature", feature.getFeatureName(), "version", feature.getFeatureVersion())
-            ));
+                    "command.list.entry").forAudience(sender).withPlaceholders(
+                    Map.of("feature", feature.getFeatureName(), "version", feature.getFeatureVersion())).build()
+            );
         }
     }
 }

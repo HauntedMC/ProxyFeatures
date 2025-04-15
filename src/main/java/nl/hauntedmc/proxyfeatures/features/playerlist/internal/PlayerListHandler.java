@@ -51,12 +51,12 @@ public class PlayerListHandler {
 
         Component totalMessage;
         if (totalPlayers == 0) {
-            totalMessage = feature.getLocalizationHandler().getMessage("playerlist.total_players_none", audience);
+            totalMessage = feature.getLocalizationHandler().getMessage("playerlist.total_players_none").forAudience(audience).build();
         } else if (totalPlayers == 1) {
-            totalMessage = feature.getLocalizationHandler().getMessage("playerlist.total_players_one", audience);
+            totalMessage = feature.getLocalizationHandler().getMessage("playerlist.total_players_one").forAudience(audience).build();
         } else {
-            totalMessage = feature.getLocalizationHandler().getMessage("playerlist.total_players_multiple", audience,
-                    Map.of("count", String.valueOf(totalPlayers)));
+            totalMessage = feature.getLocalizationHandler().getMessage("playerlist.total_players_multiple").forAudience(audience).withPlaceholders(
+                    Map.of("count", String.valueOf(totalPlayers))).build();
         }
         lines.add(totalMessage);
         lines.add(Component.empty());
@@ -88,32 +88,32 @@ public class PlayerListHandler {
 
             // Use the localized bullet based on online status.
             Component bullet = isServerOnline
-                    ? feature.getLocalizationHandler().getMessage("playerlist.server_bullet_online", audience)
-                    : feature.getLocalizationHandler().getMessage("playerlist.server_bullet_offline", audience);
+                    ? feature.getLocalizationHandler().getMessage("playerlist.server_bullet_online").forAudience(audience).build()
+                    : feature.getLocalizationHandler().getMessage("playerlist.server_bullet_offline").forAudience(audience).build();
 
-            Component dash = feature.getLocalizationHandler().getMessage("playerlist.server_dash", audience);
+            Component dash = feature.getLocalizationHandler().getMessage("playerlist.server_dash").forAudience(audience).build();
 
-            Component onlineComponent = feature.getLocalizationHandler().getMessage("playerlist.server_online_count", audience,
-                    Map.of("online", String.valueOf(online)));
+            Component onlineComponent = feature.getLocalizationHandler().getMessage("playerlist.server_online_count").forAudience(audience).withPlaceholders(
+                    Map.of("online", String.valueOf(online))).build();
 
             Component nameComponent = isCurrent
-                    ? feature.getLocalizationHandler().getMessage("playerlist.server_name_current", audience, Map.of("server", serverName))
-                    : feature.getLocalizationHandler().getMessage("playerlist.server_name_other", audience, Map.of("server", serverName));
+                    ? feature.getLocalizationHandler().getMessage("playerlist.server_name_current").forAudience(audience).withPlaceholders(Map.of("server", serverName)).build()
+                    : feature.getLocalizationHandler().getMessage("playerlist.server_name_other").forAudience(audience).withPlaceholders(Map.of("server", serverName)).build();
 
             // Build clickable buttons.
             TextComponent.Builder buttons = Component.text();
             if (!isCurrent) {
-                Component buttonConnect = feature.getLocalizationHandler().getMessage("playerlist.server_connect", audience)
+                Component buttonConnect = feature.getLocalizationHandler().getMessage("playerlist.server_connect").forAudience(audience).build()
                         .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/server " + serverName))
                         .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                                feature.getLocalizationHandler().getMessage("playerlist.server_connect_hover", audience, Map.of("server", serverName))
+                                feature.getLocalizationHandler().getMessage("playerlist.server_connect_hover").forAudience(audience).withPlaceholders(Map.of("server", serverName)).build()
                         ));
                 buttons.append(buttonConnect);
             }
-            Component buttonPlayers = feature.getLocalizationHandler().getMessage("playerlist.server_players", audience)
+            Component buttonPlayers = feature.getLocalizationHandler().getMessage("playerlist.server_players").forAudience(audience).build()
                     .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/list " + serverName))
                     .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                            feature.getLocalizationHandler().getMessage("playerlist.server_players_hover", audience, Map.of("server", serverName))
+                            feature.getLocalizationHandler().getMessage("playerlist.server_players_hover").forAudience(audience).withPlaceholders(Map.of("server", serverName)).build()
                     ));
             buttons.append(buttonPlayers);
 
@@ -128,7 +128,7 @@ public class PlayerListHandler {
         }
 
         lines.add(Component.empty());
-        Component tip = feature.getLocalizationHandler().getMessage("playerlist.global_tip", audience);
+        Component tip = feature.getLocalizationHandler().getMessage("playerlist.global_tip").forAudience(audience).build();
         lines.add(tip);
         lines.add(Component.empty());
 
@@ -162,12 +162,12 @@ public class PlayerListHandler {
         int playerCount = visiblePlayers.size();
         Component playerCountMessage;
         if (playerCount == 0) {
-            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_none", audience, Map.of("server", serverName));
+            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_none").forAudience(audience).withPlaceholders(Map.of("server", serverName)).build();
         } else if (playerCount == 1) {
-            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_one", audience, Map.of("server", serverName));
+            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_one").forAudience(audience).withPlaceholders(Map.of("server", serverName)).build();
         } else {
-            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_multiple", audience,
-                    Map.of("server", serverName, "count", String.valueOf(playerCount)));
+            playerCountMessage = feature.getLocalizationHandler().getMessage("playerlist.server_count_multiple").forAudience(audience).withPlaceholders(
+                    Map.of("server", serverName, "count", String.valueOf(playerCount))).build();
         }
         lines.add(playerCountMessage);
 
@@ -176,8 +176,8 @@ public class PlayerListHandler {
             String playerNames = nonStaffPlayers.stream()
                     .map(Player::getUsername)
                     .collect(Collectors.joining(", "));
-            Component playerListLine = feature.getLocalizationHandler().getMessage("playerlist.server_players_list", audience,
-                    Map.of("players", playerNames));
+            Component playerListLine = feature.getLocalizationHandler().getMessage("playerlist.server_players_list").forAudience(audience).withPlaceholders(
+                    Map.of("players", playerNames)).build();
             lines.add(playerListLine);
         }
 
@@ -186,13 +186,13 @@ public class PlayerListHandler {
             String staffNames = staffPlayers.stream()
                     .map(Player::getUsername)
                     .collect(Collectors.joining(", "));
-            Component staffListLine = feature.getLocalizationHandler().getMessage("playerlist.server_staff_list", audience,
-                    Map.of("players", staffNames));
+            Component staffListLine = feature.getLocalizationHandler().getMessage("playerlist.server_staff_list").forAudience(audience).withPlaceholders(
+                    Map.of("players", staffNames)).build();
             lines.add(staffListLine);
         }
 
         lines.add(Component.empty());
-        Component tip = feature.getLocalizationHandler().getMessage("playerlist.server_tip_global", audience);
+        Component tip = feature.getLocalizationHandler().getMessage("playerlist.server_tip_global").forAudience(audience).build();
         lines.add(tip);
         lines.add(Component.empty());
 

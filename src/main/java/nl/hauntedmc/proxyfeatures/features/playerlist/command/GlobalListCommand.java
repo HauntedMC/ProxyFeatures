@@ -28,7 +28,7 @@ public class GlobalListCommand extends FeatureCommand {
         CommandSource source = invocation.source();
 
         if (!(source instanceof Player player)) {
-            source.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.command_only_players", source));
+            source.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.command_only_players").forAudience(source).build());
             return;
         }
 

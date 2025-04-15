@@ -4,10 +4,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import nl.hauntedmc.proxyfeatures.common.util.CastUtils;
+import nl.hauntedmc.proxyfeatures.common.util.TextUtils;
 import nl.hauntedmc.proxyfeatures.features.motd.Motd;
 import org.jetbrains.annotations.NotNull;
 
@@ -78,20 +76,9 @@ public class MotdHandler {
         }
 
         String line2 = getLine2(words, index1, index2);
-
         String completeMotd = line1 + "\n" + line2;
 
-        MiniMessage textSerializer = MiniMessage.builder()
-                .tags(TagResolver.builder()
-                        .resolver(StandardTags.color())
-                        .resolver(StandardTags.decorations())
-                        .resolver(StandardTags.clickEvent())
-                        .resolver(StandardTags.hoverEvent())
-                        .resolver(StandardTags.gradient())
-                        .build())
-                .build();
-
-        return textSerializer.deserialize(completeMotd);
+        return  TextUtils.deserializeMMComponent(completeMotd);
     }
 
     private static @NotNull String getLine2(List<String> words, int index1, int index2) {

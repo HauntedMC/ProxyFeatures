@@ -83,13 +83,13 @@ public class ChatChannel {
                 .orElse("unknown");
 
         // Format the message using the localization handler and the channel’s format key.
-        Component formattedMessage = feature.getLocalizationHandler().getMessage(formatKey, sender,
+        Component formattedMessage = feature.getLocalizationHandler().getMessage(formatKey).forAudience(sender).withPlaceholders(
                 Map.of(
                         "server", serverName,
                         "player", sender.getUsername(),
                         "message", message
                 )
-        );
+        ).build();
 
         for (Player viewer : getViewers()) {
             if (viewer.hasPermission(permission)) {

@@ -43,18 +43,18 @@ public class AntiVPNListener {
             IPCheckResult result = ipChecker.check(ip);
             if (result == null) {
                 event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.error", null)
+                        feature.getLocalizationHandler().getMessage("antivpn.error").build()
                 ));
                 return;
             }
             if (!allowedCountries.contains(result.getCountryCode())) {
                 // Notify staff about a region block.
-                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_region", null,
-                        Map.of("player", event.getUsername(), "country", result.getCountryCode()));
+                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_region").withPlaceholders(
+                        Map.of("player", event.getUsername(), "country", result.getCountryCode())).build();
                 notifyStaff(notifyMessage);
 
                 event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.blocked_region", null)
+                        feature.getLocalizationHandler().getMessage("antivpn.blocked_region").build()
                 ));
                 return;
             }
@@ -66,18 +66,18 @@ public class AntiVPNListener {
             IPCheckResult result = ipChecker.check(ip);
             if (result == null) {
                 event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.error", null)
+                        feature.getLocalizationHandler().getMessage("antivpn.error").build()
                 ));
                 return;
             }
             if (result.isVpn()) {
                 // Notify staff about a VPN/proxy block.
-                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_vpn", null,
-                        Map.of("player", event.getUsername()));
+                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_vpn").withPlaceholders(
+                        Map.of("player", event.getUsername())).build();
                 notifyStaff(notifyMessage);
 
                 event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.blocked_vpn", null)
+                        feature.getLocalizationHandler().getMessage("antivpn.blocked_vpn").build()
                 ));
             }
         }

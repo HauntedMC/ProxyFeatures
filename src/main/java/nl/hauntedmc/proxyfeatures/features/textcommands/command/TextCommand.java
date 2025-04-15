@@ -26,11 +26,11 @@ public class TextCommand extends FeatureCommand {
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
-            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command", source));
+            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command").forAudience(source).build());
             return;
         }
         
-        Component output = TextUtils.serializeComponentMM(this.rawOutput);
+        Component output = TextUtils.deserializeMMComponent(this.rawOutput);
         player.sendMessage(output);
     }
 

@@ -132,9 +132,9 @@ public class HLinkHandler {
 
         if (alreadyRegistered(uuid)) {
             if (keyType == 1) {
-                player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorAlreadyLinked", player));
+                player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorAlreadyLinked").forAudience(player).build());
             } else {
-                player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorAlreadyRegistered", player));
+                player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorAlreadyRegistered").forAudience(player).build());
             }
             return null;
         }
@@ -166,7 +166,7 @@ public class HLinkHandler {
             SimpleHttpClient.post(apiUrl + "/updatePlayerCache", argsUpdate);
         } catch (Exception e) {
             plugin.getLogger().error("Error adding new key for {}", player.getUsername(), e);
-            player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorCreatingKey", player));
+            player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorCreatingKey").forAudience(player).build());
             return "errorCreatingKey";
         }
         return token;

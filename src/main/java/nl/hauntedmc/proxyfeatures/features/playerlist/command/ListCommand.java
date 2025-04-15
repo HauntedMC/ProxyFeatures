@@ -28,7 +28,7 @@ public class ListCommand extends FeatureCommand {
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
-            source.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.command_only_players", source));
+            source.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.command_only_players").forAudience(source).build());
             return;
         }
 
@@ -37,7 +37,7 @@ public class ListCommand extends FeatureCommand {
             // No arguments: list players on the current server.
             Optional<ServerConnection> currentServerOpt = player.getCurrentServer();
             if (currentServerOpt.isEmpty()) {
-                player.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.not_on_server", player));
+                player.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.not_on_server").forAudience(player).build());
                 return;
             }
             String serverName = currentServerOpt.get().getServerInfo().getName();
@@ -49,7 +49,7 @@ public class ListCommand extends FeatureCommand {
             String targetServer = args[0];
             Optional<RegisteredServer> serverOpt = feature.getPlugin().getProxy().getServer(targetServer);
             if (serverOpt.isEmpty() || blacklist.contains(targetServer)) {
-                player.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.server_not_found", player)
+                player.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.server_not_found").forAudience(player).build()
                         .replaceText(builder -> builder.matchLiteral("{server}").replacement(targetServer)));
                 return;
             }
@@ -59,7 +59,7 @@ public class ListCommand extends FeatureCommand {
 
             player.sendMessage(message);
         } else {
-            player.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.usage", player));
+            player.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.usage").forAudience(player).build());
         }
     }
 

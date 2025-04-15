@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.common.resources;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.loader.ConfigurationLoader;
+import org.spongepowered.configurate.yaml.NodeStyle;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 import java.io.IOException;
@@ -21,6 +22,7 @@ public class ResourceHandler {
         this.file = plugin.getDataDirectory().resolve(fileName);
         this.loader = YamlConfigurationLoader.builder()
                 .path(file)
+                .nodeStyle(NodeStyle.BLOCK)
                 .build();
         ensureFileExists();
         load();

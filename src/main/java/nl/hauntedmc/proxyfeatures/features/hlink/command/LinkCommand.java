@@ -25,7 +25,7 @@ public class LinkCommand extends FeatureCommand {
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
-            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command", source));
+            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command").forAudience(source).build());
             return;
         }
         String token = handler.addNewKey(player, 1);
@@ -37,13 +37,13 @@ public class LinkCommand extends FeatureCommand {
         String link = handler.getLink(token);
 
         // Send header message.
-        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.header", player));
+        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.header").forAudience(player).build());
         // Create a clickable component using the localized click text.
-        Component clickable = feature.getLocalizationHandler().getMessage("hlink.clickLink", player)
+        Component clickable = feature.getLocalizationHandler().getMessage("hlink.clickLink").forAudience(player).build()
                 .clickEvent(ClickEvent.openUrl(link));
         source.sendMessage(clickable);
         // Send footer message.
-        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.footer", player));
+        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.footer").forAudience(player).build());
     }
 
     @Override

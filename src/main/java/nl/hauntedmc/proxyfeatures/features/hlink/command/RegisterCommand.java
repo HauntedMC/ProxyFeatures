@@ -25,7 +25,7 @@ public class RegisterCommand extends FeatureCommand {
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
-            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command", source));
+            source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command").forAudience(source).build());
             return;
         }
         String token = handler.addNewKey(player, 2);
@@ -36,11 +36,11 @@ public class RegisterCommand extends FeatureCommand {
 
         String link = handler.getLink(token);
 
-        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.header", player));
-        Component clickable = feature.getLocalizationHandler().getMessage("hlink.clickLink", player)
+        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.header").forAudience(player).build());
+        Component clickable = feature.getLocalizationHandler().getMessage("hlink.clickLink").forAudience(player).build()
                 .clickEvent(ClickEvent.openUrl(link));
         source.sendMessage(clickable);
-        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.footer", player));
+        source.sendMessage(feature.getLocalizationHandler().getMessage("hlink.footer").forAudience(player).build());
     }
 
     @Override
