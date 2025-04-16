@@ -27,6 +27,9 @@ public class Hub extends BaseFeature<Meta> {
         MessageMap messageMap = new MessageMap();
         messageMap.add("hub.not_available", "&cOp dit moment is de Lobby server niet beschikbaar.");
         messageMap.add("hub.already_connected", "&cJe bent al verbonden met deze server.");
+        messageMap.add("hub.connection_success", "&aJe wordt verbonden met &7{server}&a.");
+        messageMap.add("hub.connection_failure", "&cJe kon helaas niet worden verbonden met &7{server}&c: &f{reason}");
+        messageMap.add("hub.unknown_failure_reason", "&cEr is een onbekende fout opgetreden.");
         return messageMap;
     }
 

@@ -1,24 +1,27 @@
-package nl.hauntedmc.proxyfeatures.features.hub.command;
+package nl.hauntedmc.proxyfeatures.features.slashserver.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
-import nl.hauntedmc.proxyfeatures.features.hub.Hub;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.features.slashserver.SlashServer;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class HubCommand extends FeatureCommand {
+public class SlashServerCommand extends FeatureCommand {
 
-    private final Hub feature;
+    private final SlashServer feature;
+    private final String serverName;
 
-    public HubCommand(Hub feature) {
+    public SlashServerCommand(SlashServer feature, String serverName) {
         this.feature = feature;
+        this.serverName = serverName;
     }
 
     @Override
@@ -32,49 +35,45 @@ public class HubCommand extends FeatureCommand {
             return;
         }
 
-        // Attempt to retrieve the lobby server by name "lobby".
-        Optional<RegisteredServer> lobbyOptional = feature.getPlugin().getProxy().getServer("lobby");
-        if (lobbyOptional.isEmpty()) {
+        Optional<RegisteredServer> optionalServer = feature.getPlugin().getProxy().getServer(serverName);
+        if (optionalServer.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("hub.not_available")
-                    .withPlaceholders(Map.of("server", "lobby"))
+                    .getMessage("slash.not_available")
+                    .withPlaceholders(Map.of("server", serverName))
                     .forAudience(player)
                     .build());
             return;
         }
 
-        RegisteredServer lobby = lobbyOptional.get();
-        // Check if the player is already connected to the lobby.
-        if (lobby.getPlayersConnected().contains(player)) {
+        RegisteredServer targetServer = optionalServer.get();
+        // Check if the player is already connected to this server
+        if (targetServer.getPlayersConnected().contains(player)) {
             player.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("hub.already_connected")
+                    .getMessage("slash.already_connected")
                     .forAudience(player)
                     .build());
             return;
         }
 
-        // Initiate connection asynchronously with proper feedback.
-        player.createConnectionRequest(lobby).connect().thenAccept(result -> {
+        // Initiate server connection asynchronously and send feedback using localization keys
+        player.createConnectionRequest(targetServer).connect().thenAccept(result -> {
             if (result.isSuccessful()) {
                 player.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("hub.connection_success")
-                        .withPlaceholders(Map.of("server", "lobby"))
+                        .getMessage("slash.connection_success")
+                        .withPlaceholders(Map.of("server", serverName))
                         .forAudience(player)
                         .build());
             } else {
                 String reason;
                 if (result.getReasonComponent().isPresent()) {
-                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(
-                            result.getReasonComponent().get());
+                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(result.getReasonComponent().get());
                 } else {
-                    Component unknown = feature.getLocalizationHandler()
-                            .getMessage("hub.unknown_failure_reason")
-                            .build();
-                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(unknown);
+                    Component unknownReason = feature.getLocalizationHandler().getMessage("slash.unknown_failure_reason").build();
+                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(unknownReason);
                 }
                 player.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("hub.connection_failure")
-                        .withPlaceholders(Map.of("server", "lobby", "reason", reason))
+                        .getMessage("slash.connection_failure")
+                        .withPlaceholders(Map.of("server", serverName, "reason", reason))
                         .forAudience(player)
                         .build());
             }
@@ -83,7 +82,7 @@ public class HubCommand extends FeatureCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("proxyfeatures.feature.hub.use");
+        return invocation.source().hasPermission("proxyfeatures.feature.slashserver.use");
     }
 
     @Override
@@ -93,6 +92,6 @@ public class HubCommand extends FeatureCommand {
 
     @Override
     public String getName() {
-        return "hub";
+        return serverName;
     }
 }
