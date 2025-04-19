@@ -114,7 +114,7 @@ public class HLinkHandler {
                 }
             }
 
-            return String.join(", ", highestPerTrack);
+            return String.join(",", highestPerTrack);
 
         } catch (Exception e) {
             plugin.getLogger().error("Error retrieving LuckPerms groups for {}", player.getUsername(), e);
