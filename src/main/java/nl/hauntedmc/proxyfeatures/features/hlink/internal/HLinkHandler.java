@@ -5,6 +5,10 @@ import com.velocitypowered.api.proxy.Player;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.user.User;
+import net.luckperms.api.node.NodeType;
+import net.luckperms.api.node.types.InheritanceNode;
+import net.luckperms.api.track.Track;
+import net.luckperms.api.track.TrackManager;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.api.AccountRequest;
@@ -13,11 +17,9 @@ import nl.hauntedmc.proxyfeatures.common.http.SimpleHttpClient;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 public class HLinkHandler {
 
@@ -79,15 +81,45 @@ public class HLinkHandler {
      */
     private String getPlayerGroups(Player player) {
         try {
-            LuckPerms luckPerms = LuckPermsProvider.get();
-            User user = luckPerms.getUserManager().getUser(player.getUniqueId());
-            if (user != null) {
-                return user.getPrimaryGroup();
+            LuckPerms lp = LuckPermsProvider.get();
+            User user = lp.getUserManager().getUser(player.getUniqueId());
+            if (user == null) {
+                return "default";
             }
+
+            // Gather *direct* inheritance nodes, EXCLUDING any with a server context
+            Set<String> directGroups = user.getNodes().stream()
+                    .filter(NodeType.INHERITANCE::matches)                       // true for InheritanceNode :contentReference[oaicite:0]{index=0}
+                    .map(NodeType.INHERITANCE::cast)
+                    .filter(n -> n.getContexts().getValues("server").isEmpty())   // only keep global nodes :contentReference[oaicite:1]{index=1}
+                    .map(InheritanceNode::getGroupName)
+                    .collect(Collectors.toSet());
+
+            if (directGroups.isEmpty()) {
+                return "default";
+            }
+
+            // Iterate each track and pick the *highest* direct group present
+            TrackManager tm = lp.getTrackManager();
+            List<String> highestPerTrack = new ArrayList<>();
+
+            for (Track track : tm.getLoadedTracks()) {                       // all loaded ladders :contentReference[oaicite:2]{index=2}
+                List<String> ladder = track.getGroups();                     // ordered low→high :contentReference[oaicite:3]{index=3}
+                for (int i = ladder.size() - 1; i >= 0; i--) {
+                    String grp = ladder.get(i);
+                    if (directGroups.contains(grp)) {
+                        highestPerTrack.add(grp);
+                        break;
+                    }
+                }
+            }
+
+            return String.join(", ", highestPerTrack);
+
         } catch (Exception e) {
             plugin.getLogger().error("Error retrieving LuckPerms groups for {}", player.getUsername(), e);
+            return "default";
         }
-        return "default";
     }
 
     public String doesKeyExist(String uuid, int keyType) {
