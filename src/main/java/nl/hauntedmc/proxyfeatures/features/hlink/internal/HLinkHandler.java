@@ -89,9 +89,9 @@ public class HLinkHandler {
 
             // Gather *direct* inheritance nodes, EXCLUDING any with a server context
             Set<String> directGroups = user.getNodes().stream()
-                    .filter(NodeType.INHERITANCE::matches)                       // true for InheritanceNode :contentReference[oaicite:0]{index=0}
+                    .filter(NodeType.INHERITANCE::matches)
                     .map(NodeType.INHERITANCE::cast)
-                    .filter(n -> n.getContexts().getValues("server").isEmpty())   // only keep global nodes :contentReference[oaicite:1]{index=1}
+                    .filter(n -> n.getContexts().getValues("server").isEmpty())
                     .map(InheritanceNode::getGroupName)
                     .collect(Collectors.toSet());
 
@@ -103,8 +103,8 @@ public class HLinkHandler {
             TrackManager tm = lp.getTrackManager();
             List<String> highestPerTrack = new ArrayList<>();
 
-            for (Track track : tm.getLoadedTracks()) {                       // all loaded ladders :contentReference[oaicite:2]{index=2}
-                List<String> ladder = track.getGroups();                     // ordered low→high :contentReference[oaicite:3]{index=3}
+            for (Track track : tm.getLoadedTracks()) {
+                List<String> ladder = track.getGroups();
                 for (int i = ladder.size() - 1; i >= 0; i--) {
                     String grp = ladder.get(i);
                     if (directGroups.contains(grp)) {

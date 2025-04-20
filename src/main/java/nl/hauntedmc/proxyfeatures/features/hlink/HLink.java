@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.hlink;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.hlink.command.HLinkCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.LinkCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.RegisterCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.hook.LuckPermsHook;
@@ -39,6 +40,9 @@ public class HLink extends BaseFeature<Meta> {
         messageMap.add("hlink.footer", "&7&m------------------------------");
         messageMap.add("hlink.errorCreatingKey", "&cFout bij linken van account. Maak een support ticket aan voor hulp.");
         messageMap.add("hlink.linkMessage", "&eJe account is succesvol gelinkt aan de website.");
+        messageMap.add("hlink.syncUsage",        "&cGebruik: /hlink sync <speler>");
+        messageMap.add("hlink.syncNotOnline",    "&cSpeler &6{player}&c niet gevonden.");
+        messageMap.add("hlink.syncSuccess",      "&aSpeler &6{player}&a gesynchroniseerd.");
         return messageMap;
     }
 
@@ -47,6 +51,7 @@ public class HLink extends BaseFeature<Meta> {
         this.hlinkHandler = new HLinkHandler(this);
         getLifecycleManager().getCommandManager().registerFeatureCommand(new LinkCommand(this));
         getLifecycleManager().getCommandManager().registerFeatureCommand(new RegisterCommand(this));
+        getLifecycleManager().getCommandManager().registerFeatureCommand(new HLinkCommand(this));
         LuckPermsHook.subscribeLuckPermsHook(this);
     }
 
