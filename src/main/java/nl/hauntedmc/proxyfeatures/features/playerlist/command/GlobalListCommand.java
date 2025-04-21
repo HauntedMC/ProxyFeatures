@@ -3,8 +3,8 @@ package nl.hauntedmc.proxyfeatures.features.playerlist.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import nl.hauntedmc.commonlib.util.CastUtils;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
-import nl.hauntedmc.proxyfeatures.common.util.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
 import net.kyori.adventure.text.Component;
 

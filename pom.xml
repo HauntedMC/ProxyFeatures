@@ -7,7 +7,7 @@
     <groupId>nl.hauntedmc</groupId>
     <artifactId>proxyfeatures</artifactId>
     <name>ProxyFeatures</name>
-    <version>1.2.2</version>
+    <version>1.2.3</version>
     <url>https://www.hauntedmc.nl</url>
     <packaging>jar</packaging>
 
@@ -66,8 +66,42 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <relocations>
+                                <!-- Relocate your internal commonlib -->
+                                <relocation>
+                                    <pattern>nl.hauntedmc.commonlib</pattern>
+                                    <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.commonlib</shadedPattern>
+                                </relocation>
+
+                                <!-- Relocate ClassGraph -->
+                                <relocation>
+                                    <pattern>io.github.classgraph</pattern>
+                                    <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.classgraph</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>nonapi.io.github.classgraph</pattern>
+                                    <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.nonapi.classgraph</shadedPattern>
+                                </relocation>
+
+                                <!-- Relocate http -->
+                                <relocation>
+                                    <pattern>org.apache.hc.client5</pattern>
+                                    <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.hc.client5</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.hc.core5</pattern>
+                                    <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.hc.core5</shadedPattern>
+                                </relocation>
+
+                                <!-- Apache Commons Text -->
+                                <relocation>
+                                    <pattern>org.apache.commons.text</pattern>
+                                    <shadedPattern>nl.hauntedmc.proxyfeatures.shaded.commons_text</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <artifactSet>
                                 <includes>
+                                    <include>nl.hauntedmc.commonlib:commonlib</include>
                                     <include>io.github.classgraph:classgraph</include>
                                     <include>org.apache.httpcomponents.client5:httpclient5</include>
                                     <include>org.apache.httpcomponents.core5:httpcore5</include>
@@ -214,6 +248,11 @@
             <artifactId>dataprovider</artifactId>
             <version>1.19.0</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>nl.hauntedmc.commonlib</groupId>
+            <artifactId>commonlib</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.spongepowered</groupId>

@@ -3,7 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.antivpn.listener;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
-import nl.hauntedmc.proxyfeatures.common.util.CastUtils;
+import nl.hauntedmc.commonlib.util.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.antivpn.AntiVPN;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPCheckResult;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPChecker;
