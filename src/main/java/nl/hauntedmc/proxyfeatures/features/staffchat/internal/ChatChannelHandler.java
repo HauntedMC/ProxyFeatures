@@ -17,15 +17,14 @@ public class ChatChannelHandler {
     public ChatChannelHandler(StaffChat feature) {
         this.channels = new HashMap<>();
 
-        // Initialize channels using configuration values.
         String staffPrefix = (String) feature.getConfigHandler().getSetting("staff_prefix");
-        channels.put(staffPrefix, new ChatChannel("staff", "proxyfeatures.feature.staffchat.staff", "staffchat.staff_format", staffPrefix));
+        channels.put(staffPrefix, new ChatChannel("staff",  staffPrefix));
 
         String teamPrefix = (String) feature.getConfigHandler().getSetting("team_prefix");
-        channels.put(teamPrefix, new ChatChannel("team", "proxyfeatures.feature.staffchat.team", "staffchat.team_format", teamPrefix));
+        channels.put(teamPrefix, new ChatChannel("team",  teamPrefix));
 
         String adminPrefix = (String) feature.getConfigHandler().getSetting("admin_prefix");
-        channels.put(adminPrefix, new ChatChannel("admin", "proxyfeatures.feature.staffchat.admin", "staffchat.admin_format", adminPrefix));
+        channels.put(adminPrefix, new ChatChannel("admin",  adminPrefix));
     }
 
     public Map<String, ChatChannel> getChannels() {

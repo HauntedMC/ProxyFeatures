@@ -21,12 +21,13 @@ public class ChatChannel {
     // Thread-safe set for viewers.
     private final Set<Player> viewers = ConcurrentHashMap.newKeySet();
 
-    public ChatChannel(String id, String permission, String formatKey, String prefix) {
+    public ChatChannel(String id, String prefix) {
         this.id = id;
-        this.permission = permission;
-        this.formatKey = formatKey;
         this.prefix = prefix;
+        this.permission = "proxyfeatures.feature.staffchat." + id;
+        this.formatKey = "staffchat."+id+"_format";
     }
+
 
     public String getId() {
         return id;
@@ -71,22 +72,13 @@ public class ChatChannel {
 
     /**
      * Broadcasts a message to all viewers with the required permission.
-     *
-     * @param feature the StaffChat feature (provides localization handler)
-     * @param sender  the player sending the message
-     * @param message the raw message content
      */
-    public void broadcastMessage(StaffChat feature, Player sender, String message) {
-        // Determine the sender's current server name.
-        String serverName = sender.getCurrentServer()
-                .map(s -> s.getServerInfo().getName())
-                .orElse("unknown");
-
+    public void broadcastMessage(StaffChat feature, String serverName, String playerName, String message) {
         // Format the message using the localization handler and the channel’s format key.
-        Component formattedMessage = feature.getLocalizationHandler().getMessage(formatKey).forAudience(sender).withPlaceholders(
+        Component formattedMessage = feature.getLocalizationHandler().getMessage(formatKey).withPlaceholders(
                 Map.of(
                         "server", serverName,
-                        "player", sender.getUsername(),
+                        "player", playerName,
                         "message", message
                 )
         ).build();

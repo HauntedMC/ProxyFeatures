@@ -1,19 +1,26 @@
 package nl.hauntedmc.proxyfeatures.features.staffchat;
 
 import nl.hauntedmc.commonlib.localization.MessageMap;
+import nl.hauntedmc.dataprovider.database.DatabaseProvider;
+import nl.hauntedmc.dataprovider.database.DatabaseType;
+import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
+import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
-import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ChatListener;
+import nl.hauntedmc.proxyfeatures.features.staffchat.internal.messaging.EventBusHandler;
+import nl.hauntedmc.proxyfeatures.features.staffchat.internal.messaging.StaffChatMessage;
 import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler;
 import nl.hauntedmc.proxyfeatures.features.staffchat.meta.Meta;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class StaffChat extends VelocityBaseFeature<Meta> {
 
     private ChatChannelHandler chatChannelHandler;
+    private EventBusHandler eventBusHandler;
 
     public StaffChat(ProxyFeatures plugin) {
         super(plugin, new Meta());
@@ -43,20 +50,52 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
 
     @Override
     public void initialize() {
+        getLifecycleManager()
+                .getDataManager()
+                .initDataProvider(getFeatureName());
+
+        Optional<DatabaseProvider> opt = getLifecycleManager()
+                .getDataManager()
+                .registerConnection(
+                        "redis",
+                        DatabaseType.REDIS_MESSAGING,
+                        "default"
+                );
+
+        if (opt.isEmpty()) {
+            return;
+        }
+
+        DatabaseProvider dbp = opt.get();
+        MessagingDataAccess redisBus;
+        try {
+            redisBus = (MessagingDataAccess) dbp.getDataAccess();
+        } catch (ClassCastException e) {
+            return;
+        }
+
+        MessageRegistry.register("staffchat", StaffChatMessage.class);
+
+        eventBusHandler = new EventBusHandler(this, redisBus);
+        eventBusHandler.subscribeChannel("proxy.staffchat.message");
+
+
         this.chatChannelHandler = new ChatChannelHandler(this);
-
         chatChannelHandler.initializeViewers(getPlugin().getProxy().getAllPlayers());
-
         // Register listeners.
-        getLifecycleManager().getListenerManager().registerListener(new ChatListener(this));
         getLifecycleManager().getListenerManager().registerListener(new ConnectListener(this));
     }
 
     @Override
     public void disable() {
+        eventBusHandler.disable();
     }
 
     public ChatChannelHandler getChatChannelHandler() {
         return chatChannelHandler;
+    }
+
+    public EventBusHandler getEventBusHandler() {
+        return eventBusHandler;
     }
 }

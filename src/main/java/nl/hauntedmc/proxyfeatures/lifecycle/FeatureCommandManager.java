@@ -1,7 +1,6 @@
 package nl.hauntedmc.proxyfeatures.lifecycle;
 
 import com.velocitypowered.api.command.CommandManager;
-
 import com.velocitypowered.api.command.CommandMeta;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
