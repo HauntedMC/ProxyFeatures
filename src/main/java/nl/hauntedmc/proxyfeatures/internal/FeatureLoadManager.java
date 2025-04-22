@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.internal;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.events.FeatureDisabledEvent;
 import nl.hauntedmc.proxyfeatures.internal.events.FeatureLoadedEvent;
@@ -36,12 +36,12 @@ public class FeatureLoadManager {
                 .enableClassInfo()
                 .acceptPackages("nl.hauntedmc.proxyfeatures.features")
                 .scan()) {
-            scanResult.getSubclasses(BaseFeature.class.getName()).forEach(classInfo -> {
+            scanResult.getSubclasses(VelocityBaseFeature.class.getName()).forEach(classInfo -> {
                 try {
                     Class<?> clazz = Class.forName(classInfo.getName());
-                    if (BaseFeature.class.isAssignableFrom(clazz)) {
+                    if (VelocityBaseFeature.class.isAssignableFrom(clazz)) {
                         @SuppressWarnings("unchecked")
-                        Class<? extends BaseFeature<?>> featureClass = (Class<? extends BaseFeature<?>>) clazz;
+                        Class<? extends VelocityBaseFeature<?>> featureClass = (Class<? extends VelocityBaseFeature<?>>) clazz;
                         featureRegistry.registerAvailableFeature(classInfo.getSimpleName(), featureClass);
                     }
                 } catch (ClassNotFoundException e) {
@@ -84,7 +84,7 @@ public class FeatureLoadManager {
         stack.add(featureName);
         visited.add(featureName);
 
-        BaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
+        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
         if (feature != null) {
             for (String dependency : feature.getDependencies()) {
                 if (!resolveFeatureLoadOrder(dependency, stack, visited, loadOrder)) {
@@ -121,7 +121,7 @@ public class FeatureLoadManager {
             return false;
         }
 
-        BaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
+        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
         if (feature == null) return false;
 
         mainConfigHandler.registerFeature(featureName);
@@ -148,7 +148,7 @@ public class FeatureLoadManager {
      * Disables and unloads a feature dynamically.
      */
     public boolean disableFeature(String featureName) {
-        BaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
         if (feature == null) {
             plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
             return false;
@@ -172,7 +172,7 @@ public class FeatureLoadManager {
             plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
             return false;
         }
-        BaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
         feature.getConfigHandler().reloadConfig();
         feature.getLocalizationHandler().reloadLocalization();
         plugin.getLogger().info("Feature " + featureName + " soft reloaded.");
@@ -190,7 +190,7 @@ public class FeatureLoadManager {
 
         mainConfigHandler.reloadConfig();
         localizationHandler.reloadLocalization();
-        BaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
         feature.cleanup();
         featureRegistry.deregisterLoadedFeature(featureName);
 
@@ -222,9 +222,9 @@ public class FeatureLoadManager {
     public void unloadAllFeatures() {
         plugin.getLogger().info("Unloading all loaded features...");
 
-        List<BaseFeature<?>> loadedFeatures = featureRegistry.getLoadedFeatures();
+        List<VelocityBaseFeature<?>> loadedFeatures = featureRegistry.getLoadedFeatures();
 
-        for (BaseFeature<?> feature : loadedFeatures) {
+        for (VelocityBaseFeature<?> feature : loadedFeatures) {
             feature.cleanup();
         }
 

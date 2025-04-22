@@ -1,16 +1,16 @@
 package nl.hauntedmc.proxyfeatures.features.slashserver;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.slashserver.command.SlashServerCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class SlashServer extends BaseFeature<Meta> {
+public class SlashServer extends VelocityBaseFeature<Meta> {
 
     public SlashServer(ProxyFeatures plugin) {
         super(plugin, new Meta());

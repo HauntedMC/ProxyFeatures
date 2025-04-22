@@ -5,7 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.util.CastUtils;
-import nl.hauntedmc.proxyfeatures.common.util.TextUtils;
+import nl.hauntedmc.commonlib.util.ComponentUtils;
 import nl.hauntedmc.proxyfeatures.features.motd.Motd;
 import org.jetbrains.annotations.NotNull;
 
@@ -78,7 +78,7 @@ public class MotdHandler {
         String line2 = getLine2(words, index1, index2);
         String completeMotd = line1 + "\n" + line2;
 
-        return  TextUtils.deserializeMMComponent(completeMotd);
+        return  ComponentUtils.deserializeMMComponent(completeMotd);
     }
 
     private static @NotNull String getLine2(List<String> words, int index1, int index2) {

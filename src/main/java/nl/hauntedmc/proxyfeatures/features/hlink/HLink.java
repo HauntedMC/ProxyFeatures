@@ -1,19 +1,19 @@
 package nl.hauntedmc.proxyfeatures.features.hlink;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.HLinkCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.LinkCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.RegisterCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.hook.LuckPermsHook;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.HLinkHandler;
 import nl.hauntedmc.proxyfeatures.features.hlink.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class HLink extends BaseFeature<Meta> {
+public class HLink extends VelocityBaseFeature<Meta> {
 
     private HLinkHandler hlinkHandler;
 

@@ -1,15 +1,15 @@
 package nl.hauntedmc.proxyfeatures.features.textcommands;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.textcommands.command.TextCommand;
 import nl.hauntedmc.proxyfeatures.features.textcommands.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class TextCommands extends BaseFeature<Meta> {
+public class TextCommands extends VelocityBaseFeature<Meta> {
     private Map<String, String> commands;
 
     public TextCommands(ProxyFeatures plugin) {

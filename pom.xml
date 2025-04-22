@@ -7,7 +7,7 @@
     <groupId>nl.hauntedmc</groupId>
     <artifactId>proxyfeatures</artifactId>
     <name>ProxyFeatures</name>
-    <version>1.2.3</version>
+    <version>1.2.4</version>
     <url>https://www.hauntedmc.nl</url>
     <packaging>jar</packaging>
 
@@ -252,7 +252,7 @@
         <dependency>
             <groupId>nl.hauntedmc.commonlib</groupId>
             <artifactId>commonlib</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.5</version>
         </dependency>
         <dependency>
             <groupId>org.spongepowered</groupId>

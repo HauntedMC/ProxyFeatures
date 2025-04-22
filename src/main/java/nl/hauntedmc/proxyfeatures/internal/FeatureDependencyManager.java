@@ -2,7 +2,7 @@ package nl.hauntedmc.proxyfeatures.internal;
 
 import com.velocitypowered.api.plugin.PluginContainer;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
 
 import java.io.Serializable;
@@ -24,14 +24,14 @@ public class FeatureDependencyManager implements Serializable {
     /**
      * Ensures that all dependencies of a feature are enabled before loading.
      */
-    public boolean areDependenciesMet(BaseFeature<?> feature) {
+    public boolean areDependenciesMet(VelocityBaseFeature<?> feature) {
         return checkDependencies(feature, new HashSet<>()) && arePluginDependenciesMet(feature);
     }
 
     /**
      * Recursively checks dependencies and ensures they are enabled.
      */
-    private boolean checkDependencies(BaseFeature<?> feature, Set<String> visited) {
+    private boolean checkDependencies(VelocityBaseFeature<?> feature, Set<String> visited) {
         String featureName = feature.getFeatureName();
 
         // 🔹 Prevent circular dependencies
@@ -47,7 +47,7 @@ public class FeatureDependencyManager implements Serializable {
             if (!featureLoadManager.getFeatureRegistry().isFeatureLoaded(dependency)) {
                 plugin.getLogger().info("Enabling dependency {} for {}", dependency, featureName);
 
-                BaseFeature<?> dependencyFeature = FeatureFactory.createFeature(
+                VelocityBaseFeature<?> dependencyFeature = FeatureFactory.createFeature(
                         featureLoadManager.getFeatureRegistry().getAvailableFeatures().get(dependency),
                         this.plugin
                 );
@@ -74,7 +74,7 @@ public class FeatureDependencyManager implements Serializable {
     /**
      * Checks if all required external plugins are loaded.
      */
-    public boolean arePluginDependenciesMet(BaseFeature<?> feature) {
+    public boolean arePluginDependenciesMet(VelocityBaseFeature<?> feature) {
         List<String> requiredPlugins = feature.getPluginDependencies();
 
         for (String pluginName : requiredPlugins) {

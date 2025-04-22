@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.announcer;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.announcer.internal.AnnouncerHandler;
 import nl.hauntedmc.proxyfeatures.features.announcer.meta.Meta;
 
@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Announcer extends BaseFeature<Meta> {
+public class Announcer extends VelocityBaseFeature<Meta> {
 
     public Announcer(ProxyFeatures plugin) {
         super(plugin, new Meta());

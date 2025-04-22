@@ -1,9 +1,9 @@
 package nl.hauntedmc.proxyfeatures.features.announcer.internal;
 
+import nl.hauntedmc.commonlib.localization.MessageType;
 import nl.hauntedmc.proxyfeatures.features.announcer.Announcer;
 import nl.hauntedmc.proxyfeatures.lifecycle.FeatureTaskManager;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.proxyfeatures.localization.MessageType;
 
 public class AnnouncerHandler {
 

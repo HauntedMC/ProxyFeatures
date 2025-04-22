@@ -1,22 +1,24 @@
 package nl.hauntedmc.proxyfeatures.features;
 
+import nl.hauntedmc.commonlib.featureapi.Feature;
+import nl.hauntedmc.commonlib.featureapi.meta.BaseMeta;
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.internal.FeatureConfigHandler;
 import nl.hauntedmc.proxyfeatures.lifecycle.FeatureLifecycleManager;
 import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.List;
 import java.util.Map;
 
-public abstract class BaseFeature<T extends BaseMeta> {
+public abstract class VelocityBaseFeature<T extends BaseMeta> implements Feature {
 
     private final ProxyFeatures plugin;
     private final T meta;
     private final FeatureConfigHandler configHandler;
     private final FeatureLifecycleManager lifecycleManager;
 
-    protected BaseFeature(ProxyFeatures plugin, T meta) {
+    protected VelocityBaseFeature(ProxyFeatures plugin, T meta) {
         this.plugin = plugin;
         this.meta = meta;
         this.configHandler = new FeatureConfigHandler(plugin, getFeatureName());

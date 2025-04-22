@@ -1,16 +1,16 @@
 package nl.hauntedmc.proxyfeatures.features.logger;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.logger.internal.LogHandler;
 import nl.hauntedmc.proxyfeatures.features.logger.listener.ChatListener;
 import nl.hauntedmc.proxyfeatures.features.logger.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class Logger extends BaseFeature<Meta> {
+public class Logger extends VelocityBaseFeature<Meta> {
 
     private LogHandler logHandler;
 

@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.versioncheck.meta;
 
-import nl.hauntedmc.proxyfeatures.features.BaseMeta;
+
+import nl.hauntedmc.commonlib.featureapi.meta.BaseMeta;
 
 public class Meta implements BaseMeta {
 

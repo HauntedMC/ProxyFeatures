@@ -1,11 +1,11 @@
 package nl.hauntedmc.proxyfeatures.features.antivpn;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.antivpn.listener.AntiVPNListener;
 import nl.hauntedmc.proxyfeatures.features.antivpn.meta.Meta;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPChecker;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * The AntiVPN feature checks incoming connections for allowed regions and VPN/proxy usage.
  */
-public class AntiVPN extends BaseFeature<Meta> { // Using Object for meta; adjust as needed.
+public class AntiVPN extends VelocityBaseFeature<Meta> { // Using Object for meta; adjust as needed.
 
     private IPChecker ipChecker;
 

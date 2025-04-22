@@ -1,17 +1,17 @@
 package nl.hauntedmc.proxyfeatures.features.motd;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.motd.internal.MotdHandler;
 import nl.hauntedmc.proxyfeatures.features.motd.listener.PingListener;
 import nl.hauntedmc.proxyfeatures.features.motd.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Motd extends BaseFeature<Meta> {
+public class Motd extends VelocityBaseFeature<Meta> {
 
     private MotdHandler motdHandler;
 

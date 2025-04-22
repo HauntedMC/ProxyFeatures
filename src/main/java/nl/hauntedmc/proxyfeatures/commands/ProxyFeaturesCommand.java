@@ -5,7 +5,7 @@ import com.velocitypowered.api.command.SimpleCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -143,7 +143,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
                 case "softreload":
                 case "disable":
                     completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
-                            .map(BaseFeature::getFeatureName)
+                            .map(VelocityBaseFeature::getFeatureName)
                             .toList());
                     break;
 
@@ -160,7 +160,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
 
 
     private void sendPluginStatus(CommandSource sender) {
-        List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+        List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
         List<String> loadedCommands = new ArrayList<>();
         int loadedFeatureCount = loadedFeatures.size();
         int activeTaskCount = 0;
@@ -168,7 +168,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         int registeredCommandCount = 0;
         int activeConnCount = 0;
 
-        for (BaseFeature<?> feature : loadedFeatures) {
+        for (VelocityBaseFeature<?> feature : loadedFeatures) {
             registeredCommandCount += feature.getLifecycleManager().getCommandManager().getRegisteredCommandCount();
             loadedCommands.addAll(feature.getLifecycleManager().getCommandManager()
                     .getRegisteredCommands()
@@ -191,7 +191,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
     }
 
     private void listLoadedFeatures(CommandSource sender) {
-        List<BaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+        List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
 
         if (loadedFeatures.isEmpty()) {
             sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.empty").forAudience(sender).build());
@@ -199,7 +199,7 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         }
 
         sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.header").forAudience(sender).build());
-        for (BaseFeature<?> feature : loadedFeatures) {
+        for (VelocityBaseFeature<?> feature : loadedFeatures) {
             sender.sendMessage(plugin.getLocalizationHandler().getMessage(
                     "command.list.entry").forAudience(sender).withPlaceholders(
                     Map.of("feature", feature.getFeatureName(), "version", feature.getFeatureVersion())).build()

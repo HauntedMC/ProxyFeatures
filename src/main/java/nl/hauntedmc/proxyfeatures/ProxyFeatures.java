@@ -17,6 +17,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 
 import com.velocitypowered.api.scheduler.Scheduler;
+import nl.hauntedmc.commonlib.featureapi.FeaturePlugin;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
@@ -37,7 +38,7 @@ import java.util.Collection;
                 @Dependency(id = "dataregistry"),
                 @Dependency(id = "dataprovider")
         })
-public class ProxyFeatures {
+public class ProxyFeatures implements FeaturePlugin {
 
     private MainConfigHandler mainConfigHandler;
     private FeatureLoadManager featureLoadManager;

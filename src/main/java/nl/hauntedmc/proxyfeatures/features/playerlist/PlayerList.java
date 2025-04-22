@@ -1,18 +1,18 @@
 package nl.hauntedmc.proxyfeatures.features.playerlist;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.playerlist.command.GlobalListCommand;
 import nl.hauntedmc.proxyfeatures.features.playerlist.command.ListCommand;
 import nl.hauntedmc.proxyfeatures.features.playerlist.internal.PlayerListHandler;
 import nl.hauntedmc.proxyfeatures.features.playerlist.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PlayerList extends BaseFeature<Meta> {
+public class PlayerList extends VelocityBaseFeature<Meta> {
 
     private PlayerListHandler playerListHandler;
 

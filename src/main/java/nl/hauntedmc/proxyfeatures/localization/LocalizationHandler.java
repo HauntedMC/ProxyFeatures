@@ -3,9 +3,14 @@ package nl.hauntedmc.proxyfeatures.localization;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.commonlib.localization.Language;
+import nl.hauntedmc.commonlib.localization.MessageMap;
+import nl.hauntedmc.commonlib.localization.MessageType;
+import nl.hauntedmc.commonlib.util.ComponentUtils;
+import nl.hauntedmc.commonlib.util.PlaceholderUtils;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
-import nl.hauntedmc.proxyfeatures.common.util.TextUtils;
+import nl.hauntedmc.proxyfeatures.common.util.VelocityUtils;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.util.EnumMap;
@@ -150,7 +155,7 @@ public class LocalizationHandler {
      * Falls back to the default message if a localized version is not found.
      */
     private String getTranslatedMessage(String key, Player targetPlayer) {
-        Language language = getPlayerLanguage(targetPlayer);
+        Language language = VelocityUtils.getPlayerLanguage(targetPlayer);
         String message = null;
         if (language != null) {
             ResourceHandler resource = languageResources.get(language);
@@ -166,24 +171,16 @@ public class LocalizationHandler {
     }
 
     /**
-     * Default method for detecting the player's language.
-     * Modify this as needed to detect a player's actual preferred language.
-     */
-    private Language getPlayerLanguage(Player player) {
-        return Language.NL;
-    }
-
-    /**
      * Applies placeholders and color parsing to the message and then deserializes
      * it to an Adventure component using the proper method based on the MessageType.
      */
     private Component parseAndDeserialize(String message, MessageType messageType, Map<String, String> placeholders) {
         if (placeholders != null) {
-            message = TextUtils.parsePlaceholders(message, placeholders);
+            message = PlaceholderUtils.parsePlaceholders(message, placeholders);
         }
-        message = TextUtils.parseLegacyColors(message);
+        message = ComponentUtils.serializeLegacyString(message);
         return (messageType == MessageType.MiniMessage)
-                ? TextUtils.deserializeMMComponent(message)
-                : TextUtils.deserializeComponent(message);
+                ? ComponentUtils.deserializeMMComponent(message)
+                : ComponentUtils.deserializeComponent(message);
     }
 }

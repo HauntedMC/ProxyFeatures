@@ -5,16 +5,16 @@ import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.listener.ConnectionListener;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class VersionCheck extends BaseFeature<Meta> {
+public class VersionCheck extends VelocityBaseFeature<Meta> {
 
     public VersionCheck(ProxyFeatures plugin) {
         super(plugin, new Meta());

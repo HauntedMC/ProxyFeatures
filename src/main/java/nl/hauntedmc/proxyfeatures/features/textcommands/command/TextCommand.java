@@ -3,8 +3,8 @@ package nl.hauntedmc.proxyfeatures.features.textcommands.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.commonlib.util.ComponentUtils;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
-import nl.hauntedmc.proxyfeatures.common.util.TextUtils;
 import nl.hauntedmc.proxyfeatures.features.textcommands.TextCommands;
 
 import java.util.List;
@@ -30,7 +30,7 @@ public class TextCommand extends FeatureCommand {
             return;
         }
         
-        Component output = TextUtils.deserializeMMComponent(this.rawOutput);
+        Component output = ComponentUtils.deserializeMMComponent(this.rawOutput);
         player.sendMessage(output);
     }
 

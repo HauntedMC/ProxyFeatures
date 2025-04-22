@@ -1,17 +1,17 @@
 package nl.hauntedmc.proxyfeatures.features.staffchat;
 
+import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.BaseFeature;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ChatListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler;
 import nl.hauntedmc.proxyfeatures.features.staffchat.meta.Meta;
-import nl.hauntedmc.proxyfeatures.localization.MessageMap;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class StaffChat extends BaseFeature<Meta> {
+public class StaffChat extends VelocityBaseFeature<Meta> {
 
     private ChatChannelHandler chatChannelHandler;
 
