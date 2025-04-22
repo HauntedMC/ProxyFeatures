@@ -1,0 +1,1764 @@
+package nl.hauntedmc.proxyfeatures;
+
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.CommandMeta;
+import com.velocitypowered.api.event.EventManager;
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyReloadEvent;
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
+import com.velocitypowered.api.plugin.Dependency;
+import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.PluginManager;
+import com.velocitypowered.api.plugin.annotation.DataDirectory;
+import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
+
+import com.velocitypowered.api.scheduler.Scheduler;
+import nl.hauntedmc.commonlib.featureapi.FeaturePlugin;
+import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
+import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
+import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
+import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
+import org.slf4j.Logger;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+
+import java.nio.file.Path;
+import java.util.Collection;
+
+@Plugin(id = "proxyfeatures",
+        name = "ProxyFeatures",
+        version = "1.2.4",
+        url = "https://www.hauntedmc.nl",
+        description = "ProxyFeatures",
+        authors = {"HauntedMC"},
+        dependencies = {
+                @Dependency(id = "dataregistry"),
+                @Dependency(id = "dataprovider")
+        })
+public class ProxyFeatures implements FeaturePlugin {
+
+    private MainConfigHandler mainConfigHandler;
+    private FeatureLoadManager featureLoadManager;
+    private LocalizationHandler localizationHandler;
+
+    private static ProxyServer proxy = null;
+    private final Logger logger;
+    private final Path dataDirectory;
+    @Inject
+    private Injector injector;
+
+    @Inject
+    public ProxyFeatures(ProxyServer proxy,
+                     Logger logger,
+                     @DataDirectory Path dataDirectory) {
+        ProxyFeatures.proxy = proxy;
+        this.logger = logger;
+        this.dataDirectory = dataDirectory;
+        logger.info("ProxyFeatures is loading...");
+    }
+
+    /**
+     * SYNC
+     * <p>
+     * This event is fired by the proxy after plugins have been
+     * loaded but before the proxy starts accepting connections.
+     */
+    @Subscribe
+    public void onProxyInitialization(ProxyInitializeEvent event) {
+        // General plugin initialization
+        mainConfigHandler = new MainConfigHandler(this);
+        localizationHandler = new LocalizationHandler(this);
+        featureLoadManager = new FeatureLoadManager(this);
+        registerBaseCommand();
+        registerCommonListeners();
+
+        // Feature specific initialization
+        featureLoadManager.initializeFeatures();
+    }
+
+
+    /**
+     * This event is fired when the proxy is
+     * reloaded by the user using /velocity reload.
+     */
+    @Subscribe
+    public void onProxyReload(final ProxyReloadEvent event) {
+    }
+
+    /**
+     * SYNC
+     * <p>
+     * This event is fired by the proxy after the proxy has stopped
+     * accepting connections but before the proxy process exits
+     */
+    @Subscribe
+    public void onProxyShutdown(final ProxyShutdownEvent event) {
+        featureLoadManager.unloadAllFeatures();
+        getLogger().info("proxyfeatures is shutting down...");
+    }
+
+
+    public Logger getLogger() {
+        return logger;
+    }
+
+    private void registerBaseCommand() {
+        CommandManager commandManager = proxy.getCommandManager();
+
+        CommandMeta proxyfeaturesCommandMeta = commandManager.metaBuilder("proxyfeatures")
+                .plugin(this)
+                .build();
+
+        commandManager.register(proxyfeaturesCommandMeta, new ProxyFeaturesCommand(this));
+    }
+
+    private void registerCommonListeners() {
+    }
+
+    public FeatureLoadManager getFeatureLoadManager() {
+        return featureLoadManager;
+    }
+
+    public MainConfigHandler getConfigHandler() {
+        return mainConfigHandler;
+    }
+
+    public LocalizationHandler getLocalizationHandler() {
+        return localizationHandler;
+    }
+
+    public Path getDataDirectory() {
+        return dataDirectory;
+    }
+
+    public CommentedConfigurationNode getConfig() {
+        return mainConfigHandler.getConfig();
+    }
+
+    public PluginManager getPluginManager() {
+        return proxy.getPluginManager();
+    }
+
+    public EventManager getEventManager() {
+        return proxy.getEventManager();
+    }
+
+    public CommandManager getCommandManager() {
+        return proxy.getCommandManager();
+    }
+
+    public Scheduler getScheduler() {
+        return proxy.getScheduler();
+    }
+
+    public ProxyServer getProxy() {
+        return proxy;
+    }
+
+    /**
+     * Hack to get all players when we dont have an instance of getPlugin
+     * TODO: should be refactored in the final design
+     * @return All players on this proxy
+     */
+    public static Collection<Player> getAllPlayers() {
+        return proxy.getAllPlayers();
+    }
+}
+package nl.hauntedmc.proxyfeatures.commands;
+
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.command.SimpleCommand;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+public class ProxyFeaturesCommand implements SimpleCommand {
+
+    private final ProxyFeatures plugin;
+
+    public ProxyFeaturesCommand(ProxyFeatures plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void execute(final Invocation invocation) {
+        CommandSource sender = invocation.source();
+        String[] args = invocation.arguments();
+
+        if (args.length == 0) {
+            sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.usage").forAudience(sender).build());
+            return;
+        }
+
+        switch (args[0].toLowerCase()) {
+            case "status":
+                if (!sender.hasPermission("proxyfeatures.command.status")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
+                    return;
+                }
+                sendPluginStatus(sender);
+                break;
+
+            case "list":
+                if (!sender.hasPermission("proxyfeatures.command.list")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
+                    return;
+                }
+                listLoadedFeatures(sender);
+                break;
+
+            case "softreload":
+                if (!sender.hasPermission("proxyfeatures.command.reload")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
+                    return;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.usage").forAudience(sender).build());
+                    return;
+                }
+                if (plugin.getFeatureLoadManager().softReloadFeature(args[1])) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
+                } else {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.fail").forAudience(sender).build());
+                }
+                return;
+
+            case "reload":
+                if (!sender.hasPermission("proxyfeatures.command.reload")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
+                    return;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.usage").forAudience(sender).build());
+                    return;
+                }
+                if (plugin.getFeatureLoadManager().reloadFeature(args[1])) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
+                } else {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.fail").forAudience(sender).build());
+                }
+                break;
+
+            case "enable":
+                if (!sender.hasPermission("proxyfeatures.command.enable")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
+                    return;
+                }
+                if (args.length < 2) return;
+                if (plugin.getFeatureLoadManager().enableFeature(args[1])) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
+                } else {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.fail").forAudience(sender).build());
+                }
+                break;
+
+            case "disable":
+                if (!sender.hasPermission("proxyfeatures.command.disable")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
+                    return;
+                }
+                if (args.length < 2) return;
+                if (plugin.getFeatureLoadManager().disableFeature(args[1])) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
+                } else {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.fail").forAudience(sender).build());
+                }
+                break;
+
+            case "reloadlocal":
+                if (!sender.hasPermission("proxyfeatures.command.reloadlocal")) {
+                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
+                    return;
+                }
+                plugin.getLocalizationHandler().reloadLocalization();
+                sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reloadlocal.success").forAudience(sender).build());
+                break;
+
+            default:
+                sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.unknown_command").forAudience(sender).build());
+                break;
+        }
+    }
+
+    @Override
+    public boolean hasPermission(final Invocation invocation) {
+        return invocation.source().hasPermission("proxyfeatures.use");
+    }
+
+    @Override
+    public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
+        String[] args = invocation.arguments();
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            completions.add("list");
+            completions.add("disable");
+            completions.add("enable");
+            completions.add("reload");
+            completions.add("reloadlocal");
+            completions.add("softreload");
+            completions.add("status");
+        } else if (args.length == 2) {
+            switch (args[0].toLowerCase()) {
+                case "reload":
+                case "softreload":
+                case "disable":
+                    completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                            .map(VelocityBaseFeature::getFeatureName)
+                            .toList());
+                    break;
+
+                case "enable":
+                    completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getAvailableFeatures().keySet().stream()
+                            .filter(feature -> plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                                    .noneMatch(loadedFeature -> loadedFeature.getFeatureName().equalsIgnoreCase(feature)))
+                            .toList());
+                    break;
+            }
+        }
+        return CompletableFuture.completedFuture(completions);
+    }
+
+
+    private void sendPluginStatus(CommandSource sender) {
+        List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+        List<String> loadedCommands = new ArrayList<>();
+        int loadedFeatureCount = loadedFeatures.size();
+        int activeTaskCount = 0;
+        int registeredListenerCount = 0;
+        int registeredCommandCount = 0;
+        int activeConnCount = 0;
+
+        for (VelocityBaseFeature<?> feature : loadedFeatures) {
+            registeredCommandCount += feature.getLifecycleManager().getCommandManager().getRegisteredCommandCount();
+            loadedCommands.addAll(feature.getLifecycleManager().getCommandManager()
+                    .getRegisteredCommands()
+                    .values()
+                    .stream()
+                    .map(FeatureCommand::getName)
+                    .toList());
+            activeTaskCount += feature.getLifecycleManager().getTaskManager().getActiveTaskCount();
+            registeredListenerCount += feature.getLifecycleManager().getListenerManager().getRegisteredListenerCount();
+            activeConnCount += feature.getLifecycleManager().getDataManager().getActiveConnCount();
+        }
+
+        sender.sendMessage(Component.text("ProxyFeatures Status:", NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("- Number of loaded features: " + loadedFeatureCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of active database connections: " + activeConnCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of active tasks: " + activeTaskCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of registered listeners: " + registeredListenerCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of registered commands: " + registeredCommandCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Registered commands: " + loadedCommands, NamedTextColor.WHITE));
+    }
+
+    private void listLoadedFeatures(CommandSource sender) {
+        List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+
+        if (loadedFeatures.isEmpty()) {
+            sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.empty").forAudience(sender).build());
+            return;
+        }
+
+        sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.header").forAudience(sender).build());
+        for (VelocityBaseFeature<?> feature : loadedFeatures) {
+            sender.sendMessage(plugin.getLocalizationHandler().getMessage(
+                    "command.list.entry").forAudience(sender).withPlaceholders(
+                    Map.of("feature", feature.getFeatureName(), "version", feature.getFeatureVersion())).build()
+            );
+        }
+    }
+}
+
+
+package nl.hauntedmc.proxyfeatures.commands;
+
+import com.velocitypowered.api.command.SimpleCommand;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+public abstract class FeatureCommand implements SimpleCommand {
+
+    public abstract void execute(final Invocation invocation);
+    public abstract boolean hasPermission(final Invocation invocation);
+    public abstract CompletableFuture<List<String>> suggestAsync(final Invocation invocation);
+    public abstract String getName();
+}
+package nl.hauntedmc.proxyfeatures.features;
+
+import nl.hauntedmc.commonlib.featureapi.Feature;
+import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
+import nl.hauntedmc.commonlib.localization.MessageMap;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.config.FeatureConfigHandler;
+import nl.hauntedmc.proxyfeatures.lifecycle.FeatureLifecycleManager;
+import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
+
+import java.util.List;
+import java.util.Map;
+
+public abstract class VelocityBaseFeature<T extends BaseMeta> implements Feature {
+
+    private final ProxyFeatures plugin;
+    private final T meta;
+    private final FeatureConfigHandler configHandler;
+    private final FeatureLifecycleManager lifecycleManager;
+
+    protected VelocityBaseFeature(ProxyFeatures plugin, T meta) {
+        this.plugin = plugin;
+        this.meta = meta;
+        this.configHandler = new FeatureConfigHandler(plugin, getFeatureName());
+        this.lifecycleManager = new FeatureLifecycleManager(plugin);
+    }
+
+    public String getFeatureName() {
+        return meta.getFeatureName();
+    }
+
+    public String getFeatureVersion() {
+        return meta.getFeatureVersion();
+    }
+
+    public List<String> getDependencies() {
+        return meta.getDependencies();
+    }
+
+    public List<String> getPluginDependencies() {
+        return meta.getPluginDependencies();
+    }
+
+    public ProxyFeatures getPlugin() {
+        return plugin;
+    }
+
+    public FeatureConfigHandler getConfigHandler() {
+        return configHandler;
+    }
+
+    public FeatureLifecycleManager getLifecycleManager() {
+        return lifecycleManager;
+    }
+
+    public LocalizationHandler getLocalizationHandler() {
+        return plugin.getLocalizationHandler();
+    }
+
+    /**
+     * Each feature should define its default settings.
+     */
+    public abstract Map<String, Object> getDefaultConfig();
+
+    /**
+     * Each feature should define its default messages.
+     */
+    public abstract MessageMap getDefaultMessages();
+
+
+    /**
+     * Feature initialization logic (must be implemented by each feature).
+     */
+    public abstract void initialize();
+
+    /**
+     * Feature disable logic (must be implemented by each feature).
+     */
+    public abstract void disable();
+
+    /**
+     * Properly unloads the feature using the lifecycle manager.
+     */
+    public void cleanup() {
+        plugin.getLogger().info("Disabling {}", getFeatureName());
+        disable();
+        lifecycleManager.cleanup();
+    }
+}
+package nl.hauntedmc.proxyfeatures.localization;
+
+import com.velocitypowered.api.proxy.Player;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import nl.hauntedmc.commonlib.localization.Language;
+import nl.hauntedmc.commonlib.localization.MessageMap;
+import nl.hauntedmc.commonlib.localization.MessageType;
+import nl.hauntedmc.commonlib.util.ComponentUtils;
+import nl.hauntedmc.commonlib.util.PlaceholderUtils;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
+import nl.hauntedmc.proxyfeatures.common.util.VelocityUtils;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+
+import java.util.EnumMap;
+import java.util.Map;
+
+public class LocalizationHandler {
+
+    private final ProxyFeatures plugin;
+    private final ResourceHandler defaultMessagesResource;
+    private final EnumMap<Language, ResourceHandler> languageResources = new EnumMap<>(Language.class);
+
+    public LocalizationHandler(ProxyFeatures plugin) {
+        this.plugin = plugin;
+        this.defaultMessagesResource = new ResourceHandler(plugin, "messages.yml");
+        loadLanguageFiles();
+    }
+
+    /**
+     * Loads each language file using the ResourceHandler.
+     */
+    private void loadLanguageFiles() {
+        for (Language lang : Language.values()) {
+            ResourceHandler resource = new ResourceHandler(plugin, lang.getFileName());
+            if (resource.getConfig() == null) {
+                plugin.getLogger().warn("Language file {} not found. Please create it manually.", lang.getFileName());
+                continue;
+            }
+            languageResources.put(lang, resource);
+        }
+    }
+
+    /**
+     * Reloads both the default messages and language-specific files.
+     */
+    public void reloadLocalization() {
+        defaultMessagesResource.reload();
+        languageResources.values().forEach(ResourceHandler::reload);
+        plugin.getLogger().info("All localization files reloaded.");
+    }
+
+    /**
+     * Registers multiple default messages.
+     */
+    public void registerDefaultMessages(MessageMap messageMap) {
+        boolean changes = false;
+        CommentedConfigurationNode config = defaultMessagesResource.getConfig();
+        for (Map.Entry<String, String> entry : messageMap.getMessages().entrySet()) {
+            String key = entry.getKey();
+            String defaultValue = entry.getValue();
+            if (isNodeMissing(config, key)) {
+                try {
+                    config.node((Object[]) key.split("\\.")).set(defaultValue);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                changes = true;
+            }
+        }
+        if (changes) {
+            defaultMessagesResource.save();
+        }
+    }
+
+    // --- Fluent Builder API ---
+
+    /**
+     * Entry point for retrieving messages. Use the returned builder to configure
+     * the audience, message type, placeholders, and then call build() to get the message.
+     *
+     * Example usage:
+     *
+     *     Component comp = localizationHandler
+     *                            .message("welcome.message")
+     *                            .audience(someAudience)
+     *                            .type(MessageType.MiniMessage)
+     *                            .placeholders(somePlaceholders)
+     *                            .build();
+     */
+    public MessageBuilder getMessage(String key) {
+        return new MessageBuilder(key);
+    }
+
+    public class MessageBuilder {
+        private final String key;
+        private Audience audience;
+        private MessageType messageType = MessageType.Legacy;
+        private Map<String, String> placeholders;
+
+        private MessageBuilder(String key) {
+            this.key = key;
+        }
+
+        /**
+         * Set the target audience (for example, a Player).
+         * If no audience is provided, a system (default) message is assumed.
+         */
+        public MessageBuilder forAudience(Audience audience) {
+            this.audience = audience;
+            return this;
+        }
+
+        /**
+         * Specify the deserialization method: Legacy or MiniMessage.
+         * Defaults to MessageType.Legacy.
+         */
+        public MessageBuilder ofType(MessageType messageType) {
+            this.messageType = messageType;
+            return this;
+        }
+
+        /**
+         * Set the placeholders to apply to the message.
+         */
+        public MessageBuilder withPlaceholders(Map<String, String> placeholders) {
+            this.placeholders = placeholders;
+            return this;
+        }
+
+        /**
+         * Build and return the configured message component.
+         */
+        public Component build() {
+            String rawMessage;
+            // If an audience is provided and is a Player, retrieve the translated message.
+            if (audience instanceof Player) {
+                rawMessage = getTranslatedMessage(key, (Player) audience);
+            } else {
+                rawMessage = defaultMessagesResource.getConfig().node((Object[]) key.split("\\."))
+                        .getString("&cMessage not found: " + key);
+            }
+            return parseAndDeserialize(rawMessage, messageType, placeholders);
+        }
+    }
+
+    // --- Private Helper Methods ---
+    private boolean isNodeMissing(CommentedConfigurationNode node, String key) {
+        return node.node((Object[]) key.split("\\.")).virtual();
+    }
+
+    /**
+     * Retrieves a translated message for the player based on their language settings.
+     * Falls back to the default message if a localized version is not found.
+     */
+    private String getTranslatedMessage(String key, Player targetPlayer) {
+        Language language = VelocityUtils.getPlayerLanguage(targetPlayer);
+        String message = null;
+        if (language != null) {
+            ResourceHandler resource = languageResources.get(language);
+            if (resource != null && !isNodeMissing(resource.getConfig(), key)) {
+                message = resource.getConfig().node((Object[]) key.split("\\.")).getString();
+            }
+        }
+        if (message == null) {
+            message = defaultMessagesResource.getConfig().node((Object[]) key.split("\\."))
+                    .getString("&cMessage not found: " + key);
+        }
+        return message;
+    }
+
+    /**
+     * Applies placeholders and color parsing to the message and then deserializes
+     * it to an Adventure component using the proper method based on the MessageType.
+     */
+    private Component parseAndDeserialize(String message, MessageType messageType, Map<String, String> placeholders) {
+        if (placeholders != null) {
+            message = PlaceholderUtils.parsePlaceholders(message, placeholders);
+        }
+        message = ComponentUtils.serializeLegacyString(message);
+        return (messageType == MessageType.MiniMessage)
+                ? ComponentUtils.deserializeMMComponent(message)
+                : ComponentUtils.deserializeComponent(message);
+    }
+}
+package nl.hauntedmc.proxyfeatures.internal;
+
+
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+
+import java.util.*;
+
+public class FeatureRegistry {
+    private final Map<String, VelocityBaseFeature<?>> loadedFeatures = new HashMap<>();
+    private final Map<String, Class<? extends VelocityBaseFeature<?>>> availableFeatures = new HashMap<>();
+
+    public void registerAvailableFeature(String featureName, Class<? extends VelocityBaseFeature<?>> featureClass) {
+        availableFeatures.put(featureName, featureClass);
+    }
+
+    public void registerLoadedFeature(String featureName, VelocityBaseFeature<?> feature) {
+        loadedFeatures.put(featureName, feature);
+    }
+
+    public void deregisterLoadedFeature(String featureName) {
+        loadedFeatures.remove(featureName);
+    }
+
+    public VelocityBaseFeature<?> getLoadedFeature(String featureName) {
+        return loadedFeatures.get(featureName);
+    }
+
+    public Set<String> getLoadedFeatureNames() {
+        return loadedFeatures.keySet();
+    }
+
+    public boolean isFeatureLoaded(String featureName) {
+        return loadedFeatures.containsKey(featureName);
+    }
+
+    public Map<String, Class<? extends VelocityBaseFeature<?>>> getAvailableFeatures() {
+        return availableFeatures;
+    }
+
+    public List<VelocityBaseFeature<?>> getLoadedFeatures() {
+        return new ArrayList<>(loadedFeatures.values());
+    }
+
+}
+package nl.hauntedmc.proxyfeatures.internal;
+
+import nl.hauntedmc.commonlib.featureapi.event.FeatureDisabledEvent;
+import nl.hauntedmc.commonlib.featureapi.event.FeatureEventManager;
+import nl.hauntedmc.commonlib.featureapi.event.FeatureLoadedEvent;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
+import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
+import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
+
+import java.util.*;
+
+public class FeatureLoadManager {
+
+    private final ProxyFeatures plugin;
+    private final MainConfigHandler mainConfigHandler;
+    private final FeatureRegistry featureRegistry;
+    private final FeatureDependencyManager dependencyManager;
+    private final LocalizationHandler localizationHandler;
+
+    public FeatureLoadManager(ProxyFeatures plugin) {
+        this.plugin = plugin;
+        this.mainConfigHandler = plugin.getConfigHandler();
+        this.localizationHandler = plugin.getLocalizationHandler();
+        this.featureRegistry = new FeatureRegistry();
+        this.dependencyManager = new FeatureDependencyManager(this, plugin);
+        discoverFeatures();
+    }
+
+    /**
+     * Uses ClassGraph to dynamically discover all available features.
+     */
+    private void discoverFeatures() {
+        plugin.getLogger().info("[FeatureScanner] Scanning for features...");
+        try (var scanResult = new io.github.classgraph.ClassGraph()
+                .enableClassInfo()
+                .acceptPackages("nl.hauntedmc.proxyfeatures.features")
+                .scan()) {
+            scanResult.getSubclasses(VelocityBaseFeature.class.getName()).forEach(classInfo -> {
+                try {
+                    Class<?> clazz = Class.forName(classInfo.getName());
+                    if (VelocityBaseFeature.class.isAssignableFrom(clazz)) {
+                        @SuppressWarnings("unchecked")
+                        Class<? extends VelocityBaseFeature<?>> featureClass = (Class<? extends VelocityBaseFeature<?>>) clazz;
+                        featureRegistry.registerAvailableFeature(classInfo.getSimpleName(), featureClass);
+                    }
+                } catch (ClassNotFoundException e) {
+                    plugin.getLogger().error("Failed to load feature class: {}", classInfo.getName(), e);
+                }
+            });
+        }
+        plugin.getLogger().info("Discovered features: {}", featureRegistry.getAvailableFeatures().keySet());
+        mainConfigHandler.cleanupUnusedFeatures(featureRegistry.getAvailableFeatures().keySet());
+    }
+
+    /**
+     * Initializes all enabled features using topological sorting.
+     */
+    public void initializeFeatures() {
+        Set<String> visited = new HashSet<>();
+        List<String> loadOrder = new ArrayList<>();
+
+        for (String featureName : featureRegistry.getAvailableFeatures().keySet()) {
+            if (!visited.contains(featureName)) {
+                if (!resolveFeatureLoadOrder(featureName, new HashSet<>(), visited, loadOrder)) {
+                    plugin.getLogger().error("Dependency cycle detected! Feature loading aborted.");
+                    return;
+                }
+            }
+        }
+
+        for (String featureName : loadOrder) {
+            loadFeature(featureName);
+        }
+    }
+
+    /**
+     * Recursively determines the correct feature loading order.
+     */
+    private boolean resolveFeatureLoadOrder(String featureName, Set<String> stack, Set<String> visited, List<String> loadOrder) {
+        if (stack.contains(featureName)) return false; // Cycle detected
+        if (visited.contains(featureName)) return true;
+
+        stack.add(featureName);
+        visited.add(featureName);
+
+        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
+        if (feature != null) {
+            for (String dependency : feature.getDependencies()) {
+                if (!resolveFeatureLoadOrder(dependency, stack, visited, loadOrder)) {
+                    return false;
+                }
+            }
+        }
+
+        stack.remove(featureName);
+        loadOrder.add(featureName);
+        return true;
+    }
+
+
+    /**
+     * Enables and loads a feature dynamically.
+     */
+    public boolean enableFeature(String featureName) {
+        if (!featureRegistry.getAvailableFeatures().containsKey(featureName)) {
+            plugin.getLogger().warn("Feature not found: {}", featureName);
+            return false;
+        }
+        mainConfigHandler.setFeatureEnabled(featureName, true);
+        return loadFeature(featureName);
+    }
+
+
+    /**
+     * Loads and initializes a feature.
+     */
+    public boolean loadFeature(String featureName) {
+        if (featureRegistry.isFeatureLoaded(featureName)) {
+            plugin.getLogger().warn("Feature already loaded: {}", featureName);
+            return false;
+        }
+
+        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
+        if (feature == null) return false;
+
+        mainConfigHandler.registerFeature(featureName);
+        mainConfigHandler.injectFeatureDefaults(featureName, feature.getDefaultConfig());
+        localizationHandler.registerDefaultMessages(feature.getDefaultMessages());
+
+        if (mainConfigHandler.isFeatureEnabled(featureName)) {
+            if (!dependencyManager.areDependenciesMet(feature)) {
+                plugin.getLogger().warn("Feature {} is missing dependencies and cannot be enabled.", featureName);
+                return false;
+            }
+
+            feature.initialize();
+            featureRegistry.registerLoadedFeature(featureName, feature);
+            plugin.getLogger().info("Feature loaded: {}", featureName);
+            FeatureEventManager.triggerEvent(new FeatureLoadedEvent(featureName));
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Disables and unloads a feature dynamically.
+     */
+    public boolean disableFeature(String featureName) {
+        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        if (feature == null) {
+            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
+            return false;
+        }
+        feature.cleanup();
+        mainConfigHandler.setFeatureEnabled(featureName, false);
+        plugin.getLogger().info("Feature disabled: {}", featureName);
+        featureRegistry.deregisterLoadedFeature(featureName);
+        FeatureEventManager.triggerEvent(new FeatureDisabledEvent(featureName));
+
+        // Disable dependent features
+        for (String dependent : dependencyManager.getDependentFeatures(featureName)) {
+            disableFeature(dependent);
+        }
+
+        return true;
+    }
+
+    public boolean softReloadFeature(String featureName) {
+        if (!featureRegistry.isFeatureLoaded(featureName)) {
+            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
+            return false;
+        }
+        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        feature.getConfigHandler().reloadConfig();
+        feature.getLocalizationHandler().reloadLocalization();
+        plugin.getLogger().info("Feature " + featureName + " soft reloaded.");
+        return true;
+    }
+
+    /**
+     * Reloads a feature dynamically, ensuring dependent features reload afterward.
+     */
+    public boolean reloadFeature(String featureName) {
+        if (!featureRegistry.isFeatureLoaded(featureName)) {
+            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
+            return false;
+        }
+
+        mainConfigHandler.reloadConfig();
+        localizationHandler.reloadLocalization();
+        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        feature.cleanup();
+        featureRegistry.deregisterLoadedFeature(featureName);
+
+        boolean hasReloaded = loadFeature(featureName);
+
+        if (hasReloaded) {
+            plugin.getLogger().info("Feature {} reloaded.", featureName);
+
+            // Reload dependent features automatically
+            for (String dependent : dependencyManager.getDependentFeatures(featureName)) {
+                plugin.getLogger().info("Reloading dependent feature: {}", dependent);
+                reloadFeature(dependent);
+            }
+        }
+
+        return hasReloaded;
+    }
+
+    /**
+     * Returns the feature registry for tracking features.
+     */
+    public FeatureRegistry getFeatureRegistry() {
+        return featureRegistry;
+    }
+
+    /**
+     * Unload all currently loaded features.
+     */
+    public void unloadAllFeatures() {
+        plugin.getLogger().info("Unloading all loaded features...");
+
+        List<VelocityBaseFeature<?>> loadedFeatures = featureRegistry.getLoadedFeatures();
+
+        for (VelocityBaseFeature<?> feature : loadedFeatures) {
+            feature.cleanup();
+        }
+
+        plugin.getLogger().info("All features have been unloaded.");
+    }
+}
+package nl.hauntedmc.proxyfeatures.internal;
+
+import com.velocitypowered.api.plugin.PluginContainer;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
+
+import java.io.Serializable;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+public class FeatureDependencyManager implements Serializable {
+
+    private final FeatureLoadManager featureLoadManager;
+    private final ProxyFeatures plugin;
+
+    public FeatureDependencyManager(FeatureLoadManager featureLoadManager, ProxyFeatures plugin) {
+        this.featureLoadManager = featureLoadManager;
+        this.plugin = plugin;
+    }
+
+    /**
+     * Ensures that all dependencies of a feature are enabled before loading.
+     */
+    public boolean areDependenciesMet(VelocityBaseFeature<?> feature) {
+        return checkDependencies(feature, new HashSet<>()) && arePluginDependenciesMet(feature);
+    }
+
+    /**
+     * Recursively checks dependencies and ensures they are enabled.
+     */
+    private boolean checkDependencies(VelocityBaseFeature<?> feature, Set<String> visited) {
+        String featureName = feature.getFeatureName();
+
+        // 🔹 Prevent circular dependencies
+        if (visited.contains(featureName)) {
+            plugin.getLogger().warn("Circular dependency detected: {}", featureName);
+            return false;
+        }
+
+        visited.add(featureName);
+        List<String> dependencies = feature.getDependencies();
+
+        for (String dependency : dependencies) {
+            if (!featureLoadManager.getFeatureRegistry().isFeatureLoaded(dependency)) {
+                plugin.getLogger().info("Enabling dependency {} for {}", dependency, featureName);
+
+                VelocityBaseFeature<?> dependencyFeature = FeatureFactory.createFeature(
+                        featureLoadManager.getFeatureRegistry().getAvailableFeatures().get(dependency),
+                        this.plugin
+                );
+
+                if (dependencyFeature == null) {
+                    plugin.getLogger().warn("Failed to instantiate dependency {} for {}", dependency, featureName);
+                    return false;
+                }
+
+                // Recursively check dependencies
+                if (!checkDependencies(dependencyFeature, visited)) {
+                    return false;
+                }
+
+                if (!featureLoadManager.loadFeature(dependency)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks if all required external plugins are loaded.
+     */
+    public boolean arePluginDependenciesMet(VelocityBaseFeature<?> feature) {
+        List<String> requiredPlugins = feature.getPluginDependencies();
+
+        for (String pluginName : requiredPlugins) {
+            if (!isPluginLoaded(pluginName)) {
+                plugin.getLogger().warn("Cannot enable {} because required plugin {} is missing.", feature.getFeatureName(), pluginName);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Checks if a specific plugin is loaded.
+     */
+    public boolean isPluginLoaded(String pluginName) {
+        Optional<PluginContainer> foundPlugin = plugin.getPluginManager().getPlugin(pluginName);
+        return foundPlugin.isPresent();
+    }
+
+    /**
+     * Finds features that depend on a given feature.
+     */
+    public List<String> getDependentFeatures(String featureName) {
+        return featureLoadManager.getFeatureRegistry().getLoadedFeatureNames().stream()
+                .filter(name -> featureLoadManager.getFeatureRegistry().getLoadedFeature(name)
+                        .getDependencies().contains(featureName))
+                .toList();
+    }
+}
+package nl.hauntedmc.proxyfeatures.lifecycle;
+
+import com.velocitypowered.api.command.CommandManager;
+
+import com.velocitypowered.api.command.CommandMeta;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class FeatureCommandManager {
+
+    private final ProxyFeatures plugin;
+    private final CommandManager commandManager;
+    private final Map<String, FeatureCommand> registeredCommands = new HashMap<>();
+
+    public FeatureCommandManager(ProxyFeatures plugin) {
+        this.plugin = plugin;
+        this.commandManager = plugin.getCommandManager();
+    }
+
+    /**
+     * Registers a command dynamically at runtime with an optional tab completer.
+     */
+    public void registerFeatureCommand(FeatureCommand command) {
+        String commandName = command.getName();
+
+        if (registeredCommands.containsKey(commandName)) {
+            plugin.getLogger().warn("Command {} is already registered.", commandName);
+            return;
+        }
+
+        CommandMeta meta = commandManager.metaBuilder(commandName)
+                .plugin(plugin)
+                .build();
+
+        commandManager.register(meta, command);
+        registeredCommands.put(commandName, command);
+
+        plugin.getLogger().info("Registered command: {}", commandName);
+    }
+
+    /**
+     * Unregisters a command dynamically.
+     */
+    public void unregisterCommand(String commandName) {
+        if (!registeredCommands.containsKey(commandName)) {
+            plugin.getLogger().warn("Command {} is not registered.", commandName);
+            return;
+        }
+
+        commandManager.unregister(commandName);
+        registeredCommands.remove(commandName);
+
+        plugin.getLogger().info("Unregistered command: {}", commandName);
+    }
+
+    /**
+     * Unregisters all dynamically registered commands safely.
+     */
+    public void unregisterAllCommands() {
+        List<String> commandNames = new ArrayList<>(registeredCommands.keySet());
+        for (String commandName : commandNames) {
+            unregisterCommand(commandName);
+        }
+    }
+
+    /**
+     * Get all registered commands of the feature.
+     */
+    public Map<String, FeatureCommand> getRegisteredCommands() {
+        return registeredCommands;
+    }
+
+    public int getRegisteredCommandCount() {
+        return registeredCommands.size();
+    }
+}
+package nl.hauntedmc.proxyfeatures.lifecycle;
+
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class FeatureListenerManager {
+
+    private final ProxyFeatures plugin;
+    private final List<Object> registeredListeners = new ArrayList<>();
+
+    public FeatureListenerManager(ProxyFeatures plugin) {
+        this.plugin = plugin;
+    }
+
+    /**
+     * Registers an event listener and tracks it for later removal.
+     */
+    public void registerListener(Object listener) {
+        plugin.getEventManager().register(plugin, listener);
+        registeredListeners.add(listener);
+    }
+
+    /**
+     * Unregisters all event listeners that have been registered.
+     */
+    public void unregisterAllListeners() {
+        for (Object listener : registeredListeners) {
+            plugin.getEventManager().unregisterListener(plugin, listener);
+        }
+        registeredListeners.clear();
+    }
+
+    /**
+     * Returns the number of registered listeners.
+     */
+    public int getRegisteredListenerCount() {
+        return registeredListeners.size();
+    }
+}
+package nl.hauntedmc.proxyfeatures.lifecycle;
+
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+
+public class FeatureLifecycleManager {
+
+    private final FeatureTaskManager taskManager;
+    private final FeatureCommandManager commandManager;
+    private final FeatureListenerManager listenerManager;
+    private final FeatureDataManager dataManager;
+
+    public FeatureLifecycleManager(ProxyFeatures plugin) {
+        this.taskManager = new FeatureTaskManager(plugin);
+        this.commandManager = new FeatureCommandManager(plugin);
+        this.listenerManager = new FeatureListenerManager(plugin);
+        this.dataManager = new FeatureDataManager(plugin);
+    }
+
+    /**
+     * Provides access to the task manager.
+     */
+    public FeatureTaskManager getTaskManager() {
+        return taskManager;
+    }
+
+    /**
+     * Provides access to the command manager.
+     */
+    public FeatureCommandManager getCommandManager() {
+        return commandManager;
+    }
+
+    /**
+     * Provides access to the listener manager.
+     */
+    public FeatureListenerManager getListenerManager() {
+        return listenerManager;
+    }
+
+    /**
+     * Provides access to the data manager.
+     */
+    public FeatureDataManager getDataManager() {
+        return dataManager;
+    }
+
+    /**
+     * Cleans up all registered listeners, tasks, and commands.
+     */
+    public void cleanup() {
+        listenerManager.unregisterAllListeners();
+        taskManager.cancelAllTasks();
+        commandManager.unregisterAllCommands();
+        dataManager.closeAllConnections();
+    }
+}
+package nl.hauntedmc.proxyfeatures.lifecycle;
+
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import com.velocitypowered.api.scheduler.ScheduledTask;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+public class FeatureTaskManager {
+
+    private final ProxyFeatures plugin;
+    private final List<ScheduledTask> scheduledTasks = new CopyOnWriteArrayList<>();
+
+    public FeatureTaskManager(ProxyFeatures plugin) {
+        this.plugin = plugin;
+    }
+
+    /**
+     * Schedules a one-time task to run immediately.
+     */
+    public ScheduledTask scheduleTask(Runnable task) {
+        // Delegate to scheduleDelayedTask with zero delay.
+        return scheduleDelayedTask(task, 0);
+    }
+
+    /**
+     * Runs a one-time task with a delay.
+     *
+     * @param delay Delay in ticks.
+     */
+    public ScheduledTask scheduleDelayedTask(Runnable task, long delay) {
+        AtomicReference<ScheduledTask> taskRef = new AtomicReference<>();
+        Runnable wrappedTask = () -> {
+            try {
+                task.run();
+            } finally {
+                scheduledTasks.remove(taskRef.get());
+            }
+        };
+
+        ScheduledTask scheduledTask = plugin.getScheduler()
+                .buildTask(plugin, wrappedTask)
+                .delay(delay, TimeUnit.MILLISECONDS)
+                .schedule();
+        taskRef.set(scheduledTask);
+        scheduledTasks.add(scheduledTask);
+        return scheduledTask;
+    }
+
+    /**
+     * Runs a repeating task with no initial delay.
+     *
+     * @param period The period between executions in ticks.
+     */
+    public ScheduledTask scheduleRepeatingTask(Runnable task, long period) {
+        return scheduleDelayedRepeatingTask(task, 0, period);
+    }
+
+    /**
+     * Runs a repeating task with an initial delay.
+     *
+     * @param delay  The initial delay in ticks.
+     * @param period The period between executions in ticks.
+     */
+    public ScheduledTask scheduleDelayedRepeatingTask(Runnable task, long delay, long period) {
+        ScheduledTask scheduledTask = plugin.getScheduler()
+                .buildTask(plugin, task)
+                .delay(delay, TimeUnit.MILLISECONDS)
+                .repeat(period, TimeUnit.MILLISECONDS)
+                .schedule();
+        scheduledTasks.add(scheduledTask);
+        return scheduledTask;
+    }
+
+    /**
+     * Cancels a specific task.
+     */
+    public void cancelTask(ScheduledTask task) {
+        if (task != null) {
+            task.cancel();
+            scheduledTasks.remove(task);
+        }
+    }
+
+    /**
+     * Cancels all scheduled tasks.
+     */
+    public void cancelAllTasks() {
+        for (ScheduledTask task : scheduledTasks) {
+            task.cancel();
+        }
+        scheduledTasks.clear();
+    }
+
+    /**
+     * Returns the number of active tasks.
+     */
+    public int getActiveTaskCount() {
+        return scheduledTasks.size();
+    }
+}
+package nl.hauntedmc.proxyfeatures.lifecycle;
+
+import nl.hauntedmc.dataprovider.api.DataProviderAPI;
+import nl.hauntedmc.dataprovider.api.orm.ORMContext;
+import nl.hauntedmc.dataprovider.database.DatabaseProvider;
+import nl.hauntedmc.dataprovider.database.DatabaseType;
+import nl.hauntedmc.dataprovider.platform.velocity.VelocityDataProvider;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class FeatureDataManager {
+
+    private final ProxyFeatures plugin;
+    private final DataProviderAPI dataProviderAPI;
+    private ORMContext ormContext;
+    private String featureName;
+    private final ConcurrentHashMap<String, DatabaseProvider> databaseProviders;
+
+
+    /**
+     * Constructs a new FeatureDataManager.
+     * @param plugin your main plugin class (for logging, etc.)
+     */
+    public FeatureDataManager(ProxyFeatures plugin) {
+        dataProviderAPI = VelocityDataProvider.getDataProviderAPI();
+        databaseProviders = new ConcurrentHashMap<>();
+        this.plugin = plugin;
+    }
+
+    /**
+     * Authenticates your feature with the DataProviderAPI using the provided token.
+     *
+     * @param featureName the name of the feature
+     */
+    public void initDataProvider(String featureName) {
+        this.featureName = featureName;
+        dataProviderAPI.authenticate(featureName, "c5c052c7-b1a3-4c58-8b04-78496b2d4bd8");
+        plugin.getLogger().info("DataProvider authenticated feature '{}' with token.", featureName);
+    }
+
+    /**
+     * Registers a connection (DatabaseProvider) for the given identifier, using the specified
+     * database type and connection name.
+     *
+     * @param identifier       a label for the provider
+     * @param databaseType     the type of database (e.g. MYSQL, MONGODB, etc.)
+     * @param connectionName   the name or key used to differentiate the database config
+     * @return an Optional containing the DatabaseProvider if registration was successful; empty otherwise
+     */
+    public Optional<DatabaseProvider> registerConnection(String identifier, DatabaseType databaseType, String connectionName) {
+
+        if (featureName == null) {
+            plugin.getLogger().error("Feature name is not set. Did you call initDataProvider()?");
+            return Optional.empty();
+        }
+
+        DatabaseProvider provider =  dataProviderAPI.registerDatabase(featureName, databaseType, connectionName);
+        if (provider == null || !provider.isConnected()) {
+            plugin.getLogger().error("Database Provider is not connected.");
+            return Optional.empty();
+        }
+        databaseProviders.put(identifier, provider);
+        plugin.getLogger().info("Successfully registered connection '{}' of type {}", identifier, databaseType);
+        return Optional.of(provider);
+    }
+
+    /**
+     * Retrieves the DatabaseProvider associated with the given identifier.
+     * @param identifier the key used to register the provider
+     * @return an Optional containing the DatabaseProvider, or empty if none is found
+     */
+    public Optional<DatabaseProvider> getDataProvider(String identifier) {
+        return Optional.ofNullable(databaseProviders.get(identifier));
+    }
+
+
+    /**
+     * Creates an ORM context for the specified database identifier and entity classes.
+     * This overwrites any previously-created single ORM context in this manager.
+     *
+     * @param identifier    the database connection identifier
+     * @param entityClasses the entity classes you want to manage with ORM
+     * @return an Optional containing the newly created ORMContext, or empty if creation fails
+     */
+    public Optional<ORMContext> createORMContext(String identifier, Class<?>... entityClasses) {
+        DatabaseProvider provider = databaseProviders.get(identifier);
+        if (provider == null) {
+            plugin.getLogger().error("Could not find database provider for identifier: {}", identifier);
+            return Optional.empty();
+        }
+
+        // Create and store the ORMContext
+        this.ormContext = new ORMContext(featureName, provider.getDataSource(), entityClasses);
+        plugin.getLogger().info("Created ORMContext for identifier '" + identifier + "'");
+        return Optional.of(ormContext);
+    }
+
+
+    /**
+     * Retrieves the single ORMContext that this manager holds, if any.
+     * @return an Optional of the current ORMContext
+     */
+    public Optional<ORMContext> getORMContext() {
+        return Optional.ofNullable(ormContext);
+    }
+
+
+    /**
+     * Closes the current ORMContext (if any) and unregisters all databases associated with
+     * this feature name.
+     */
+    public void closeAllConnections() {
+        if (ormContext != null) {
+            ormContext.shutdown();
+            plugin.getLogger().info("ORMContext has been shut down.");
+        }
+
+        if (!databaseProviders.isEmpty() && featureName != null) {
+            dataProviderAPI.unregisterAllDatabases(featureName);
+            plugin.getLogger().info("Unregistered all databases for feature '" + featureName + "'.");
+        }
+
+        databaseProviders.clear();
+        ormContext = null;
+    }
+
+    /**
+     * @return the current count of active connections
+     */
+    public int getActiveConnCount() {
+        return databaseProviders.size();
+    }
+}
+package nl.hauntedmc.proxyfeatures.config;
+
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import org.spongepowered.configurate.serialize.SerializationException;
+
+public class FeatureConfigHandler extends MainConfigHandler {
+
+    private final String featureName;
+
+    public FeatureConfigHandler(ProxyFeatures plugin, String featureName) {
+        super(plugin);
+        this.featureName = featureName;
+    }
+
+    /**
+     * Get a feature-specific setting.
+     */
+    public Object getSetting(String key) {
+        try {
+            return config.node("features", featureName, key).get(Object.class);
+        } catch (SerializationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+package nl.hauntedmc.proxyfeatures.config;
+
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+
+import java.util.Map;
+import java.util.Set;
+
+public class MainConfigHandler {
+    protected final ResourceHandler configResource;
+    protected CommentedConfigurationNode config;
+
+    public MainConfigHandler(ProxyFeatures plugin) {
+        this.configResource = new ResourceHandler(plugin, "config.yml");
+        this.config = configResource.getConfig();
+    }
+
+    /**
+     * Reloads config from disk using the ResourceHandler.
+     */
+    public void reloadConfig() {
+        configResource.reload();
+        this.config = configResource.getConfig();
+    }
+
+    /**
+     * Registers a feature in config with `enabled: false` if missing.
+     */
+    public void registerFeature(String featureName) {
+        if (config.node("features", featureName).virtual()) {
+            try {
+                config.node("features", featureName, "enabled").set(false);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            configResource.save();
+        }
+    }
+
+    /**
+     * Injects missing default settings for a specific feature.
+     */
+    public void injectFeatureDefaults(String featureName, Map<String, Object> defaultValues) {
+        boolean updated = false;
+        for (Map.Entry<String, Object> entry : defaultValues.entrySet()) {
+            if (config.node("features", featureName, entry.getKey()).virtual()) {
+                try {
+                    config.node("features", featureName, entry.getKey()).set(entry.getValue());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                updated = true;
+            }
+        }
+        if (updated) {
+            configResource.save();
+        }
+    }
+
+    /**
+     * Checks if a feature is enabled.
+     */
+    public boolean isFeatureEnabled(String featureName) {
+        return config.node("features", featureName, "enabled").getBoolean(false);
+    }
+
+    /**
+     * Sets a feature’s enabled state.
+     */
+    public void setFeatureEnabled(String featureName, boolean enabled) {
+        try {
+            config.node("features", featureName, "enabled").set(enabled);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        configResource.save();
+    }
+
+    /**
+     * Cleans up removed features from config.
+     */
+    public void cleanupUnusedFeatures(Set<String> registeredFeatures) {
+        CommentedConfigurationNode featuresNode = config.node("features");
+        if (!featuresNode.virtual()) {
+            for (Object key : featuresNode.childrenMap().keySet()) {
+                if (key instanceof String stringKey) {
+                    if (!registeredFeatures.contains(stringKey)) {
+                        featuresNode.removeChild(stringKey);
+                    }
+                }
+            }
+            configResource.save();
+        }
+    }
+
+    public CommentedConfigurationNode getConfig() {
+        return config;
+    }
+
+}
+package nl.hauntedmc.proxyfeatures.common.packet;
+
+import com.velocitypowered.api.proxy.Player;
+
+/**
+ * Interface for all packet types, enabling abstraction from PacketEvents or other libraries.
+ */
+public interface Packet {
+    void sendTo(Player player);
+}
+package nl.hauntedmc.proxyfeatures.common.packet;
+
+import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+
+import java.util.List;
+
+/**
+ * Manages sending packets to players, allowing unicast, multicast, and broadcast.
+ */
+public class PacketManager {
+
+    /**
+     * Sends packets to a single player.
+     *
+     * @param player The recipient player.
+     * @param packets The packets to send.
+     */
+    public static void sendUnicast(Player player, Packet... packets) {
+        for (Packet packet : packets) {
+            packet.sendTo(player);
+        }
+    }
+
+    /**
+     * Sends packets to multiple players in range of a specific player.
+     *
+     * @param players The center player.
+     * @param packets The packets to send.
+     */
+    public static void sendMulticast(List<Player> players, Packet... packets) {
+        for (Player target : players) {
+            for (Packet packet : packets) {
+                packet.sendTo(target);
+            }
+        }
+    }
+
+    /**
+     * Sends packets to all online players.
+     *
+     * @param packets The packets to send.
+     */
+    public static void sendBroadcast(Packet... packets) {
+        for (Player player :  ProxyFeatures.getAllPlayers()) {
+            for (Packet packet : packets) {
+                packet.sendTo(player);
+            }
+        }
+    }
+}package nl.hauntedmc.proxyfeatures.common.util;
+
+import com.velocitypowered.api.proxy.Player;
+import de.myzelyam.api.vanish.VelocityVanishAPI;
+import nl.hauntedmc.commonlib.localization.Language;
+
+public class VelocityUtils {
+
+    /**
+     * Checks if a player is vanished using the VanishAPI.
+     */
+    public static boolean isVanished(Player player) {
+        return VelocityVanishAPI.isInvisible(player);
+    }
+
+    /**
+     * Default method for detecting the player's language.
+     * Modify this as needed to detect a player's actual preferred language.
+     */
+    public static Language getPlayerLanguage(Player player) {
+        return Language.NL;
+    }
+}
+package nl.hauntedmc.proxyfeatures.common.resources;
+
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+import org.spongepowered.configurate.loader.ConfigurationLoader;
+import org.spongepowered.configurate.yaml.NodeStyle;
+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class ResourceHandler {
+    private final ProxyFeatures plugin;
+    private final Path file;
+    private final ConfigurationLoader<CommentedConfigurationNode> loader;
+    private CommentedConfigurationNode config;
+
+    public ResourceHandler(ProxyFeatures plugin, String fileName) {
+        this.plugin = plugin;
+        this.file = plugin.getDataDirectory().resolve(fileName);
+        this.loader = YamlConfigurationLoader.builder()
+                .path(file)
+                .nodeStyle(NodeStyle.BLOCK)
+                .build();
+        ensureFileExists();
+        load();
+    }
+
+    /**
+     * Ensures that the file exists in the data directory.
+     * If it does not exist, attempts to copy the default from the plugin resources.
+     */
+    private void ensureFileExists() {
+        try {
+            Files.createDirectories(file.getParent());
+            if (!Files.exists(file)) {
+                try (InputStream in = plugin.getClass().getResourceAsStream("/" + file.getFileName().toString())) {
+                    if (in != null) {
+                        Files.copy(in, file);
+                    } else {
+                        plugin.getLogger().error("Default {} not found in resources!", file.getFileName());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            plugin.getLogger().error("Error ensuring file exists: {}", file, e);
+        }
+    }
+
+    /**
+     * Loads the configuration from disk.
+     */
+    private void load() {
+        try {
+            this.config = loader.load();
+        } catch (IOException e) {
+            plugin.getLogger().error("Error loading file: {}", file, e);
+        }
+    }
+
+    /**
+     * Reloads the configuration from disk.
+     */
+    public void reload() {
+        load();
+    }
+
+    /**
+     * Returns the current configuration node.
+     */
+    public CommentedConfigurationNode getConfig() {
+        return config;
+    }
+
+    /**
+     * Saves any changes to the file.
+     */
+    public void save() {
+        try {
+            loader.save(config);
+        } catch (IOException e) {
+            plugin.getLogger().error("Error saving file: {}", file, e);
+        }
+    }
+}

@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.textcommands.meta;
 
 
-import nl.hauntedmc.commonlib.featureapi.meta.BaseMeta;
+import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
 
 public class Meta implements BaseMeta {
 

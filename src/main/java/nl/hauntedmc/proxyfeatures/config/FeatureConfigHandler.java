@@ -1,7 +1,6 @@
-package nl.hauntedmc.proxyfeatures.internal;
+package nl.hauntedmc.proxyfeatures.config;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import org.spongepowered.configurate.serialize.SerializationException;
 
 public class FeatureConfigHandler extends MainConfigHandler {

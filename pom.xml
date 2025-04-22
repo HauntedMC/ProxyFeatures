@@ -252,7 +252,7 @@
         <dependency>
             <groupId>nl.hauntedmc.commonlib</groupId>
             <artifactId>commonlib</artifactId>
-            <version>1.0.5</version>
+            <version>1.0.8</version>
         </dependency>
         <dependency>
             <groupId>org.spongepowered</groupId>

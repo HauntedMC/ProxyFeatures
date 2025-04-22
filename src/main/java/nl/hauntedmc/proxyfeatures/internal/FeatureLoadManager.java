@@ -1,10 +1,11 @@
 package nl.hauntedmc.proxyfeatures.internal;
 
+import nl.hauntedmc.commonlib.featureapi.event.FeatureDisabledEvent;
+import nl.hauntedmc.commonlib.featureapi.event.FeatureEventManager;
+import nl.hauntedmc.commonlib.featureapi.event.FeatureLoadedEvent;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
-import nl.hauntedmc.proxyfeatures.internal.events.FeatureDisabledEvent;
-import nl.hauntedmc.proxyfeatures.internal.events.FeatureLoadedEvent;
 import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
 import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
 

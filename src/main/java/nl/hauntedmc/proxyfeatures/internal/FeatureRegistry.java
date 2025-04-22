@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.internal;
 
+
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 
 import java.util.*;
