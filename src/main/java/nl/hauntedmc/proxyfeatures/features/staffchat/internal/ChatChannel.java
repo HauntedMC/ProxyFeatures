@@ -88,5 +88,6 @@ public class ChatChannel {
                 viewer.sendMessage(formattedMessage);
             }
         }
+        feature.getPlugin().getLogger().info(formattedMessage);
     }
 }

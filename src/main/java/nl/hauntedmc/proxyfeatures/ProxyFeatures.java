@@ -17,6 +17,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 
 import com.velocitypowered.api.scheduler.Scheduler;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import nl.hauntedmc.commonlib.featureapi.FeaturePlugin;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
@@ -45,14 +46,14 @@ public class ProxyFeatures implements FeaturePlugin {
     private LocalizationHandler localizationHandler;
 
     private static ProxyServer proxy = null;
-    private final Logger logger;
+    private final ComponentLogger logger;
     private final Path dataDirectory;
     @Inject
     private Injector injector;
 
     @Inject
     public ProxyFeatures(ProxyServer proxy,
-                     Logger logger,
+                     ComponentLogger logger,
                      @DataDirectory Path dataDirectory) {
         ProxyFeatures.proxy = proxy;
         this.logger = logger;
@@ -101,7 +102,7 @@ public class ProxyFeatures implements FeaturePlugin {
     }
 
 
-    public Logger getLogger() {
+    public ComponentLogger getLogger() {
         return logger;
     }
 
