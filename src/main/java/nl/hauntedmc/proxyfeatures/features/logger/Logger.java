@@ -1,14 +1,12 @@
 package nl.hauntedmc.proxyfeatures.features.logger;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.logger.internal.LogHandler;
 import nl.hauntedmc.proxyfeatures.features.logger.listener.ChatListener;
 import nl.hauntedmc.proxyfeatures.features.logger.meta.Meta;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class Logger extends VelocityBaseFeature<Meta> {
 
@@ -19,8 +17,8 @@ public class Logger extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         return defaults;
     }
 

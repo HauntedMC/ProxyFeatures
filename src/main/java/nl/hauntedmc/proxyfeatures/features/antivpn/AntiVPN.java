@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.antivpn;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
@@ -7,9 +8,7 @@ import nl.hauntedmc.proxyfeatures.features.antivpn.listener.AntiVPNListener;
 import nl.hauntedmc.proxyfeatures.features.antivpn.meta.Meta;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPChecker;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * The AntiVPN feature checks incoming connections for allowed regions and VPN/proxy usage.
@@ -23,8 +22,8 @@ public class AntiVPN extends VelocityBaseFeature<Meta> { // Using Object for met
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
         defaults.put("use_region_check", true);
         defaults.put("use_vpn_check", true);

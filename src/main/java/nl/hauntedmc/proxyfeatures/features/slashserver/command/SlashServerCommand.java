@@ -8,7 +8,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.SlashServer;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.List;

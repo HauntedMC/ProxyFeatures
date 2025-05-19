@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.staffchat;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
@@ -13,8 +14,6 @@ import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler;
 import nl.hauntedmc.proxyfeatures.features.staffchat.meta.Meta;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 public class StaffChat extends VelocityBaseFeature<Meta> {
@@ -27,8 +26,8 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
         defaults.put("staff_prefix", "!");
         defaults.put("team_prefix", "@");

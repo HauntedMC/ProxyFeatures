@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.config;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
 import org.spongepowered.configurate.CommentedConfigurationNode;
@@ -41,7 +42,7 @@ public class MainConfigHandler {
     /**
      * Injects missing default settings for a specific feature.
      */
-    public void injectFeatureDefaults(String featureName, Map<String, Object> defaultValues) {
+    public void injectFeatureDefaults(String featureName, ConfigMap defaultValues) {
         boolean updated = false;
         for (Map.Entry<String, Object> entry : defaultValues.entrySet()) {
             if (config.node("features", featureName, entry.getKey()).virtual()) {

@@ -23,7 +23,6 @@ import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
 import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
-import org.slf4j.Logger;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.nio.file.Path;
@@ -31,7 +30,7 @@ import java.util.Collection;
 
 @Plugin(id = "proxyfeatures",
         name = "ProxyFeatures",
-        version = "1.2.4",
+        version = "1.2.5",
         url = "https://www.hauntedmc.nl",
         description = "ProxyFeatures",
         authors = {"HauntedMC"},

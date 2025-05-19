@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.playerlist;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
@@ -8,9 +9,7 @@ import nl.hauntedmc.proxyfeatures.features.playerlist.command.ListCommand;
 import nl.hauntedmc.proxyfeatures.features.playerlist.internal.PlayerListHandler;
 import nl.hauntedmc.proxyfeatures.features.playerlist.meta.Meta;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class PlayerList extends VelocityBaseFeature<Meta> {
 
@@ -21,8 +20,8 @@ public class PlayerList extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
         defaults.put("blacklist", List.of());
         return defaults;

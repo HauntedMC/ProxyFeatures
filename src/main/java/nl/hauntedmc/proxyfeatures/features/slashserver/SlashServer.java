@@ -1,14 +1,12 @@
 package nl.hauntedmc.proxyfeatures.features.slashserver;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.slashserver.command.SlashServerCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.meta.Meta;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class SlashServer extends VelocityBaseFeature<Meta> {
 
@@ -17,8 +15,8 @@ public class SlashServer extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
         return defaults;
     }

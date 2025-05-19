@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.hlink;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
@@ -10,9 +11,6 @@ import nl.hauntedmc.proxyfeatures.features.hlink.internal.hook.LuckPermsHook;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.HLinkHandler;
 import nl.hauntedmc.proxyfeatures.features.hlink.meta.Meta;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class HLink extends VelocityBaseFeature<Meta> {
 
     private HLinkHandler hlinkHandler;
@@ -22,8 +20,8 @@ public class HLink extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("api-key", "<key>");
         defaults.put("website-url", "https://hauntedmc.nl");
         defaults.put("full-friendly-urls-enabled", true);

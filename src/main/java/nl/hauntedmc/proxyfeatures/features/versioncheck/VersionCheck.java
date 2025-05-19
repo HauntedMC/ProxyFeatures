@@ -5,14 +5,12 @@ import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.listener.ConnectionListener;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.meta.Meta;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class VersionCheck extends VelocityBaseFeature<Meta> {
 
@@ -21,8 +19,8 @@ public class VersionCheck extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
         defaults.put("minimum_protocol_version", 763);
         return defaults;

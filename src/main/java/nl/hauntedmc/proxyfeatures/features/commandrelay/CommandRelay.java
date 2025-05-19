@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.commandrelay;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
@@ -11,9 +12,7 @@ import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.EventBusHandler
 import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.messaging.CommandRelayMessage;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.meta.Meta;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class CommandRelay extends VelocityBaseFeature<Meta> {
@@ -25,8 +24,8 @@ public class CommandRelay extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
         defaults.put("listening", false);
         defaults.put("command_whitelist", List.of());

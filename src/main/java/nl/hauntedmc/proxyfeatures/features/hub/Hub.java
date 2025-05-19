@@ -1,13 +1,11 @@
 package nl.hauntedmc.proxyfeatures.features.hub;
 
+import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.hub.command.HubCommand;
 import nl.hauntedmc.proxyfeatures.features.hub.meta.Meta;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class Hub extends VelocityBaseFeature<Meta> {
 
@@ -16,8 +14,8 @@ public class Hub extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public Map<String, Object> getDefaultConfig() {
-        Map<String, Object> defaults = new HashMap<>();
+    public ConfigMap getDefaultConfig() {
+        ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
         return defaults;
     }
