@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.slashserver;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
@@ -38,7 +39,7 @@ public class SlashServer extends VelocityBaseFeature<Meta> {
             String serverName = server.getServerInfo().getName().toLowerCase();
             SlashServerCommand command = new SlashServerCommand(this, serverName);
             getLifecycleManager().getCommandManager().registerFeatureCommand(command);
-            getPlugin().getLogger().info("Registered shorthand command: /{}", serverName);
+            getLogger().info(Component.text("Registered shorthand command: /" + serverName));
         }
     }
 

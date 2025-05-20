@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.logger.internal;
 
 import com.velocitypowered.api.proxy.Player;
 
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.features.logger.Logger;
 
 
@@ -29,6 +30,6 @@ public class LogHandler {
         String serverName = player.getCurrentServer()
                 .map(server -> server.getServerInfo().getName())
                 .orElse("unknown");
-        feature.getPlugin().getLogger().info("[{}] {}: {}", serverName, player.getUsername(), message);
+        feature.getLogger().info(Component.text("[" + serverName + "] " + player.getUsername() + ": " + message));
     }
 }

@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.antivpn.internal;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.features.antivpn.AntiVPN;
 
 import java.io.BufferedReader;
@@ -51,7 +52,9 @@ public class IPChecker {
 
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                feature.getPlugin().getLogger().error("IP check failed for {}. Response code: {}", ip, responseCode);
+                feature.getLogger().error(
+                        Component.text("IP check failed for " + ip + ". Response code: " + responseCode)
+                );
                 return null;
             }
 
@@ -74,7 +77,8 @@ public class IPChecker {
             cache.put(ip, result);
             return result;
         } catch (Exception e) {
-            feature.getPlugin().getLogger().error("Error checking IP {}", ip, e);
+            feature.getLogger().error(Component.text("Error checking IP " + ip));
+
             return null;
         }
     }

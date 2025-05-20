@@ -25,7 +25,7 @@ public class EventBusHandler {
                     this::handleIncoming
             );
         } catch (Exception ex) {
-            feature.getPlugin().getLogger().error("Failed to subscribe to channel");
+            feature.getLogger().error("Failed to subscribe to channel");
         }}
 
 

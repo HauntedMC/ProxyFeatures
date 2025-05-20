@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.commandrelay.internal;
 
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.util.CastUtils;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataprovider.database.messaging.api.Subscription;
@@ -31,8 +32,7 @@ public class EventBusHandler {
                     this::handleIncoming
             );
         } catch (Exception ex) {
-            feature.getPlugin().getLogger()
-                    .error("CommandRelay: failed to subscribe to “{}”", channel);
+            feature.getLogger().error(Component.text("CommandRelay: failed to subscribe to “" + channel + "”"));
         }
     }
 
@@ -59,8 +59,7 @@ public class EventBusHandler {
 
         if (!whitelist.stream().map(String::toLowerCase).toList()
                 .contains(main.toLowerCase())) {
-            feature.getPlugin().getLogger()
-                    .warn("CommandRelay: received forbidden “{}” from {} – ignoring", main, origin);
+            feature.getLogger().warn(Component.text("CommandRelay: received forbidden “" + main + "” from " + origin + " – ignoring"));
             return;
         }
 
@@ -72,12 +71,9 @@ public class EventBusHandler {
                     .executeAsync(console, sendingCommand)
                     .whenComplete((success, ex) -> {
                         if (ex != null) {
-                            feature.getPlugin().getLogger()
-                                    .error("CommandRelay: error dispatching “{}” from {}", sendingCommand, origin, ex);
+                            feature.getLogger().error(Component.text("CommandRelay: error dispatching “" + sendingCommand + "” from " + origin));
                         } else {
-                            feature.getPlugin().getLogger()
-                                    .info("CommandRelay: dispatched “/{}” from {}: success={}",
-                                            sendingCommand, origin, success);
+                            feature.getLogger().info(Component.text("CommandRelay: dispatched “/" + sendingCommand + "” from " + origin + ": success=" + success));
                         }
                     });
         });
@@ -100,8 +96,7 @@ public class EventBusHandler {
     public void publish(String channel, String command) {
         redisBus.publish(channel, new CommandRelayMessage(command, "proxy"))
                 .exceptionally(ex -> {
-                    feature.getPlugin().getLogger()
-                            .error("CommandRelay: failed to publish to “{}”", channel);
+                    feature.getLogger().error(Component.text("CommandRelay: failed to publish to “" + channel + "”"));
                     return null;
                 });
     }

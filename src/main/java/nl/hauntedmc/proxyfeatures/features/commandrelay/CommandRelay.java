@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.commandrelay;
 
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
@@ -77,8 +78,7 @@ public class CommandRelay extends VelocityBaseFeature<Meta> {
         if (listen) {
             String channel = "proxy.commandrelay.command";
             eventBusHandler.subscribe(channel);
-            getPlugin().getLogger()
-                    .info("CommandRelay: listening on Redis channel “" + channel + "”");
+            getLogger().info(Component.text("CommandRelay: listening on Redis channel “" + channel + "”"));
         }
 
     }

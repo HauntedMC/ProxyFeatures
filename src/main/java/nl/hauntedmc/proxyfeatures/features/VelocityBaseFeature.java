@@ -6,6 +6,7 @@ import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.config.FeatureConfigHandler;
+import nl.hauntedmc.proxyfeatures.internal.FeatureLogger;
 import nl.hauntedmc.proxyfeatures.lifecycle.FeatureLifecycleManager;
 import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
 
@@ -17,12 +18,15 @@ public abstract class VelocityBaseFeature<T extends BaseMeta> implements Feature
     private final T meta;
     private final FeatureConfigHandler configHandler;
     private final FeatureLifecycleManager lifecycleManager;
+    private final FeatureLogger logger;
 
     protected VelocityBaseFeature(ProxyFeatures plugin, T meta) {
         this.plugin = plugin;
         this.meta = meta;
         this.configHandler = new FeatureConfigHandler(plugin, getFeatureName());
         this.lifecycleManager = new FeatureLifecycleManager(plugin);
+        this.logger = new FeatureLogger(plugin.getLogger(), getFeatureName());
+
     }
 
     public String getFeatureName() {
@@ -43,6 +47,10 @@ public abstract class VelocityBaseFeature<T extends BaseMeta> implements Feature
 
     public ProxyFeatures getPlugin() {
         return plugin;
+    }
+
+    public FeatureLogger getLogger() {
+        return logger;
     }
 
     public FeatureConfigHandler getConfigHandler() {

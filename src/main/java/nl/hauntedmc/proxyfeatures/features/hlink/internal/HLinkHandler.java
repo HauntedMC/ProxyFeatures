@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.hlink.internal;
 
 import com.google.gson.Gson;
 import com.velocitypowered.api.proxy.Player;
+import net.kyori.adventure.text.Component;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.user.User;
@@ -71,7 +72,7 @@ public class HLinkHandler {
             SimpleHttpClient.post(apiUrl + "/updatePlayerCache", args);
             updateCache.put(uuid, new CachedPlayerData(username, primaryGroup));
         } catch (Exception e) {
-            plugin.getLogger().error("Error updating player data for {}", player.getUsername(), e);
+            feature.getLogger().error(Component.text("Error updating player data for " + player.getUsername()));
         }
     }
 
@@ -117,7 +118,7 @@ public class HLinkHandler {
             return String.join(",", highestPerTrack);
 
         } catch (Exception e) {
-            plugin.getLogger().error("Error retrieving LuckPerms groups for {}", player.getUsername(), e);
+            feature.getLogger().error(Component.text("Error retrieving LuckPerms groups for " + player.getUsername()));
             return "default";
         }
     }
@@ -135,7 +136,7 @@ public class HLinkHandler {
                 return request.getResults();
             }
         } catch (Exception e) {
-            plugin.getLogger().error("Error checking if key exists for {}", uuid, e);
+            feature.getLogger().error(Component.text("Error checking if key exists for " + uuid));
         }
         return "false";
     }
@@ -150,7 +151,8 @@ public class HLinkHandler {
             AccountRequest request = gson.fromJson(response, AccountRequest.class);
             return request != null && request.getExists();
         } catch (Exception e) {
-            plugin.getLogger().error("Error checking registration for {}", uuid, e);
+            feature.getLogger().error(Component.text("Error checking registration for " + uuid));
+
         }
         return false;
     }
@@ -197,7 +199,7 @@ public class HLinkHandler {
             SimpleHttpClient.post(apiUrl + "/createLinkKey", argsCreate);
             SimpleHttpClient.post(apiUrl + "/updatePlayerCache", argsUpdate);
         } catch (Exception e) {
-            plugin.getLogger().error("Error adding new key for {}", player.getUsername(), e);
+            feature.getLogger().error(Component.text("Error adding new key for " + player.getUsername()));
             player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorCreatingKey").forAudience(player).build());
             return "errorCreatingKey";
         }

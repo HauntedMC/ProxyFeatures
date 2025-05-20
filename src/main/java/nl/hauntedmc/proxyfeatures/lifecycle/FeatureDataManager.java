@@ -93,7 +93,7 @@ public class FeatureDataManager {
 
         // Create and store the ORMContext
         this.ormContext = new ORMContext(featureName, provider.getDataSource(), entityClasses);
-        plugin.getLogger().info("Created ORMContext for identifier '" + identifier + "'");
+        plugin.getLogger().info("Created ORMContext for identifier '{}'", identifier);
         return Optional.of(ormContext);
     }
 
@@ -119,7 +119,7 @@ public class FeatureDataManager {
 
         if (!databaseProviders.isEmpty() && featureName != null) {
             dataProviderAPI.unregisterAllDatabases(featureName);
-            plugin.getLogger().info("Unregistered all databases for feature '" + featureName + "'.");
+            plugin.getLogger().info("Unregistered all databases for feature '{}'.", featureName);
         }
 
         databaseProviders.clear();
