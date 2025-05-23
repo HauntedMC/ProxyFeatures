@@ -21,27 +21,27 @@ public class ResourcePackStatusListener {
         switch (status) {
             case ACCEPTED:
                 message = feature.getLocalizationHandler()
-                                .getMessage("resourcepack_accepted")
+                                .getMessage("resourcepack.accepted")
                                 .forAudience(player)
                                 .build();
                 player.sendMessage(message);
                 return;
             case DOWNLOADED:
                 message = feature.getLocalizationHandler()
-                        .getMessage("resourcepack.status_downloaded")
+                        .getMessage("resourcepack.downloaded")
                         .forAudience(player)
                         .build();
                 player.sendMessage(message);
                 return;
             case SUCCESSFUL:
                 message = feature.getLocalizationHandler()
-                                .getMessage("resourcepack_loaded")
+                                .getMessage("resourcepack.loaded")
                                 .forAudience(player)
                                 .build();
                 player.sendMessage(message);
                 feature.getHandler().unblockConfiguration(player.getUniqueId());
                 return;
-            case DECLINED:
+            case DECLINED, DISCARDED:
                 message = feature.getLocalizationHandler()
                                 .getMessage("resourcepack.kick_declined")
                                 .forAudience(player)

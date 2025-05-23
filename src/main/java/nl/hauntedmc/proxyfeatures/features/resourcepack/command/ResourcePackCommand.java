@@ -90,6 +90,7 @@ public class ResourcePackCommand extends FeatureCommand {
                 feature.getLocalizationHandler()
                         .getMessage("resourcepack.cmd_header")
                         .forAudience(source)
+                        .withPlaceholders(Map.of("player", targetPlayer.getUsername()))
                         .build()
         );
 

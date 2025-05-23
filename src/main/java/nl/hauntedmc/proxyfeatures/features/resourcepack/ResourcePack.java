@@ -63,7 +63,7 @@ public class ResourcePack extends VelocityBaseFeature<Meta> {
                 "&cHet herladen van de resource pack is mislukt.");
         messages.add("resourcepack.url_invalid",
                 "&cDe URL van de resource pack kon niet worden geladen.");
-        messages.add("resourcepack.status_downloaded",
+        messages.add("resourcepack.downloaded",
                 "&aDe resource pack is succesvol gedownload.");
         messages.add("resourcepack.cmd_usage",
                 "&eGebruik: /resourcepack list [<player>]");
