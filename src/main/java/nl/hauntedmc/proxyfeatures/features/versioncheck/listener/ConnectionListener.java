@@ -14,7 +14,7 @@ public class ConnectionListener {
 
     @Subscribe(priority = 10, async = true)
     public void onLogin(LoginEvent event) {
-        feature.checkVersion(event);
+        feature.getVersionHandler().checkVersion(event);
     }
 
 }

@@ -1,4 +1,4 @@
-package nl.hauntedmc.proxyfeatures.features.versioncheck.meta;
+package nl.hauntedmc.proxyfeatures.features.resourcepack.meta;
 
 
 import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
@@ -7,11 +7,11 @@ public class Meta implements BaseMeta {
 
     @Override
     public String getFeatureName() {
-        return "VersionCheck";
+        return "ResourcePack";
     }
 
     @Override
     public String getFeatureVersion() {
-        return "1.1.0";
+        return "1.0.0";
     }
 }

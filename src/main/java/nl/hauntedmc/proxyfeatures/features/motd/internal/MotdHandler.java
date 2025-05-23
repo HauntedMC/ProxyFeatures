@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.util.CastUtils;
 import nl.hauntedmc.commonlib.util.ComponentUtils;
 import nl.hauntedmc.proxyfeatures.features.motd.Motd;
+import nl.hauntedmc.proxyfeatures.features.versioncheck.VersionCheck;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -33,7 +34,18 @@ public class MotdHandler {
 
         ServerPing.Players players = getAdjustedPlayers(unmodifiedPing);
 
-        return new ServerPing(unmodifiedPing.getVersion(),
+        ServerPing.Version version = unmodifiedPing.getVersion();
+
+        if (feature.getPlugin().getFeatureLoadManager().getFeatureRegistry().isFeatureLoaded("VersionCheck")) {
+            VersionCheck versionCheck = (VersionCheck) feature.getPlugin().getFeatureLoadManager().getFeatureRegistry().getLoadedFeature("VersionCheck");
+            if (versionCheck.getVersionHandler().isAllowedVersion(unmodifiedPing.getVersion().getProtocol())) {
+                int minProtocol = versionCheck.getVersionHandler().getMinimumProtcolVersion();
+                String friendlyName = versionCheck.getVersionHandler().getFriendlyProtocolName() + "+";
+                version = new ServerPing.Version(minProtocol, friendlyName);
+            }
+        }
+
+        return new ServerPing(version,
                 players,
                 motd,
                 unmodifiedPing.getFavicon().orElse(null));
