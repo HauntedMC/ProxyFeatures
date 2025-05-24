@@ -6,7 +6,7 @@ import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.command.ResourcePackCommand;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.internal.ResourcePackHandler;
-import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.JoinListener;
+import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.LoginListener;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.ResourcePackStatusListener;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.meta.Meta;
 
@@ -25,21 +25,21 @@ public class ResourcePack extends VelocityBaseFeature<Meta> {
     public ConfigMap getDefaultConfig() {
         ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
-        defaults.put("url", "https://hauntedmc.nl/HauntedMCThemeRP.zip");
+        defaults.put("url", "https://hauntedmc.nl/HauntedMC-GlobalPack.zip");
         // SHA-1 hash of the pack; clients will only redownload if this changes
-        defaults.put("hash", "abcdef0123456789abcdef0123456789abcdef01");
+        defaults.put("hash", "");
 
         defaults.put("mode-packs", Map.of(
                 "skyblock", List.of(
                         Map.of(
-                                "url", "https://hauntedmc.nl/SkyblockRP.zip",
-                                "hash", "1111…"
+                                "url", "https://hauntedmc.nl/HauntedMC-SkyblockPack.zip",
+                                "hash", ""
                         )
                 ),
                 "minigames", List.of(
                         Map.of(
-                                "url", "https://hauntedmc.nl/MinigamesRP.zip",
-                                "hash", "3333…"
+                                "url", "HauntedMC-MinigamesPack.zip",
+                                "hash", ""
                         )
                 )
         ));
@@ -81,7 +81,7 @@ public class ResourcePack extends VelocityBaseFeature<Meta> {
     @Override
     public void initialize() {
         this.handler = new ResourcePackHandler(this);
-        getLifecycleManager().getListenerManager().registerListener(new JoinListener(this));
+        getLifecycleManager().getListenerManager().registerListener(new LoginListener(this));
         getLifecycleManager().getListenerManager().registerListener(new ResourcePackStatusListener(this));
         getLifecycleManager().getCommandManager().registerFeatureCommand(new ResourcePackCommand(this));
     }
@@ -90,7 +90,7 @@ public class ResourcePack extends VelocityBaseFeature<Meta> {
     public void disable() {
     }
 
-    public ResourcePackHandler getHandler() {
+    public ResourcePackHandler getResourcePackHandler() {
         return handler;
     }
 }

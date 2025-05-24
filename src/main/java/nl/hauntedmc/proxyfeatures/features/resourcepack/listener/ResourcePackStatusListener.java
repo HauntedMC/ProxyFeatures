@@ -20,26 +20,26 @@ public class ResourcePackStatusListener {
         Component message;
         switch (status) {
             case ACCEPTED:
-                message = feature.getLocalizationHandler()
-                                .getMessage("resourcepack.accepted")
-                                .forAudience(player)
-                                .build();
-                player.sendMessage(message);
+//                message = feature.getLocalizationHandler()
+//                                .getMessage("resourcepack.accepted")
+//                                .forAudience(player)
+//                                .build();
+//                player.sendMessage(message);
                 return;
             case DOWNLOADED:
-                message = feature.getLocalizationHandler()
-                        .getMessage("resourcepack.downloaded")
-                        .forAudience(player)
-                        .build();
-                player.sendMessage(message);
+//                message = feature.getLocalizationHandler()
+//                        .getMessage("resourcepack.downloaded")
+//                        .forAudience(player)
+//                        .build();
+//                player.sendMessage(message);
                 return;
             case SUCCESSFUL:
-                message = feature.getLocalizationHandler()
-                                .getMessage("resourcepack.loaded")
-                                .forAudience(player)
-                                .build();
-                player.sendMessage(message);
-                feature.getHandler().unblockConfiguration(player.getUniqueId());
+//                message = feature.getLocalizationHandler()
+//                                .getMessage("resourcepack.loaded")
+//                                .forAudience(player)
+//                                .build();
+//                player.sendMessage(message);
+                feature.getResourcePackHandler().unblockConfiguration(player.getUniqueId());
                 return;
             case DECLINED, DISCARDED:
                 message = feature.getLocalizationHandler()

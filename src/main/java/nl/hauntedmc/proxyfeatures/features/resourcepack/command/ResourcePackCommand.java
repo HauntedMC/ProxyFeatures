@@ -6,6 +6,7 @@ import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.ResourcePack;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
+import nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -99,11 +100,12 @@ public class ResourcePackCommand extends FeatureCommand {
 
         // List applied packs
         for (ResourcePackInfo info : applied) {
+            String packName = ResourceUtils.getResourcePackName(info.getUrl());
             source.sendMessage(
                     feature.getLocalizationHandler()
                             .getMessage("resourcepack.cmd_entry")
                             .withPlaceholders(Map.of(
-                                    "pack", info.getUrl(),
+                                    "pack", packName,
                                     "status", "Applied"
                             ))
                             .forAudience(source)
@@ -113,11 +115,12 @@ public class ResourcePackCommand extends FeatureCommand {
 
         // List pending packs
         for (ResourcePackInfo info : pending) {
+            String packName = ResourceUtils.getResourcePackName(info.getUrl());
             source.sendMessage(
                     feature.getLocalizationHandler()
                             .getMessage("resourcepack.cmd_entry")
                             .withPlaceholders(Map.of(
-                                    "pack", info.getUrl(),
+                                    "pack", packName,
                                     "status", "Pending"
                             ))
                             .forAudience(source)

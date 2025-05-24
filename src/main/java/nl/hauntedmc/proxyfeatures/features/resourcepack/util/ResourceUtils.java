@@ -12,4 +12,11 @@ public class ResourceUtils {
         return data;
     }
 
+    public static String getResourcePackName(String url) {
+        String fileName = url.substring(url.lastIndexOf('/') + 1);
+        if (fileName.toLowerCase().endsWith(".zip")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+        return fileName;
+    }
 }
