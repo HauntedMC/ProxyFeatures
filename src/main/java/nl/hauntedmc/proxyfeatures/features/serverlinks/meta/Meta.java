@@ -1,0 +1,17 @@
+package nl.hauntedmc.proxyfeatures.features.serverlinks.meta;
+
+
+import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
+
+public class Meta implements BaseMeta {
+
+    @Override
+    public String getFeatureName() {
+        return "ServerLinks";
+    }
+
+    @Override
+    public String getFeatureVersion() {
+        return "1.0.0";
+    }
+}
