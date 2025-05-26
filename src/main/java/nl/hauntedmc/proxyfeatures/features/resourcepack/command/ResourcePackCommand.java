@@ -51,7 +51,7 @@ public class ResourcePackCommand extends FeatureCommand {
         if (args.size() > 1 && !source.hasPermission("proxyfeatures.feature.resourcepack.command.other")) {
             source.sendMessage(
                     feature.getLocalizationHandler()
-                            .getMessage("global.no_permission")
+                            .getMessage("general.no_permission")
                             .forAudience(source)
                             .build()
             );
