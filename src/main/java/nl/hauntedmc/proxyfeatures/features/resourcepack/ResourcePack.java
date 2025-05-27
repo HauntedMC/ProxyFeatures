@@ -6,7 +6,7 @@ import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.command.ResourcePackCommand;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.internal.ResourcePackHandler;
-import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.LoginListener;
+import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.PlayerListener;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.ResourcePackStatusListener;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.meta.Meta;
 
@@ -81,7 +81,7 @@ public class ResourcePack extends VelocityBaseFeature<Meta> {
     @Override
     public void initialize() {
         this.handler = new ResourcePackHandler(this);
-        getLifecycleManager().getListenerManager().registerListener(new LoginListener(this));
+        getLifecycleManager().getListenerManager().registerListener(new PlayerListener(this));
         getLifecycleManager().getListenerManager().registerListener(new ResourcePackStatusListener(this));
         getLifecycleManager().getCommandManager().registerFeatureCommand(new ResourcePackCommand(this));
     }
