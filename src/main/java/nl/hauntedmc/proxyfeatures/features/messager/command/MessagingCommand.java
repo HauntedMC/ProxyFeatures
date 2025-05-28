@@ -76,7 +76,7 @@ public class MessagingCommand extends FeatureCommand {
                 proxy.getPlayer(args[1]).ifPresentOrElse(target -> {
                     UUID them = target.getUniqueId();
                     if (sub.equals("block")) {
-                        if (handler.isBlocking(player.getUniqueId(), them)) {
+                        if (handler.isBlocked(player.getUniqueId(), them)) {
                             player.sendMessage(loc.getMessage("message.block.already")
                                     .withPlaceholders(Map.of("player", target.getUsername()))
                                     .forAudience(player).build());
@@ -87,7 +87,7 @@ public class MessagingCommand extends FeatureCommand {
                                     .forAudience(player).build());
                         }
                     } else { // unblock
-                        if (!handler.isBlocking(player.getUniqueId(), them)) {
+                        if (!handler.isBlocked(player.getUniqueId(), them)) {
                             player.sendMessage(loc.getMessage("message.unblock.not_blocked")
                                     .withPlaceholders(Map.of("player", target.getUsername()))
                                     .forAudience(player).build());

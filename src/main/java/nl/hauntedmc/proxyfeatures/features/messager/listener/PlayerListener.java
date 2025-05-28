@@ -16,7 +16,12 @@ public class PlayerListener {
     @Subscribe
     public void onServerConnected(ServerPostConnectEvent event) {
         Player player = event.getPlayer();
-        if (player.hasPermission("proxyfeatures.feature.messager.command.spy")) {
+        // Load this player's persisted settings into memory
+        handler.loadPlayerSettings(player);
+
+        // Auto-enable spy mode if the player has the spy permission and isn't already spying
+        if (player.hasPermission("proxyfeatures.feature.messager.command.spy")
+                && !handler.isSpy(player.getUniqueId())) {
             handler.toggleSpy(player.getUniqueId());
         }
     }

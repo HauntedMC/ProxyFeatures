@@ -2,17 +2,24 @@ package nl.hauntedmc.proxyfeatures.features.messager;
 
 import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
+import nl.hauntedmc.dataprovider.api.orm.ORMContext;
+import nl.hauntedmc.dataprovider.database.DatabaseType;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.messager.command.ReplyCommand;
+import nl.hauntedmc.proxyfeatures.features.messager.entity.PlayerMessageSettingsEntity;
 import nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingHandler;
 import nl.hauntedmc.proxyfeatures.features.messager.command.MessagingCommand;
+import nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingSettingsService;
 import nl.hauntedmc.proxyfeatures.features.messager.listener.PlayerListener;
 import nl.hauntedmc.proxyfeatures.features.messager.meta.Meta;
 
 public class Messenger extends VelocityBaseFeature<Meta> {
 
     private MessagingHandler handler;
+    private ORMContext ormContext;
+    private MessagingSettingsService settingsService;
 
     public Messenger(ProxyFeatures plugin) {
         super(plugin, new Meta());
@@ -46,15 +53,29 @@ public class Messenger extends VelocityBaseFeature<Meta> {
         m.add("message.spy.disabled", "&8&l[&6&lMSG&8&l] &r&aSpy mode uitgeschakeld.");
         m.add("message.cmd_usage", "&8&l[&6&lMSG&8&l] &r&eGebruik: /msg <naam> <bericht> | /msg reply <bericht&8&l[&e&lMSG&8&l] &r> | /msg spy | /msg block <naam> | /msg unblock <naam> | /msg toggle");
         m.add("message.reply.no_last", "&8&l[&6&lMSG&8&l] &r&cEr is nog niemand om op te antwoorden.");
+        m.add("message.error.player_not_found", "&8&l[&6&lMSG&8&l] &r&cDeze speler kon niet worden gevonden.");
         return m;
     }
 
     @Override
     public void initialize() {
+        // register your entities & ORM
+        getLifecycleManager().getDataManager().initDataProvider(getFeatureName());
+        getLifecycleManager().getDataManager()
+                .registerConnection("ormConnection", DatabaseType.MYSQL, "player_data_rw");
+        this.ormContext = getLifecycleManager().getDataManager()
+                .createORMContext("ormConnection",
+                        PlayerMessageSettingsEntity.class,
+                        PlayerEntity.class
+                ).orElseThrow();
+
+        this.settingsService = new MessagingSettingsService(this);
+
         this.handler = new MessagingHandler(this);
         getLifecycleManager().getCommandManager().registerFeatureCommand(new MessagingCommand(this));
         getLifecycleManager().getCommandManager().registerFeatureCommand(new ReplyCommand(this));
         getLifecycleManager().getListenerManager().registerListener(new PlayerListener(this));
+
     }
 
     @Override
@@ -64,5 +85,13 @@ public class Messenger extends VelocityBaseFeature<Meta> {
 
     public MessagingHandler getHandler() {
         return handler;
+    }
+
+    public ORMContext getOrmContext() {
+        return ormContext;
+    }
+
+    public MessagingSettingsService getSettingsService() {
+        return settingsService;
     }
 }
