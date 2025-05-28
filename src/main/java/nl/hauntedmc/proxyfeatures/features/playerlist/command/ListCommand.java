@@ -95,4 +95,9 @@ public class ListCommand extends FeatureCommand {
     public String getName() {
         return "list";
     }
+
+    @Override
+    public String getAliases() {
+        return "";
+    }
 }

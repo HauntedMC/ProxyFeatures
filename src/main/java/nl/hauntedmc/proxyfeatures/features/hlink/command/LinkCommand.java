@@ -20,6 +20,10 @@ public class LinkCommand extends FeatureCommand {
         this.feature = feature;
         this.handler = feature.getHLinkHandler();
     }
+    @Override
+    public String getAliases() {
+        return "";
+    }
 
     @Override
     public void execute(Invocation invocation) {

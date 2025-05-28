@@ -56,4 +56,9 @@ public class GlobalListCommand extends FeatureCommand {
     public String getName() {
         return "glist";
     }
+
+    @Override
+    public String getAliases() {
+        return "";
+    }
 }

@@ -24,6 +24,11 @@ public class SlashServerCommand extends FeatureCommand {
     }
 
     @Override
+    public String getAliases() {
+        return "";
+    }
+
+    @Override
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {

@@ -22,6 +22,11 @@ public class HubCommand extends FeatureCommand {
     }
 
     @Override
+    public String getAliases() {
+        return "";
+    }
+
+    @Override
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {

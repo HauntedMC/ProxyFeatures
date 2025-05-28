@@ -25,6 +25,11 @@ public class ClientInfoCommand extends FeatureCommand {
     }
 
     @Override
+    public String getAliases() {
+        return "";
+    }
+
+    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.clientinfo.command");
     }

@@ -48,4 +48,9 @@ public class TextCommand extends FeatureCommand {
     public String getName() {
         return this.name;
     }
+
+    @Override
+    public String getAliases() {
+        return "";
+    }
 }

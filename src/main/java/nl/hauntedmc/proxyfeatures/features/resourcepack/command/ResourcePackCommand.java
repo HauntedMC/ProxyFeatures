@@ -28,6 +28,11 @@ public class ResourcePackCommand extends FeatureCommand {
     }
 
     @Override
+    public String getAliases() {
+        return "";
+    }
+
+    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.resourcepack.command");
     }

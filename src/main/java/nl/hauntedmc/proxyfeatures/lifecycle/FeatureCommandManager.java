@@ -21,6 +21,7 @@ public class FeatureCommandManager {
         this.commandManager = plugin.getCommandManager();
     }
 
+
     /**
      * Registers a command dynamically at runtime with an optional tab completer.
      */
@@ -33,6 +34,7 @@ public class FeatureCommandManager {
         }
 
         CommandMeta meta = commandManager.metaBuilder(commandName)
+                .aliases(command.getAliases())
                 .plugin(plugin)
                 .build();
 
