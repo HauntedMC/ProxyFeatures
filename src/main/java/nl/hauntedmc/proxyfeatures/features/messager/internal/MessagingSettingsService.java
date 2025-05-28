@@ -1,3 +1,4 @@
+// src/main/java/nl/hauntedmc/proxyfeatures/features/messager/internal/MessagingSettingsService.java
 package nl.hauntedmc.proxyfeatures.features.messager.internal;
 
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
@@ -15,46 +16,55 @@ public class MessagingSettingsService {
     }
 
     /**
-     * Fetches (or creates) the settings row for the given PlayerEntity.
+     * Find-or-create both the PlayerEntity and their MessageSettings
+     * in one transaction. Returns the fully-initialized settings.
      */
-    public PlayerMessageSettingsEntity getOrCreateSettings(PlayerEntity player) {
+    public PlayerMessageSettingsEntity loadSettings(UUID uuid, String username) {
         return feature.getOrmContext().runInTransaction(session -> {
-            Optional<PlayerMessageSettingsEntity> opt = session.createQuery(
+            // 1) find or create PlayerEntity
+            PlayerEntity playerEnt = session.createQuery(
+                            "FROM PlayerEntity p WHERE p.uuid = :uuid",
+                            PlayerEntity.class)
+                    .setParameter("uuid", uuid.toString())
+                    .uniqueResultOptional()
+                    .orElseGet(() -> {
+                        PlayerEntity pe = new PlayerEntity();
+                        pe.setUuid(uuid.toString());
+                        pe.setUsername(username);
+                        session.persist(pe);
+                        return pe;
+                    });
+
+            // 2) find or create MessageSettings
+            PlayerMessageSettingsEntity settings = session.createQuery(
                             "FROM PlayerMessageSettingsEntity s WHERE s.playerId = :pid",
                             PlayerMessageSettingsEntity.class)
-                    .setParameter("pid", player.getId())
-                    .uniqueResultOptional();
+                    .setParameter("pid", playerEnt.getId())
+                    .uniqueResultOptional()
+                    .orElseGet(() -> {
+                        PlayerMessageSettingsEntity s = new PlayerMessageSettingsEntity(playerEnt);
+                        session.persist(s);
+                        return s;
+                    });
 
-            if (opt.isPresent()) {
-                return opt.get();
-            } else {
-                PlayerMessageSettingsEntity settings = new PlayerMessageSettingsEntity(player);
-                session.persist(settings);
-                return settings;
-            }
+            // eager-load blocks
+            settings.getBlockedPlayers().size();
+            return settings;
         });
-    }
-
-    public boolean isToggleEnabled(PlayerEntity player) {
-        return getOrCreateSettings(player).isMsgToggle();
     }
 
     public void setToggle(PlayerEntity player, boolean enabled) {
         feature.getOrmContext().runInTransaction(session -> {
-            PlayerMessageSettingsEntity s = getOrCreateSettings(player);
+            PlayerMessageSettingsEntity s = session.get(PlayerMessageSettingsEntity.class, player.getId());
             s.setMsgToggle(enabled);
             session.merge(s);
             return null;
         });
     }
 
-    public boolean isSpyEnabled(PlayerEntity player) {
-        return getOrCreateSettings(player).isMsgSpy();
-    }
-
     public void setSpy(PlayerEntity player, boolean enabled) {
         feature.getOrmContext().runInTransaction(session -> {
-            PlayerMessageSettingsEntity s = getOrCreateSettings(player);
+            PlayerMessageSettingsEntity s = session.get(PlayerMessageSettingsEntity.class, player.getId());
             s.setMsgSpy(enabled);
             session.merge(s);
             return null;
@@ -63,7 +73,7 @@ public class MessagingSettingsService {
 
     public void block(PlayerEntity me, PlayerEntity target) {
         feature.getOrmContext().runInTransaction(session -> {
-            PlayerMessageSettingsEntity s = getOrCreateSettings(me);
+            PlayerMessageSettingsEntity s = session.get(PlayerMessageSettingsEntity.class, me.getId());
             s.block(target);
             session.merge(s);
             return null;
@@ -72,20 +82,13 @@ public class MessagingSettingsService {
 
     public void unblock(PlayerEntity me, PlayerEntity target) {
         feature.getOrmContext().runInTransaction(session -> {
-            PlayerMessageSettingsEntity s = getOrCreateSettings(me);
+            PlayerMessageSettingsEntity s = session.get(PlayerMessageSettingsEntity.class, me.getId());
             s.unblock(target);
             session.merge(s);
             return null;
         });
     }
 
-    public boolean isBlocking(PlayerEntity me, PlayerEntity target) {
-        return getOrCreateSettings(me).isBlocking(target);
-    }
-
-    /**
-     * Look up the PlayerEntity by UUID.
-     */
     public Optional<PlayerEntity> getPlayerEntity(UUID uuid) {
         return feature.getOrmContext().runInTransaction(session ->
                 session.createQuery("FROM PlayerEntity p WHERE p.uuid = :uuid", PlayerEntity.class)
@@ -93,4 +96,6 @@ public class MessagingSettingsService {
                         .uniqueResultOptional()
         );
     }
+
+
 }

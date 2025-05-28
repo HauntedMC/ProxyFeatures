@@ -40,43 +40,14 @@ public class PlayerMessageSettingsEntity {
         this.playerId = player.getId();
     }
 
-    public Long getPlayerId() {
-        return playerId;
-    }
+    public boolean isMsgToggle() { return msgToggle; }
+    public void setMsgToggle(boolean msgToggle) { this.msgToggle = msgToggle; }
 
-    public PlayerEntity getPlayer() {
-        return player;
-    }
+    public boolean isMsgSpy() { return msgSpy; }
+    public void setMsgSpy(boolean msgSpy) { this.msgSpy = msgSpy; }
 
-    public boolean isMsgToggle() {
-        return msgToggle;
-    }
-
-    public void setMsgToggle(boolean msgToggle) {
-        this.msgToggle = msgToggle;
-    }
-
-    public boolean isMsgSpy() {
-        return msgSpy;
-    }
-
-    public void setMsgSpy(boolean msgSpy) {
-        this.msgSpy = msgSpy;
-    }
-
-    public Set<PlayerEntity> getBlockedPlayers() {
-        return blockedPlayers;
-    }
-
-    public void block(PlayerEntity target) {
-        blockedPlayers.add(target);
-    }
-
-    public void unblock(PlayerEntity target) {
-        blockedPlayers.remove(target);
-    }
-
-    public boolean isBlocking(PlayerEntity target) {
-        return blockedPlayers.contains(target);
-    }
+    public Set<PlayerEntity> getBlockedPlayers() { return blockedPlayers; }
+    public void block(PlayerEntity target)   { blockedPlayers.add(target); }
+    public void unblock(PlayerEntity target) { blockedPlayers.remove(target); }
+    public boolean isBlocking(PlayerEntity t){ return blockedPlayers.contains(t); }
 }
