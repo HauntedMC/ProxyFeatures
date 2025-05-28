@@ -1,4 +1,3 @@
-// src/main/java/nl/hauntedmc/proxyfeatures/features/messager/internal/MessagingSettingsService.java
 package nl.hauntedmc.proxyfeatures.features.messager.internal;
 
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
@@ -74,7 +73,9 @@ public class MessagingSettingsService {
     public void block(PlayerEntity me, PlayerEntity target) {
         feature.getOrmContext().runInTransaction(session -> {
             PlayerMessageSettingsEntity s = session.get(PlayerMessageSettingsEntity.class, me.getId());
-            s.block(target);
+            // load managed target
+            PlayerEntity managedTarget = session.get(PlayerEntity.class, target.getId());
+            s.block(managedTarget);
             session.merge(s);
             return null;
         });
@@ -83,7 +84,9 @@ public class MessagingSettingsService {
     public void unblock(PlayerEntity me, PlayerEntity target) {
         feature.getOrmContext().runInTransaction(session -> {
             PlayerMessageSettingsEntity s = session.get(PlayerMessageSettingsEntity.class, me.getId());
-            s.unblock(target);
+            // load managed target
+            PlayerEntity managedTarget = session.get(PlayerEntity.class, target.getId());
+            s.unblock(managedTarget);
             session.merge(s);
             return null;
         });
@@ -96,6 +99,4 @@ public class MessagingSettingsService {
                         .uniqueResultOptional()
         );
     }
-
-
 }
