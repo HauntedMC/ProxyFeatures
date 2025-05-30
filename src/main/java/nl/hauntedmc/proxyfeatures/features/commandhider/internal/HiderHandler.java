@@ -10,12 +10,10 @@ import java.util.Set;
 public class HiderHandler {
 
 
-    private final CommandHider feature;
     private final List<String> hiddenCommands;
 
     public HiderHandler(CommandHider feature) {
-        this.feature = feature;
-        this.hiddenCommands = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("command_whitelist"), String.class);
+        this.hiddenCommands = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("hidden-commands"), String.class);
     }
 
     public Set<String> getHiddenCommands() {

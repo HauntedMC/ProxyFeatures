@@ -19,7 +19,6 @@ public class AvailableCommandListener {
      */
     @Subscribe
     public void onAvailableCommands(PlayerAvailableCommandsEvent event) {
-
         if (event.getPlayer().hasPermission("proxyfeatures.feature.commandhider.bypass")) {
             return;
         }
