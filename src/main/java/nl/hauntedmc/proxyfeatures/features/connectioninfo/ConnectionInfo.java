@@ -4,6 +4,7 @@ import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.features.connectioninfo.listener.PlayerListener;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.command.ConnectionInfoCommand;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.command.PingCommand;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.internal.SessionHandler;
@@ -43,9 +44,9 @@ public class ConnectionInfo extends VelocityBaseFeature<Meta> {
     @Override
     public void initialize() {
         sessionHandler = new SessionHandler();
+        getLifecycleManager().getListenerManager().registerListener(new PlayerListener(this));
         getLifecycleManager().getCommandManager().registerFeatureCommand(new PingCommand(this));
         getLifecycleManager().getCommandManager().registerFeatureCommand(new ConnectionInfoCommand(this));
-
     }
 
     @Override
