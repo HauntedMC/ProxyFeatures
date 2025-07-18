@@ -26,7 +26,7 @@ public class BroadcastProxyCommand extends FeatureCommand {
     }
 
     @Override public String getName()    { return "broadcastproxy"; }
-    @Override public String getAliases() { return ""; }
+    @Override public String[] getAliases() { return new String[]{""}; }
 
     @Override
     public boolean hasPermission(Invocation invocation) {

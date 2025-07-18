@@ -97,7 +97,7 @@ public class ListCommand extends FeatureCommand {
     }
 
     @Override
-    public String getAliases() {
-        return "";
+    public String[] getAliases() {
+        return new String[]{""};
     }
 }

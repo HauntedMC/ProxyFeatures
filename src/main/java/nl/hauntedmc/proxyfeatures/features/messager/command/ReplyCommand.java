@@ -29,8 +29,8 @@ public class ReplyCommand extends FeatureCommand {
     }
 
     @Override
-    public String getAliases() {
-        return "r";
+    public String[] getAliases() {
+        return new String[]{"r"};
     }
 
     @Override

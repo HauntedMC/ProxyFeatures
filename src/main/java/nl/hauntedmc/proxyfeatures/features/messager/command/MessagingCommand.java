@@ -23,7 +23,7 @@ public class MessagingCommand extends FeatureCommand {
     }
 
     @Override public String getName()    { return "msg"; }
-    @Override public String getAliases(){ return "";     }
+    @Override public String[] getAliases(){ return new String[]{""};     }
     @Override public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.messager.command");
     }

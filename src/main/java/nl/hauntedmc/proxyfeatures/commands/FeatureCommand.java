@@ -10,5 +10,5 @@ public abstract class FeatureCommand implements SimpleCommand {
     public abstract boolean hasPermission(final Invocation invocation);
     public abstract CompletableFuture<List<String>> suggestAsync(final Invocation invocation);
     public abstract String getName();
-    public abstract String getAliases();
+    public abstract String[] getAliases();
 }

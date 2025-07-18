@@ -21,8 +21,8 @@ public class LinkCommand extends FeatureCommand {
         this.handler = feature.getHLinkHandler();
     }
     @Override
-    public String getAliases() {
-        return "";
+    public String[] getAliases() {
+        return new String[]{""};
     }
 
     @Override

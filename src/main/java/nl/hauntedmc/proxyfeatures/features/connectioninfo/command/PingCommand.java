@@ -29,8 +29,8 @@ public class PingCommand extends FeatureCommand {
     }
 
     @Override
-    public String getAliases() {
-        return "";
+    public String[] getAliases() {
+        return new String[]{""};
     }
 
     @Override
