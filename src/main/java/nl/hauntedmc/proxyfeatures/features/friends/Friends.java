@@ -32,33 +32,39 @@ public class Friends extends VelocityBaseFeature<Meta> {
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap m = new MessageMap();
+        m.add("friend.player_only", "&8&l[&b&lFriends&8&l]&r &cAlleen spelers kunnen dit commando gebruiken.");
+        m.add("friend.usage",       "&8&l[&b&lFriends&8&l]&r &eGebruik: /friends <sub‑command>");
+        m.add("friend.no_friends_online", "&8&l[&b&lFriends&8&l]&r &7Geen vrienden online.");
+        m.add("friend.online_header",     "&8&l[&b&lFriends&8&l]&r &eVrienden online:");
+        m.add("friend.requests_header",     "&8&l[&b&lFriends&8&l]&r &eOpenstaande verzoeken:");
+        m.add("friend.online_entry",      "&7- {player} &7(&f{server}&7)");
+        m.add("friend.pending_requests",
+                "&8&l[&b&lFriends&8&l]&r &eJe hebt &f{count} &eopenstaand(e) verzoek(en). &7/friend requests");
+        m.add("friend.add.sent",      "&8&l[&b&lFriends&8&l]&r &aVriendverzoek verzonden naar {player}.");
+        m.add("friend.add.received",  "&8&l[&b&lFriends&8&l]&r &e{player} wil je als vriend toevoegen. Gebruik &a/friend accept {player}&e.");
+        m.add("friend.accepted",      "&8&l[&b&lFriends&8&l]&r &aJij en {player} zijn nu vrienden!");
+        m.add("friend.denied",        "&8&l[&b&lFriends&8&l]&r &cJe hebt het verzoek van {player} geweigerd.");
+        m.add("friend.removed",       "&8&l[&b&lFriends&8&l]&r &e{player} is verwijderd uit je vriendenlijst.");
+        m.add("friend.blocked",          "&8&l[&b&lFriends&8&l]&r &eJe hebt {player} geblokkeerd.");
+        m.add("friend.unblocked",        "&8&l[&b&lFriends&8&l]&r &a{player} is gedeblokkeerd.");
+        m.add("friend.already_blocked",  "&8&l[&b&lFriends&8&l]&r &cDeze speler is al geblokkeerd.");
+        m.add("friend.not_blocked",      "&8&l[&b&lFriends&8&l]&r &cDeze speler is niet geblokkeerd.");
+        m.add("friend.mode_disabled",    "&8&l[&b&lFriends&8&l]&r &cVriendensysteem staat uit. Gebruik /friend enable.");
+        m.add("friend.mode_enabled",     "&8&l[&b&lFriends&8&l]&r &aVriendensysteem ingeschakeld.");
+        m.add("friend.mode_now_disabled","&8&l[&b&lFriends&8&l]&r &eVriendensysteem uitgeschakeld; anderen kunnen geen verzoeken sturen.");
+        m.add("friend.already_friends", "&8&l[&b&lFriends&8&l]&r &cJullie zijn al vrienden.");
+        m.add("friend.request_exists",  "&8&l[&b&lFriends&8&l]&r &cEr is al een verzoek in behandeling.");
+        m.add("friend.not_found",       "&8&l[&b&lFriends&8&l]&r &cSpeler niet gevonden.");
+        m.add("friend.no_requests",     "&8&l[&b&lFriends&8&l]&r &cJe hebt geen openstaande verzoeken.");
+        m.add("friend.not_friends",     "&8&l[&b&lFriends&8&l]&r &cJullie zijn geen vrienden.");
+        m.add("friend.not_online",      "&8&l[&b&lFriends&8&l]&r &cDeze speler is niet online.");
+        m.add("friend.list.header", "&8&l[&b&lFriends&8&l]&r &eVriendenlijst &7({online}/{total})");
+        m.add("friend.list.entry",  "&7{status}{player}");
+        m.add("friend.info.header", "&8&l[&b&lFriends&8&l]&r &eInfo over {player}:");
+        m.add("friend.info.online", "&7Status: &aOnline &7(&f{server}&7)");
+        m.add("friend.info.offline","&7Status: &cOffline &7(Laatst gezien: &f{last}&7)");
+        m.add("friend.connected", "&8&l[&b&lFriends&8&l]&r &eVerbinden met server van &a{player}&e...");
 
-        m.add("friend.usage",            "&eGebruik: /friends <sub‑command>");
-        m.add("friend.add.sent",         "&aVriendverzoek verzonden naar {player}.");
-        m.add("friend.add.received",     "&e{player} wil je als vriend toevoegen. Gebruik &a/friend accept {player} &eom te accepteren.");
-        m.add("friend.accepted",         "&aJij en {player} zijn nu vrienden!");
-        m.add("friend.denied",           "&cJe hebt het verzoek van {player} geweigerd.");
-        m.add("friend.removed",          "&e{player} is verwijderd uit je vriendenlijst.");
-        m.add("friend.blocked",          "&eJe hebt {player} geblokkeerd.");
-        m.add("friend.unblocked",        "&a{player} is gedeblokkeerd.");
-        m.add("friend.already_blocked",  "&cDeze speler is al geblokkeerd.");
-        m.add("friend.not_blocked",      "&cDeze speler is niet geblokkeerd.");
-        m.add("friend.mode_disabled",    "&cVriendensysteem staat uit. Gebruik /friend enable om het in te schakelen.");
-        m.add("friend.mode_enabled",     "&aVriendensysteem ingeschakeld.");
-        m.add("friend.mode_now_disabled","&eVriendensysteem uitgeschakeld; anderen kunnen geen verzoeken sturen.");
-        m.add("friend.already_friends",  "&cJullie zijn al vrienden.");
-        m.add("friend.request_exists",   "&cEr is al een verzoek in behandeling.");
-        m.add("friend.not_found",        "&cSpeler niet gevonden.");
-        m.add("friend.no_requests",      "&cJe hebt geen openstaande verzoeken.");
-        m.add("friend.list.header",      "&eVriendenlijst &7({online}/{total})");
-        m.add("friend.list.entry",       "&7{status}{player}");
-        m.add("friend.info.header",      "&eInfo over {player}:");
-        m.add("friend.info.online",      "&7Status: &aOnline &7(&f{server}&7)");
-        m.add("friend.info.offline",     "&7Status: &cOffline &7(Laatst gezien: &f{last}&7)");
-        m.add("friend.info.none",        "&cGeen informatie beschikbaar.");
-        m.add("friend.connected",        "&eVerbinden met server van &a{player}&e...");
-        m.add("friend.not_online",       "&cDeze speler is niet online.");
-        m.add("friend.not_friends",      "&cJullie zijn geen vrienden.");
         return m;
     }
 
