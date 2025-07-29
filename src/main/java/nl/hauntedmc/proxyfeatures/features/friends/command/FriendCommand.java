@@ -8,7 +8,7 @@ import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.common.util.VelocityUtils;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
-import nl.hauntedmc.proxyfeatures.features.friends.FriendsService;
+import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
@@ -86,6 +86,7 @@ public class FriendCommand extends FeatureCommand {
             case "remove"    -> remove(player, args);
             case "accept"    -> accept(player, args);
             case "deny"      -> deny(player, args);
+            case "cancel"    -> cancel(player, args);
             case "acceptall" -> acceptAll(player);
             case "denyall"   -> denyAll(player);
             case "server"    -> connect(player, args);
@@ -239,16 +240,42 @@ public class FriendCommand extends FeatureCommand {
         }, () -> sendMsg(p, "friend.not_found"));
     }
 
+
     private void deny(Player p, String[] args) {
         if (args.length != 2) { sendMsg(p, "friend.usage"); return; }
         PlayerEntity me = getEntity(p);
-        PlayerEntity from = resolvePlayer(args[1]);
-        if (from == null) { sendMsg(p, "friend.not_found"); return; }
+        PlayerEntity other = resolvePlayer(args[1]);
+        if (other == null) { sendMsg(p, "friend.not_found"); return; }
+        if (other.getId().equals(me.getId())) { sendMsg(p, "friend.self"); return; }
 
-        svc.relation(from, me).ifPresentOrElse(rel -> {
+        Optional<FriendRelationEntity> incoming = svc.relation(other, me);
+        if (incoming.isPresent() && incoming.get().getStatus() == FriendStatus.PENDING) {
+            svc.deleteRelation(incoming.get());
+            sendMsg(p, "friend.denied", Map.of("player", other.getUsername()));
+        } else {
+            Optional<FriendRelationEntity> outgoing = svc.relation(me, other)
+                    .filter(r -> r.getStatus() == FriendStatus.PENDING);
+            if (outgoing.isPresent()) {
+                sendMsg(p, "friend.cannot_deny_outgoing", Map.of("player", other.getUsername()));
+            } else {
+                sendMsg(p, "friend.not_found");
+            }
+        }
+    }
+
+    private void cancel(Player p, String[] args) {
+        if (args.length != 2) { sendMsg(p, "friend.usage"); return; }
+        PlayerEntity me = getEntity(p);
+        PlayerEntity target = resolvePlayer(args[1]);
+        if (target == null) { sendMsg(p, "friend.not_found"); return; }
+        if (target.getId().equals(me.getId())) { sendMsg(p, "friend.self"); return; }
+
+        svc.relation(me, target).ifPresentOrElse(rel -> {
             if (rel.getStatus() == FriendStatus.PENDING) {
                 svc.deleteRelation(rel);
-                sendMsg(p, "friend.denied", Map.of("player", from.getUsername()));
+                sendMsg(p, "friend.cancelled", Map.of("player", target.getUsername()));
+            } else {
+                sendMsg(p, "friend.not_found");
             }
         }, () -> sendMsg(p, "friend.not_found"));
     }
@@ -296,10 +323,17 @@ public class FriendCommand extends FeatureCommand {
 
     private void requests(Player p) {
         PlayerEntity me = getEntity(p);
-        var reqs = svc.incomingRequests(me);
-        if (reqs.isEmpty()) { sendMsg(p, "friend.no_requests"); return; }
+        List<FriendRelationEntity> incoming = svc.incomingRequests(me);
+        List<FriendRelationEntity> outgoing = svc.outgoingRequests(me);
+        if (incoming.isEmpty() && outgoing.isEmpty()) { sendMsg(p, "friend.no_requests"); return; }
         sendMsg(p, "friend.requests_header");
-        reqs.forEach(r -> p.sendMessage(Component.text("- " + r.getPlayer().getUsername())));
+        incoming.forEach(r -> p.sendMessage(Component.text("- " + r.getPlayer().getUsername())));
+        outgoing.forEach(r -> p.sendMessage(
+                feature.getLocalizationHandler()
+                        .getMessage("friend.requests.outgoing_entry")
+                        .withPlaceholders(Map.of("player", r.getFriend().getUsername()))
+                        .build()
+        ));
     }
 
     private void block(Player p, String[] args) {

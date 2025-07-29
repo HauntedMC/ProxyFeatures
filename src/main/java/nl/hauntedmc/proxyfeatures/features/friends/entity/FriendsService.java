@@ -1,13 +1,10 @@
-package nl.hauntedmc.proxyfeatures.features.friends;
+package nl.hauntedmc.proxyfeatures.features.friends.entity;
 
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
-import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity;
-import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendSettingsEntity;
-import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
 import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.Optional;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 
 public class FriendsService {
     private final Friends feature;
@@ -28,7 +25,6 @@ public class FriendsService {
                     session.get(FriendSettingsEntity.class, p.getId());
 
             if (settings == null) {
-                /* re‑attach the player in this session */
                 PlayerEntity managedPlayer =
                         session.get(PlayerEntity.class, p.getId());
 
@@ -84,13 +80,21 @@ public class FriendsService {
                     session.get(FriendSettingsEntity.class, player.getId());
 
             if (s == null) {
-                // attach a managed PlayerEntity in this session
                 PlayerEntity managed = session.get(PlayerEntity.class, player.getId());
                 s = new FriendSettingsEntity(managed);
                 session.persist(s);
             }
-            s.setEnabled(enabled);   // managed inside this txn → auto‑flush
+            s.setEnabled(enabled);
             return null;
         });
+    }
+
+    public List<FriendRelationEntity> outgoingRequests(PlayerEntity p) {
+        return feature.getOrm().runInTransaction(
+                s -> s.createQuery("FROM FriendRelationEntity WHERE player = :me AND status = :st",
+                                FriendRelationEntity.class)
+                        .setParameter("me", p)
+                        .setParameter("st", FriendStatus.PENDING)
+                        .list());
     }
 }
