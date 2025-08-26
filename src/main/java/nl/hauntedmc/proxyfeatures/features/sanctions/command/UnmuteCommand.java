@@ -1,0 +1,80 @@
+package nl.hauntedmc.proxyfeatures.features.sanctions.command;
+
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
+import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+
+public class UnmuteCommand extends FeatureCommand {
+
+    private final Sanctions feature;
+
+    public UnmuteCommand(Sanctions feature) { this.feature = feature; }
+
+    @Override
+    public void execute(Invocation inv) {
+        CommandSource src = inv.source();
+        String[] a = inv.arguments();
+
+        if (a.length < 1) { sendMsg(src, "sanctions.usage.unmute"); return; }
+
+        String targetName = a[0];
+        var targetOpt = feature.getServiceLookup().byName(targetName);
+        if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
+        PlayerEntity target = targetOpt.get();
+
+        boolean changed = feature.getService().deactivateActiveMuteForPlayer(target);
+        if (!changed) {
+            sendMsg(src, "sanctions.not_muted");
+            return;
+        }
+
+        String actorName = (src instanceof Player pl) ? pl.getUsername() : "CONSOLE";
+
+        // Feedback to executor
+        sendMsg(src, "sanctions.unmuted", Map.of("target", target.getUsername()));
+
+        // Announce to staff
+        feature.getService().broadcastToStaff(
+                "sanctions.announce.unmute",
+                Map.of("target", target.getUsername(), "actor", actorName)
+        );
+
+        // Notify player if online
+        feature.getPlugin().getProxy().getPlayer(java.util.UUID.fromString(target.getUuid()))
+                .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
+                        .getMessage("sanctions.notify.unmuted")
+                        .forAudience(pl).build()));
+        feature.getDiscordService().sendUnmute(target, actorName);
+    }
+
+    @Override
+    public boolean hasPermission(Invocation inv) {
+        return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.unmute");
+    }
+
+    @Override public String getName() { return "unmute"; }
+    @Override public String[] getAliases() { return new String[0]; }
+
+    @Override
+    public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
+        String[] a = invocation.arguments();
+        String prefix = (a.length >= 1) ? a[0] : "";
+        List<String> names = feature.getService()
+                .suggestActiveTargetNames(SanctionType.MUTE, prefix, 20);
+        return CompletableFuture.completedFuture(names);
+    }
+
+    // helpers
+    private void sendMsg(CommandSource src, String key) {
+        src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());
+    }
+    private void sendMsg(CommandSource src, String key, Map<String, String> ph) {
+        src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(ph).forAudience(src).build());
+    }
+}
