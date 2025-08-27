@@ -38,6 +38,7 @@ public class MuteCommand extends FeatureCommand {
             sendMsg(src, "sanctions.already_muted"); return;
         }
 
+        // Exempt protection (if online and has exempt permission)
         if (feature.getService().isTargetExempt(target.getUuid())) {
             sendMsg(src, "sanctions.exempt_target"); return;
         }
@@ -64,17 +65,22 @@ public class MuteCommand extends FeatureCommand {
                     s.isPermanent() ? "sanctions.announce.mute.perm" : "sanctions.announce.mute.temp",
                     ph);
 
+            // Disconnect the player immediately with a dedicated mute screen (multi-line)
             feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
                     .ifPresent(pl -> {
-                        String key = s.isPermanent() ? "sanctions.notify.muted.perm" : "sanctions.notify.muted.temp";
-                        pl.sendMessage(feature.getLocalizationHandler().getMessage(key)
-                                .withPlaceholders(ph).forAudience(pl).build());
+                        String key = s.isPermanent()
+                                ? "sanctions.disconnect.muted.perm"
+                                : "sanctions.disconnect.muted.temp";
+                        pl.disconnect(feature.getLocalizationHandler().getMessage(key)
+                                .withPlaceholders(ph)
+                                .forAudience(pl).build());
                     });
+
             feature.getDiscordService().sendMute(s);
         } catch (IllegalStateException dup) {
             sendMsg(src, "sanctions.already_muted");
         } catch (Throwable t) {
-            feature.getLogger().error("[Sanctions] Failed to create mute for "+ target.getUsername() +": " + t.getMessage());
+            feature.getLogger().error("[Sanctions] Failed to create mute for " + target.getUsername() + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
         }
     }
@@ -90,6 +96,7 @@ public class MuteCommand extends FeatureCommand {
     @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
+        // Keep these short, staff can still type custom lengths
         List<String> durations = List.of("7d","30d","p");
 
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {

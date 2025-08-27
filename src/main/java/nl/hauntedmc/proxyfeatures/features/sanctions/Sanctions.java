@@ -106,6 +106,19 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
                         + "&7Reden: &f{reason}\n"
                         + "&7Appeal: &f{appeal}");
 
+        m.add("sanctions.disconnect.muted.temp",
+                "&8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.\n"
+                        + "&7Status: &fTijdelijke mute\n"
+                        + "&7Resterende tijd: &f{duration}\n"
+                        + "&7Reden: &f{reason}\n"
+                        + "&7Appeal: &f{appeal}");
+
+        m.add("sanctions.disconnect.muted.perm",
+                "&8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.\n"
+                        + "&7Status: &f&lPermanente mute\n"
+                        + "&7Reden: &f{reason}\n"
+                        + "&7Appeal: &f{appeal}");
+
         // Staff announcements (CHAT) — single-line, compact & labeled
         m.add("sanctions.announce.unban",
                 "&8&l[&c&lSanctions&8&l]&r &aUnban &8• &7Speler: &f{target} &8| &7Door: &f{actor}");
