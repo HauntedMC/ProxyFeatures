@@ -79,14 +79,8 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         m.add("sanctions.notify.unmuted",
                 "&8&l[&c&lSanctions&8&l]&r &aJe mute is opgeheven.");
 
-        m.add("sanctions.notify.muted.temp",
-                "&8&l[&c&lSanctions&8&l]&r &eJe bent gemute. &7Resterend: &f{duration} &8| &7Reden: &f{reason}");
-
-        m.add("sanctions.notify.muted.perm",
-                "&8&l[&c&lSanctions&8&l]&r &eJe bent &lpermanent&r&e gemute. &8| &7Reden: &f{reason}");
-
         m.add("sanctions.notify.warn",
-                "&8&l[&c&lSanctions&8&l]&r &6Waarschuwing. &7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &6Je bent gewaarschuwd. &7Reden: &f{reason}");
 
         m.add("sanctions.notify.kick",
                 "&8&l[&c&lSanctions&8&l]&r &cJe bent gekickt.\n" +
