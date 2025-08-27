@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SanctionListCommand extends FeatureCommand {
 
@@ -49,8 +50,7 @@ public class SanctionListCommand extends FeatureCommand {
         if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
         PlayerEntity target = targetOpt.get();
 
-        List<SanctionEntity> list = feature.getService()
-                .listSanctionsForPlayer(target, activeOnly);
+        List<SanctionEntity> list = feature.getService().listSanctionsForPlayer(target, activeOnly);
 
         String modeLabel = activeOnly ? "actief" : "alles";
         if (list.isEmpty()) {
@@ -74,11 +74,30 @@ public class SanctionListCommand extends FeatureCommand {
             ph.put("id", String.valueOf(s.getId()));
             ph.put("type", typeLabel(s.getType()));
             ph.put("status", s.isActive() ? "&aActief" : "&cInactief");
-            ph.put("actor", feature.getService().usernameOf(s.getActorPlayer()).orElse(s.getActorName() == null ? "CONSOLE" : s.getActorName()));
+
+            // Prefer stored actorName fallback when actor entity missing
+            String actor =
+                    feature.getService().usernameOf(s.getActorPlayer())
+                            .orElse(s.getActorName() == null ? "CONSOLE" : s.getActorName());
+            ph.put("actor", actor);
+
             ph.put("created", fmt(s.getCreatedAt()));
-            ph.put("duration", s.isPermanent()
+
+            // Correct total duration = from createdAt to expiresAt (not now)
+            String totalDuration = s.isPermanent()
                     ? "permanent"
-                    : feature.getService().humanDuration(Instant.now(), s.getExpiresAt()));
+                    : feature.getService().humanDuration(
+                    Optional.ofNullable(s.getCreatedAt()).orElse(Instant.now()),
+                    s.getExpiresAt());
+
+            // If still active and temporary, also show remaining time
+            String durationDisplay = totalDuration;
+            if (s.isActive() && !s.isPermanent() && s.getExpiresAt() != null) {
+                String remaining = feature.getService().humanDuration(Instant.now(), s.getExpiresAt());
+                durationDisplay = totalDuration + " (resterend: " + remaining + ")";
+            }
+            ph.put("duration", durationDisplay);
+
             ph.put("reason", (s.getReason() == null || s.getReason().isBlank()) ? "-" : s.getReason());
 
             // Line 1
@@ -128,7 +147,7 @@ public class SanctionListCommand extends FeatureCommand {
         }
         if (a.length == 2) {
             String partial = a[1].toLowerCase(Locale.ROOT);
-            List<String> modes = List.of("active", "all").stream()
+            List<String> modes = Stream.of("active", "all")
                     .filter(m -> m.startsWith(partial))
                     .collect(Collectors.toList());
             return CompletableFuture.completedFuture(modes);

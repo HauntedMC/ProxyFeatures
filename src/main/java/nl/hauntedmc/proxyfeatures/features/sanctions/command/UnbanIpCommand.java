@@ -39,14 +39,8 @@ public class UnbanIpCommand extends FeatureCommand {
             return;
         }
 
-        String actorName = (inv.source() instanceof com.velocitypowered.api.proxy.Player pl) ? pl.getUsername() : "CONSOLE";
-
         // Feedback to executor
         sendMsg(src, "sanctions.unbanned_ip", Map.of("ip", ip));
-
-        // Broadcast & Discord
-        feature.getService().broadcastToStaff("sanctions.announce.unbanip",
-                Map.of("ip", ip, "actor", actorName));
     }
 
     @Override

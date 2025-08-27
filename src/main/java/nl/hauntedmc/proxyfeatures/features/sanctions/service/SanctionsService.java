@@ -345,10 +345,6 @@ public class SanctionsService {
         });
     }
 
-    public Map<String, String> mapOf(String k, String v) {
-        Map<String, String> m = new HashMap<>(); m.put(k, v); return m;
-    }
-
     public String humanDuration(Instant from, Instant to) {
         if (to == null) return "permanent";
         long seconds = Math.max(0, to.getEpochSecond() - from.getEpochSecond());

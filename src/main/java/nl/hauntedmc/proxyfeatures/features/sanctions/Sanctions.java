@@ -32,9 +32,10 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         cfg.put("enabled", true);
         cfg.put("expirySweepSeconds", 30);
         cfg.put("discordWebhookURL", "");
-        cfg.put("appealURL", "https://hauntedmc.nl/appeal");
+        cfg.put("appealURL", "https://www.hauntedmc.nl/support/");
         return cfg;
     }
+
 
     @Override
     public MessageMap getDefaultMessages() {
@@ -54,70 +55,99 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         m.add("sanctions.internal_error", "&8&l[&c&lSanctions&8&l]&r &cEr ging iets mis. Probeer het later opnieuw.");
 
         // Command usage
-        m.add("sanctions.usage.ban", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/ban <naam> <lengte> <reden>");
-        m.add("sanctions.usage.banip", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/banip <ip> <lengte> <reden>");
-        m.add("sanctions.usage.mute", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/mute <naam> <lengte> <reden>");
-        m.add("sanctions.usage.warn", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/warn <naam> <reden>");
-        m.add("sanctions.usage.kick", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/kick <naam> <reden>");
-        m.add("sanctions.usage.unban", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unban <naam>");
-        m.add("sanctions.usage.unmute", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unmute <naam>");
-        m.add("sanctions.usage.unbanip", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unbanip <ip>");
-        m.add("sanctions.usage.sanctionlist", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/sanctionlist <naam> <all|active>");
+        m.add("sanctions.usage.ban",         "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/ban <naam> <lengte> <reden>");
+        m.add("sanctions.usage.banip",       "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/banip <ip> <lengte> <reden>");
+        m.add("sanctions.usage.mute",        "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/mute <naam> <lengte> <reden>");
+        m.add("sanctions.usage.warn",        "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/warn <naam> <reden>");
+        m.add("sanctions.usage.kick",        "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/kick <naam> <reden>");
+        m.add("sanctions.usage.unban",       "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unban <naam>");
+        m.add("sanctions.usage.unmute",      "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unmute <naam>");
+        m.add("sanctions.usage.unbanip",     "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unbanip <ip>");
+        m.add("sanctions.usage.sanctionlist","&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/sanctionlist <naam> <all|active>");
 
         // Not currently sanctioned
         m.add("sanctions.not_banned_player", "&8&l[&c&lSanctions&8&l]&r &cDeze speler is momenteel niet verbannen.");
-        m.add("sanctions.not_banned_ip", "&8&l[&c&lSanctions&8&l]&r &cDit IP-adres is momenteel niet verbannen.");
-        m.add("sanctions.not_muted", "&8&l[&c&lSanctions&8&l]&r &cDeze speler is momenteel niet gemute.");
+        m.add("sanctions.not_banned_ip",     "&8&l[&c&lSanctions&8&l]&r &cDit IP-adres is momenteel niet verbannen.");
+        m.add("sanctions.not_muted",         "&8&l[&c&lSanctions&8&l]&r &cDeze speler is momenteel niet gemute.");
 
         // Success feedback to executor
-        m.add("sanctions.unbanned", "&8&l[&c&lSanctions&8&l]&r &aBan opgeheven voor &f{target}&a.");
-        m.add("sanctions.unbanned_ip", "&8&l[&c&lSanctions&8&l]&r &aBan opgeheven voor &f{ip}&a.");
-        m.add("sanctions.unmuted", "&8&l[&c&lSanctions&8&l]&r &aMute opgeheven voor &f{target}&a.");
+        m.add("sanctions.unbanned",    "&8&l[&c&lSanctions&8&l]&r &aUnban uitgevoerd &8• &7Speler: &f{target}");
+        m.add("sanctions.unbanned_ip", "&8&l[&c&lSanctions&8&l]&r &aIP-Unban uitgevoerd &8• &7IP: &f{ip}");
+        m.add("sanctions.unmuted",     "&8&l[&c&lSanctions&8&l]&r &aUnmute uitgevoerd &8• &7Speler: &f{target}");
 
-        // Player facing
-        m.add("sanctions.notify.unmuted", "&aJe mute is opgeheven.");
-        m.add("sanctions.notify.muted.temp", "&eJe bent gemute {duration}. &7Reden: &f{reason}");
-        m.add("sanctions.notify.muted.perm", "&eJe bent &lpermanent &r&egemute. &7Reden: &f{reason}");
-        m.add("sanctions.notify.warn", "&eJe bent gewaarschuwd. &7Reden: &f{reason}");
-        m.add("sanctions.notify.kick", "&eJe bent gekickt. &7Reden: &f{reason}");
+        // Player-facing (CHAT) — single-line, compact
+        m.add("sanctions.notify.unmuted",
+                "&8&l[&c&lSanctions&8&l]&r &aJe mute is opgeheven.");
 
-        // Disconnect messages (show appeal URL from config)
+        m.add("sanctions.notify.muted.temp",
+                "&8&l[&c&lSanctions&8&l]&r &eJe bent gemute. &7Resterend: &f{duration} &8| &7Reden: &f{reason}");
+
+        m.add("sanctions.notify.muted.perm",
+                "&8&l[&c&lSanctions&8&l]&r &eJe bent &lpermanent&r&e gemute. &8| &7Reden: &f{reason}");
+
+        m.add("sanctions.notify.warn",
+                "&8&l[&c&lSanctions&8&l]&r &6Waarschuwing. &7Reden: &f{reason}");
+
+        m.add("sanctions.notify.kick",
+                "&8&l[&c&lSanctions&8&l]&r &cJe bent gekickt.\n" +
+                        "&7Reden: &f{reason}");
+
+        // Disconnect messages (SCREEN) — multi-line for clarity
         m.add("sanctions.disconnect.banned.temp",
-                "&cJe bent verbannen {duration}.\n&7Reden: &f{reason}\n&7Appeal: &f{appeal}");
+                "&8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.\n"
+                        + "&7Status: &fTijdelijke ban\n"
+                        + "&7Resterende tijd: &f{duration}\n"
+                        + "&7Reden: &f{reason}\n"
+                        + "&7Appeal: &f{appeal}");
+
         m.add("sanctions.disconnect.banned.perm",
-                "&cJe bent &lpermanent &r&cverbannen.\n&7Reden: &f{reason}\n&7Appeal: &f{appeal}");
+                "&8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.\n"
+                        + "&7Status: &f&lPermanente ban\n"
+                        + "&7Reden: &f{reason}\n"
+                        + "&7Appeal: &f{appeal}");
 
-        // Staff announcements
-        m.add("sanctions.announce.unban", "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft de ban van &a{target} &7opgeheven.");
-        m.add("sanctions.announce.unmute", "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft de mute van &a{target} &7opgeheven.");
-        m.add("sanctions.announce.unbanip", "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft de IP-ban van &a{ip} &7opgeheven.");
+        // Staff announcements (CHAT) — single-line, compact & labeled
+        m.add("sanctions.announce.unban",
+                "&8&l[&c&lSanctions&8&l]&r &aUnban &8• &7Speler: &f{target} &8| &7Door: &f{actor}");
+
+        m.add("sanctions.announce.unmute",
+                "&8&l[&c&lSanctions&8&l]&r &aUnmute &8• &7Speler: &f{target} &8| &7Door: &f{actor}");
+
         m.add("sanctions.announce.ban.temp",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft &c{target} &7verbannen {duration}. &7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &cBan &8• &7Speler: &f{target} &8| &7Duur: &f{duration} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
+
         m.add("sanctions.announce.ban.perm",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft &c{target} &7permanent verbannen. &7Reden: &f{reason}");
-        m.add("sanctions.announce.banip.temp",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft IP &c{ip} &7verbannen {duration}. &7Reden: &f{reason}");
-        m.add("sanctions.announce.banip.perm",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft IP &c{ip} &7permanent verbannen. &7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &cBan (Permanent) &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
+
         m.add("sanctions.announce.mute.temp",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft &e{target} &7gemute {duration}. &7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &eMute &8• &7Speler: &f{target} &8| &7Duur: &f{duration} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
+
         m.add("sanctions.announce.mute.perm",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft &e{target} &7permanent gemute. &7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &eMute (Permanent) &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
+
         m.add("sanctions.announce.warn",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft &6{target} &7gewaarschuwd. &7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &6Waarschuwing &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
+
         m.add("sanctions.announce.kick",
-                "&8&l[&c&lSanctions&8&l]&r &f{actor} &7heeft &c{target} &7gekickt. &7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &cKick &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
 
-        // Chat blocked
-        m.add("sanctions.chat_blocked", "&cJe bent gemute en kunt niet chatten. &7Resterende mute tijd: &f{remaining}");
+        // Chat blocked (CHAT)
+        m.add("sanctions.chat_blocked",
+                "&8&l[&c&lSanctions&8&l]&r &cJe bent gemute en kunt niet chatten. &7Resterende tijd: &f{remaining}");
 
-        // Sanction list
-        m.add("sanctions.list.header", "&8&l[&c&lSanctions&8&l]&r &eSancties voor &f{player}&e — &f{mode} &7(&f{count}&7)");
-        m.add("sanctions.list.empty", "&8&l[&c&lSanctions&8&l]&r &7Geen sancties gevonden voor &f{player}&7 (&f{mode}&7).");
-        m.add("sanctions.list.entry.line1", "&8• &7Type: &f{type} &8| &7Status: {status} &8| &7Door: &f{actor}");
-        m.add("sanctions.list.entry.line2", "&8  &7Op: &f{created} &8| &7Duur: &f{duration}");
-        m.add("sanctions.list.entry.line2b", "&8  &7Verloopt: &f{expires}");
-        m.add("sanctions.list.entry.line3", "&8  &7Reden: &f{reason}");
+        // Sanction list (unchanged)
+        m.add("sanctions.list.header",
+                "&8&l[&c&lSanctions&8&l]&r &eSancties voor &f{player}&e — &f{mode} &7(&f{count}&7)");
+        m.add("sanctions.list.empty",
+                "&8&l[&c&lSanctions&8&l]&r &7Geen sancties gevonden voor &f{player}&7 (&f{mode}&7).");
+        m.add("sanctions.list.entry.line1",
+                "&8• &7Type: &f{type} &8| &7Status: {status} &8| &7Door: &f{actor}");
+        m.add("sanctions.list.entry.line2",
+                "&8  &7Op: &f{created} &8| &7Duur: &f{duration}");
+        m.add("sanctions.list.entry.line2b",
+                "&8  &7Verloopt: &f{expires}");
+        m.add("sanctions.list.entry.line3",
+                "&8  &7Reden: &f{reason}");
         m.add("sanctions.list.entry.separator", "");
         return m;
     }

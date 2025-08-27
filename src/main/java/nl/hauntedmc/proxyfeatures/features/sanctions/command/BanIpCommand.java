@@ -51,9 +51,6 @@ public class BanIpCommand extends FeatureCommand {
             SanctionEntity s = feature.getService().createBanForIp(normalizedIp, reason, actorEnt, actorName, expires);
 
             var ph = feature.getService().placeholdersFor(s);
-            feature.getService().broadcastToStaff(
-                    s.isPermanent() ? "sanctions.announce.banip.perm" : "sanctions.announce.banip.temp",
-                    ph);
 
             // Immediately disconnect all online players from the banned IP
             feature.getPlugin().getProxy().getAllPlayers().forEach(pl -> {
@@ -104,10 +101,6 @@ public class BanIpCommand extends FeatureCommand {
             return CompletableFuture.completedFuture(sugg);
         }
         return CompletableFuture.completedFuture(Collections.emptyList());
-    }
-
-    private boolean isValidIp(String ip) {
-        try { InetAddress.getByName(ip); return true; } catch (Exception e) { return false; }
     }
 
     private String normalizeIp(String ip) {
