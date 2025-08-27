@@ -27,25 +27,36 @@ public class BanCommand extends FeatureCommand {
 
         String targetName  = a[0];
         String lengthToken = a[1];
-        String reason      = joinAfter(a, 2);
+        String reason      = sanitizeReason(joinAfter(a, 2));
 
         var targetOpt = feature.getServiceLookup().byName(targetName);
         if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
         PlayerEntity target = targetOpt.get();
 
+        // Block self-ban
         if (src instanceof Player p && p.getUniqueId().toString().equals(target.getUuid())) {
             sendMsg(src, "sanctions.self"); return;
         }
 
-        Instant expires;
-        try { expires = feature.getService().parseLengthToExpiry(lengthToken); }
-        catch (Exception ex) { sendMsg(src, "sanctions.invalid_length"); return; }
+        // Prevent action on exempt targets (if online and exempt)
+        if (feature.getService().isTargetExempt(target.getUuid())) {
+            sendMsg(src, "sanctions.exempt_target"); return;
+        }
 
+        Instant expires;
+        try {
+            expires = feature.getService().parseLengthToExpiry(lengthToken);
+        } catch (Exception ex) {
+            sendMsg(src, "sanctions.invalid_length"); return;
+        }
+
+        // Permanent ban requires special permission
         if (expires == null && !src.hasPermission("proxyfeatures.feature.sanctions.command.ban.perm")) {
             sendMsg(src, "sanctions.perm_block");
             return;
         }
 
+        // Detect existing active ban (race-protected in service too)
         if (feature.getService().findActiveBanByPlayer(target).isPresent()) {
             sendMsg(src, "sanctions.already_banned"); return;
         }
@@ -55,20 +66,28 @@ public class BanCommand extends FeatureCommand {
                 : null;
         String actorName = (src instanceof Player pl) ? pl.getUsername() : "CONSOLE";
 
-        SanctionEntity s = feature.getService().createBanForPlayer(target, reason, actorEnt, actorName, expires);
+        try {
+            SanctionEntity s = feature.getService().createBanForPlayer(target, reason, actorEnt, actorName, expires);
 
-        var ph = feature.getService().placeholdersFor(s);
-        feature.getService().broadcastToStaff(
-                s.isPermanent() ? "sanctions.announce.ban.perm" : "sanctions.announce.ban.temp",
-                ph);
+            var ph = feature.getService().placeholdersFor(s);
+            feature.getService().broadcastToStaff(
+                    s.isPermanent() ? "sanctions.announce.ban.perm" : "sanctions.announce.ban.temp",
+                    ph);
 
-        feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                .ifPresent(pl -> {
-                    String key = s.isPermanent() ? "sanctions.disconnect.banned.perm" : "sanctions.disconnect.banned.temp";
-                    pl.disconnect(feature.getLocalizationHandler().getMessage(key)
-                            .withPlaceholders(ph).forAudience(pl).build());
-                });
-        feature.getDiscordService().sendBan(s);
+            feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
+                    .ifPresent(pl -> {
+                        String key = s.isPermanent() ? "sanctions.disconnect.banned.perm" : "sanctions.disconnect.banned.temp";
+                        pl.disconnect(feature.getLocalizationHandler().getMessage(key)
+                                .withPlaceholders(ph).forAudience(pl).build());
+                    });
+
+            feature.getDiscordService().sendBan(s);
+        } catch (IllegalStateException dup) {
+            sendMsg(src, "sanctions.already_banned");
+        } catch (Throwable t) {
+            feature.getLogger().error("[Sanctions] Failed to create player ban for " + target.getUsername() + ": " + t.getMessage());
+            sendMsg(src, "sanctions.internal_error");
+        }
     }
 
     @Override
@@ -114,9 +133,14 @@ public class BanCommand extends FeatureCommand {
     private void sendMsg(CommandSource src, String key) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());
     }
+
     private String joinAfter(String[] arr, int idx) {
         StringBuilder sb = new StringBuilder();
         for (int i = idx; i < arr.length; i++) { if (i > idx) sb.append(' '); sb.append(arr[i]); }
         return sb.toString();
+    }
+
+    private String sanitizeReason(String r) {
+        return feature.getService().sanitizeReason(r);
     }
 }

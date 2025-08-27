@@ -22,7 +22,7 @@ public class KickCommand extends FeatureCommand {
         if (a.length < 2) { sendMsg(src, "sanctions.usage.kick"); return; }
 
         String targetName = a[0];
-        String reason     = joinAfter(a, 1);
+        String reason     = feature.getService().sanitizeReason(joinAfter(a, 1));
 
         var targetOnline = feature.getPlugin().getProxy().getPlayer(targetName).orElse(null);
         PlayerEntity target = (targetOnline != null)
@@ -31,22 +31,32 @@ public class KickCommand extends FeatureCommand {
 
         if (target == null) { sendMsg(src, "sanctions.not_found"); return; }
 
+        // Exempt protection if online & exempt
+        if (feature.getService().isTargetExempt(target.getUuid())) {
+            sendMsg(src, "sanctions.exempt_target"); return;
+        }
+
         PlayerEntity actorEnt = (src instanceof Player pl)
                 ? feature.getService().getPlayerByUuid(pl.getUniqueId().toString()).orElse(null)
                 : null;
         String actorName = (src instanceof Player pl) ? pl.getUsername() : "CONSOLE";
 
-        feature.getService().createKick(target, reason, actorEnt, actorName);
+        try {
+            feature.getService().createKick(target, reason, actorEnt, actorName);
 
-        feature.getService().broadcastToStaff("sanctions.announce.kick",
-                Map.of("target", target.getUsername(), "reason", reason, "actor", actorName));
+            feature.getService().broadcastToStaff("sanctions.announce.kick",
+                    Map.of("target", target.getUsername(), "reason", reason, "actor", actorName));
 
-        if (targetOnline != null) {
-            targetOnline.disconnect(feature.getLocalizationHandler().getMessage("sanctions.notify.kick")
-                    .withPlaceholders(Map.of("reason", reason))
-                    .forAudience(targetOnline).build());
+            if (targetOnline != null) {
+                targetOnline.disconnect(feature.getLocalizationHandler().getMessage("sanctions.notify.kick")
+                        .withPlaceholders(Map.of("reason", reason))
+                        .forAudience(targetOnline).build());
+            }
+            feature.getDiscordService().sendKick(target, reason, actorName);
+        } catch (Throwable t) {
+            feature.getLogger().error("[Sanctions] Failed to kick " + target.getUsername() + ": " + t.getMessage());
+            sendMsg(src, "sanctions.internal_error");
         }
-        feature.getDiscordService().sendKick(target, reason, actorName);
     }
 
     @Override

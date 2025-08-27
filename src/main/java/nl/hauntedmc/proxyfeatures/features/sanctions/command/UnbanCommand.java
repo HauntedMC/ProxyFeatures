@@ -4,7 +4,6 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
-import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
 import java.util.*;
@@ -28,9 +27,17 @@ public class UnbanCommand extends FeatureCommand {
         if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
         PlayerEntity target = targetOpt.get();
 
-        boolean changed = feature.getService().deactivateActiveBanForPlayer(target);
+        boolean changed;
+        try {
+            changed = feature.getService().deactivateActiveBanForPlayer(target);
+        } catch (Throwable t) {
+            feature.getLogger().error("[Sanctions] Failed to unban " + target.getUsername() + ": " + t.getMessage());
+            sendMsg(src, "sanctions.internal_error");
+            return;
+        }
+
         if (!changed) {
-            sendMsg(src, "sanctions.not_banned");
+            sendMsg(src, "sanctions.not_banned_player");
             return;
         }
 
@@ -61,7 +68,7 @@ public class UnbanCommand extends FeatureCommand {
         String[] a = invocation.arguments();
         String prefix = (a.length >= 1) ? a[0] : "";
         List<String> names = feature.getService()
-                .suggestActiveTargetNames(SanctionType.BAN, prefix, 20);
+                .suggestActiveTargetNames(nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType.BAN, prefix, 20);
         return CompletableFuture.completedFuture(names);
     }
 

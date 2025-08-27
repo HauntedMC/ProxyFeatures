@@ -24,16 +24,21 @@ public class BanIpCommand extends FeatureCommand {
         String[] a = inv.arguments();
         if (a.length < 3) { sendMsg(src, "sanctions.usage.banip"); return; }
 
-        String ip = a[0];
-        if (!isValidIp(ip)) { sendMsg(src, "sanctions.ip_invalid"); return; }
+        String ipInput = a[0];
+        String normalizedIp = normalizeIp(ipInput);
+        if (normalizedIp == null) { sendMsg(src, "sanctions.ip_invalid"); return; }
 
         Instant expires;
         try { expires = feature.getService().parseLengthToExpiry(a[1]); }
         catch (Exception e) { sendMsg(src, "sanctions.invalid_length"); return; }
 
-        String reason = joinAfter(a, 2);
+        if (expires == null && !src.hasPermission("proxyfeatures.feature.sanctions.command.ban.perm")) {
+            sendMsg(src, "sanctions.perm_block"); return;
+        }
 
-        if (feature.getService().findActiveBanByIp(ip).isPresent()) {
+        String reason = feature.getService().sanitizeReason(joinAfter(a, 2));
+
+        if (feature.getService().findActiveBanByIp(normalizedIp).isPresent()) {
             sendMsg(src, "sanctions.already_banned"); return;
         }
 
@@ -42,12 +47,32 @@ public class BanIpCommand extends FeatureCommand {
                 : null;
         String actorName = (src instanceof Player pl) ? pl.getUsername() : "CONSOLE";
 
-        SanctionEntity s = feature.getService().createBanForIp(ip, reason, actorEnt, actorName, expires);
+        try {
+            SanctionEntity s = feature.getService().createBanForIp(normalizedIp, reason, actorEnt, actorName, expires);
 
-        var ph = feature.getService().placeholdersFor(s);
-        feature.getService().broadcastToStaff(
-                s.isPermanent() ? "sanctions.announce.banip.perm" : "sanctions.announce.banip.temp",
-                ph);
+            var ph = feature.getService().placeholdersFor(s);
+            feature.getService().broadcastToStaff(
+                    s.isPermanent() ? "sanctions.announce.banip.perm" : "sanctions.announce.banip.temp",
+                    ph);
+
+            // Immediately disconnect all online players from the banned IP
+            feature.getPlugin().getProxy().getAllPlayers().forEach(pl -> {
+                try {
+                    String pip = pl.getRemoteAddress().getAddress().getHostAddress();
+                    if (normalizedIp.equals(pip)) {
+                        String key = s.isPermanent() ? "sanctions.disconnect.banned.perm" : "sanctions.disconnect.banned.temp";
+                        pl.disconnect(feature.getLocalizationHandler().getMessage(key)
+                                .withPlaceholders(ph).forAudience(pl).build());
+                    }
+                } catch (Throwable ignored) {}
+            });
+
+        } catch (IllegalStateException dup) {
+            sendMsg(src, "sanctions.already_banned");
+        } catch (Throwable t) {
+            feature.getLogger().error("[Sanctions] Failed to create IP ban for "+ normalizedIp +": " + t.getMessage());
+            sendMsg(src, "sanctions.internal_error");
+        }
     }
 
     @Override
@@ -61,7 +86,7 @@ public class BanIpCommand extends FeatureCommand {
     @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
-        List<String> durations = List.of("7d","30d", "p");
+        List<String> durations = List.of("7d","30d","p");
 
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
             // we don't try to guess IPs; no suggestions for the IP slot
@@ -84,6 +109,11 @@ public class BanIpCommand extends FeatureCommand {
     private boolean isValidIp(String ip) {
         try { InetAddress.getByName(ip); return true; } catch (Exception e) { return false; }
     }
+
+    private String normalizeIp(String ip) {
+        try { return InetAddress.getByName(ip).getHostAddress(); } catch (Exception e) { return null; }
+    }
+
     private void sendMsg(CommandSource src, String key) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());
     }

@@ -31,33 +31,12 @@ public class DiscordService {
         );
     }
 
-    public void sendBanIp(SanctionEntity s) {
-        Map<String,String> ph = feature.getService().placeholdersFor(s);
-        sendEmbed(
-                "IP-Ban",
-                15158332, // red
-                field("IP",     ph.get("ip")),
-                field("Duur",   ph.get("duration")),
-                field("Reden",  ph.get("reason")),
-                field("Door",   ph.get("actor"))
-        );
-    }
-
     public void sendUnban(PlayerEntity target, String actorName) {
         sendEmbed(
                 "Unban",
                 3066993, // green
                 field("Speler", safeName(target)),
                 field("Door",   actorName)
-        );
-    }
-
-    public void sendUnbanIp(String ip, String actorName) {
-        sendEmbed(
-                "IP-Unban",
-                3066993, // green
-                field("IP",   nullToDash(ip)),
-                field("Door", actorName)
         );
     }
 
@@ -185,10 +164,6 @@ public class DiscordService {
     }
 
     private String getWebhookUrl() {
-        try {
-            String v = feature.getConfigHandler().getSetting("discordWebhookURL").toString();
-            if (v != null && !v.isBlank()) return v;
-        } catch (Throwable ignored) {}
         try {
             Object v = feature.getConfigHandler().getSetting("discordWebhookURL");
             return v == null ? "" : String.valueOf(v);

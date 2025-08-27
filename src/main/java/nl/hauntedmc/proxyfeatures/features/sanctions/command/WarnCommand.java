@@ -22,28 +22,37 @@ public class WarnCommand extends FeatureCommand {
         if (a.length < 2) { sendMsg(src, "sanctions.usage.warn"); return; }
 
         String targetName = a[0];
-        String reason     = joinAfter(a, 1);
+        String reason     = feature.getService().sanitizeReason(joinAfter(a, 1));
 
         var targetOpt = feature.getServiceLookup().byName(targetName);
         if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
         PlayerEntity target = targetOpt.get();
+
+        if (feature.getService().isTargetExempt(target.getUuid())) {
+            sendMsg(src, "sanctions.exempt_target"); return;
+        }
 
         PlayerEntity actorEnt = (src instanceof Player pl)
                 ? feature.getService().getPlayerByUuid(pl.getUniqueId().toString()).orElse(null)
                 : null;
         String actorName = (src instanceof Player pl) ? pl.getUsername() : "CONSOLE";
 
-        feature.getService().createWarn(target, reason, actorEnt, actorName);
+        try {
+            feature.getService().createWarn(target, reason, actorEnt, actorName);
 
-        var ph = Map.of("target", target.getUsername(), "reason", reason, "actor", actorName);
-        feature.getService().broadcastToStaff("sanctions.announce.warn", ph);
+            var ph = Map.of("target", target.getUsername(), "reason", reason, "actor", actorName);
+            feature.getService().broadcastToStaff("sanctions.announce.warn", ph);
 
-        feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("sanctions.notify.warn")
-                        .withPlaceholders(Map.of("reason", reason))
-                        .forAudience(pl).build()));
-        feature.getDiscordService().sendWarn(target, reason, actorName);
+            feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
+                    .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
+                            .getMessage("sanctions.notify.warn")
+                            .withPlaceholders(Map.of("reason", reason))
+                            .forAudience(pl).build()));
+            feature.getDiscordService().sendWarn(target, reason, actorName);
+        } catch (Throwable t) {
+            feature.getLogger().error("[Sanctions] Failed to warn "+target.getUsername()+": " + t.getMessage());
+            sendMsg(src, "sanctions.internal_error");
+        }
     }
 
     @Override

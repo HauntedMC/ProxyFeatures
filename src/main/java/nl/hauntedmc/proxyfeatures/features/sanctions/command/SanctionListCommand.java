@@ -30,7 +30,7 @@ public class SanctionListCommand extends FeatureCommand {
         String[] a = inv.arguments();
 
         if (a.length != 2) {
-            sendMsg(src, "sanctions.usage.sactionlist");
+            sendMsg(src, "sanctions.usage.sanctionlist");
             return;
         }
 
@@ -41,7 +41,7 @@ public class SanctionListCommand extends FeatureCommand {
         if (modeToken.equals("active")) activeOnly = true;
         else if (modeToken.equals("all")) activeOnly = false;
         else {
-            sendMsg(src, "sanctions.usage.sactionlist");
+            sendMsg(src, "sanctions.usage.sanctionlist");
             return;
         }
 
@@ -71,14 +71,15 @@ public class SanctionListCommand extends FeatureCommand {
         // entries
         for (SanctionEntity s : list) {
             Map<String,String> ph = new HashMap<>();
+            ph.put("id", String.valueOf(s.getId()));
             ph.put("type", typeLabel(s.getType()));
             ph.put("status", s.isActive() ? "&aActief" : "&cInactief");
-            ph.put("actor", feature.getService().usernameOf(s.getActorPlayer()).orElse("CONSOLE"));
+            ph.put("actor", feature.getService().usernameOf(s.getActorPlayer()).orElse(s.getActorName() == null ? "CONSOLE" : s.getActorName()));
             ph.put("created", fmt(s.getCreatedAt()));
             ph.put("duration", s.isPermanent()
                     ? "permanent"
                     : feature.getService().humanDuration(Instant.now(), s.getExpiresAt()));
-            ph.put("reason", s.getReason() == null || s.getReason().isBlank() ? "-" : s.getReason());
+            ph.put("reason", (s.getReason() == null || s.getReason().isBlank()) ? "-" : s.getReason());
 
             // Line 1
             sendMsg(src, "sanctions.list.entry.line1", ph);

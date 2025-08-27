@@ -25,7 +25,7 @@ public class MuteCommand extends FeatureCommand {
 
         String targetName = a[0];
         String length     = a[1];
-        String reason     = joinAfter(a, 2);
+        String reason     = feature.getService().sanitizeReason(joinAfter(a, 2));
 
         var targetOpt = feature.getServiceLookup().byName(targetName);
         if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
@@ -36,6 +36,10 @@ public class MuteCommand extends FeatureCommand {
         }
         if (feature.getService().findActiveMuteByPlayer(target).isPresent()) {
             sendMsg(src, "sanctions.already_muted"); return;
+        }
+
+        if (feature.getService().isTargetExempt(target.getUuid())) {
+            sendMsg(src, "sanctions.exempt_target"); return;
         }
 
         Instant expires;
@@ -52,20 +56,27 @@ public class MuteCommand extends FeatureCommand {
                 : null;
         String actorName = (src instanceof Player pl) ? pl.getUsername() : "CONSOLE";
 
-        SanctionEntity s = feature.getService().createMute(target, reason, actorEnt, actorName, expires);
+        try {
+            SanctionEntity s = feature.getService().createMute(target, reason, actorEnt, actorName, expires);
 
-        var ph = feature.getService().placeholdersFor(s);
-        feature.getService().broadcastToStaff(
-                s.isPermanent() ? "sanctions.announce.mute.perm" : "sanctions.announce.mute.temp",
-                ph);
+            var ph = feature.getService().placeholdersFor(s);
+            feature.getService().broadcastToStaff(
+                    s.isPermanent() ? "sanctions.announce.mute.perm" : "sanctions.announce.mute.temp",
+                    ph);
 
-        feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                .ifPresent(pl -> {
-                    String key = s.isPermanent() ? "sanctions.notify.muted.perm" : "sanctions.notify.muted.temp";
-                    pl.sendMessage(feature.getLocalizationHandler().getMessage(key)
-                            .withPlaceholders(ph).forAudience(pl).build());
-                });
-        feature.getDiscordService().sendMute(s);
+            feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
+                    .ifPresent(pl -> {
+                        String key = s.isPermanent() ? "sanctions.notify.muted.perm" : "sanctions.notify.muted.temp";
+                        pl.sendMessage(feature.getLocalizationHandler().getMessage(key)
+                                .withPlaceholders(ph).forAudience(pl).build());
+                    });
+            feature.getDiscordService().sendMute(s);
+        } catch (IllegalStateException dup) {
+            sendMsg(src, "sanctions.already_muted");
+        } catch (Throwable t) {
+            feature.getLogger().error("[Sanctions] Failed to create mute for "+ target.getUsername() +": " + t.getMessage());
+            sendMsg(src, "sanctions.internal_error");
+        }
     }
 
     @Override

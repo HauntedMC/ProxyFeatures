@@ -21,17 +21,32 @@ public class UnbanIpCommand extends FeatureCommand {
 
         if (a.length < 1) { sendMsg(src, "sanctions.usage.unbanip"); return; }
 
-        String ip = a[0];
-        if (!isValidIp(ip)) { sendMsg(src, "sanctions.ip_invalid"); return; }
+        String ipInput = a[0];
+        String ip = normalizeIp(ipInput);
+        if (ip == null) { sendMsg(src, "sanctions.ip_invalid"); return; }
 
-        boolean changed = feature.getService().deactivateActiveBanByIp(ip);
+        boolean changed;
+        try {
+            changed = feature.getService().deactivateActiveBanByIp(ip);
+        } catch (Throwable t) {
+            feature.getLogger().error("[Sanctions] Failed to unban IP "+ip+": "+ t.getMessage());
+            sendMsg(src, "sanctions.internal_error");
+            return;
+        }
+
         if (!changed) {
             sendMsg(src, "sanctions.not_banned_ip");
             return;
         }
 
+        String actorName = (inv.source() instanceof com.velocitypowered.api.proxy.Player pl) ? pl.getUsername() : "CONSOLE";
+
         // Feedback to executor
         sendMsg(src, "sanctions.unbanned_ip", Map.of("ip", ip));
+
+        // Broadcast & Discord
+        feature.getService().broadcastToStaff("sanctions.announce.unbanip",
+                Map.of("ip", ip, "actor", actorName));
     }
 
     @Override
@@ -51,8 +66,8 @@ public class UnbanIpCommand extends FeatureCommand {
     }
 
     // helpers
-    private boolean isValidIp(String ip) {
-        try { InetAddress.getByName(ip); return true; } catch (Exception e) { return false; }
+    private String normalizeIp(String ip) {
+        try { return InetAddress.getByName(ip).getHostAddress(); } catch (Exception e) { return null; }
     }
     private void sendMsg(CommandSource src, String key) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());

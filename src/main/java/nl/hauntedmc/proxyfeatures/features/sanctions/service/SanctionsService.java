@@ -9,8 +9,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SanctionsService {
+
+    private static final int REASON_MAX = 512;
+    private static final Pattern DURATION_TOKEN = Pattern.compile("(\\d+)(y|mo|w|d|h|m|s)", Pattern.CASE_INSENSITIVE);
 
     private final Sanctions feature;
 
@@ -53,7 +58,7 @@ public class SanctionsService {
                                      PlayerEntity actor, String actorName,
                                      Instant expiresAt) {
         SanctionEntity s = createActive(SanctionType.MUTE, target, null, reason, actor, actorName, expiresAt);
-        muteCache.put(target.getId(), s);
+        if (target != null) muteCache.put(target.getId(), s);
         return s;
     }
 
@@ -70,14 +75,30 @@ public class SanctionsService {
     private SanctionEntity createActive(SanctionType type, PlayerEntity target, String ip,
                                         String reason, PlayerEntity actor, String actorName,
                                         Instant expiresAt) {
+        String sanitized = sanitizeReason(reason);
+        Instant now = Instant.now();
         return feature.getOrm().runInTransaction(session -> {
+            // Deactivate any pre-existing active sanctions of same type & target/IP in the same transaction
+            if (target != null) {
+                session.createQuery("UPDATE SanctionEntity SET active = false WHERE active = true AND type = :t AND targetPlayer = :tp")
+                        .setParameter("t", type)
+                        .setParameter("tp", target)
+                        .executeUpdate();
+            } else if (ip != null) {
+                session.createQuery("UPDATE SanctionEntity SET active = false WHERE active = true AND type = :t AND targetIp = :ip")
+                        .setParameter("t", type)
+                        .setParameter("ip", ip)
+                        .executeUpdate();
+            }
+
             SanctionEntity s = new SanctionEntity();
             s.setType(type);
             s.setTargetPlayer(target);
             s.setTargetIp(ip);
-            s.setReason(reason);
+            s.setReason(sanitized);
             s.setActorPlayer(actor);
-            s.setCreatedAt(Instant.now());
+            s.setActorName(actorName);
+            s.setCreatedAt(now);
             s.setExpiresAt(expiresAt); // null = permanent
             s.setActive(true);
             session.persist(s);
@@ -87,14 +108,17 @@ public class SanctionsService {
 
     private void createInstant(SanctionType type, PlayerEntity target, String ip,
                                String reason, PlayerEntity actor, String actorName) {
+        String sanitized = sanitizeReason(reason);
+        Instant now = Instant.now();
         feature.getOrm().runInTransaction(session -> {
             SanctionEntity s = new SanctionEntity();
             s.setType(type);
             s.setTargetPlayer(target);
             s.setTargetIp(ip);
-            s.setReason(reason);
+            s.setReason(sanitized);
             s.setActorPlayer(actor);
-            s.setCreatedAt(Instant.now());
+            s.setActorName(actorName);
+            s.setCreatedAt(now);
             s.setActive(false);
             s.setExpiresAt(null);
             session.persist(s);
@@ -102,33 +126,49 @@ public class SanctionsService {
         });
     }
 
-    // ===== QUERIES =====
+    // ===== QUERIES (with expiry awareness) =====
 
     public Optional<SanctionEntity> findActiveBanByPlayer(PlayerEntity p) {
-        return feature.getOrm().runInTransaction(session ->
-                session.createQuery("FROM SanctionEntity WHERE active = true AND type = :t AND targetPlayer = :tp",
-                                SanctionEntity.class)
-                        .setParameter("t", SanctionType.BAN)
-                        .setParameter("tp", p)
-                        .uniqueResultOptional());
+        return findActive(typeSanctionQuery("targetPlayer = :tp", "tp", p, SanctionType.BAN));
     }
 
     public Optional<SanctionEntity> findActiveBanByIp(String ip) {
-        return feature.getOrm().runInTransaction(session ->
-                session.createQuery("FROM SanctionEntity WHERE active = true AND type = :t AND targetIp = :ip",
-                                SanctionEntity.class)
-                        .setParameter("t", SanctionType.BAN_IP)
-                        .setParameter("ip", ip)
-                        .uniqueResultOptional());
+        return findActive(typeSanctionQuery("targetIp = :ip", "ip", ip, SanctionType.BAN_IP));
     }
 
     public Optional<SanctionEntity> findActiveMuteByPlayer(PlayerEntity p) {
-        return feature.getOrm().runInTransaction(session ->
-                session.createQuery("FROM SanctionEntity WHERE active = true AND type = :t AND targetPlayer = :tp",
-                                SanctionEntity.class)
-                        .setParameter("t", SanctionType.MUTE)
-                        .setParameter("tp", p)
-                        .uniqueResultOptional());
+        return findActive(typeSanctionQuery("targetPlayer = :tp", "tp", p, SanctionType.MUTE));
+    }
+
+    private Optional<SanctionEntity> findActive(QueryBuilder builder) {
+        return feature.getOrm().runInTransaction(session -> {
+            SanctionEntity s = builder.apply(session)
+                    .uniqueResultOptional()
+                    .orElse(null);
+            if (s == null) return Optional.empty();
+            if (s.isExpired(Instant.now())) {
+                // auto-deactivate on read for correctness under race with sweeper
+                SanctionEntity managed = session.get(SanctionEntity.class, s.getId());
+                if (managed != null && managed.isActive()) managed.setActive(false);
+                if (managed != null && managed.getType() == SanctionType.MUTE && managed.getTargetPlayer() != null) {
+                    muteCache.remove(managed.getTargetPlayer().getId());
+                }
+                return Optional.empty();
+            }
+            return Optional.of(s);
+        });
+    }
+
+    private interface QueryBuilder {
+        org.hibernate.query.Query<SanctionEntity> apply(org.hibernate.Session session);
+    }
+
+    private QueryBuilder typeSanctionQuery(String where, String paramName, Object paramValue, SanctionType type) {
+        return session -> session.createQuery(
+                        "FROM SanctionEntity WHERE active = true AND type = :t AND " + where,
+                        SanctionEntity.class)
+                .setParameter("t", type)
+                .setParameter(paramName, paramValue);
     }
 
     // ===== EXPIRY =====
@@ -146,7 +186,7 @@ public class SanctionsService {
         feature.getOrm().runInTransaction(session -> {
             for (SanctionEntity s : toDeactivate) {
                 SanctionEntity managed = session.get(SanctionEntity.class, s.getId());
-                managed.setActive(false);
+                if (managed != null && managed.isActive()) managed.setActive(false);
             }
             return null;
         });
@@ -156,10 +196,23 @@ public class SanctionsService {
                 .forEach(s -> muteCache.remove(s.getTargetPlayer().getId()));
     }
 
+    public void deactivateExpiredSanction(Long id) {
+        if (id == null) return;
+        feature.getOrm().runInTransaction(session -> {
+            SanctionEntity s = session.get(SanctionEntity.class, id);
+            if (s != null && s.isActive() && s.isExpired(Instant.now())) {
+                s.setActive(false);
+                if (s.getType() == SanctionType.MUTE && s.getTargetPlayer() != null) {
+                    muteCache.remove(s.getTargetPlayer().getId());
+                }
+            }
+            return null;
+        });
+    }
+
     // ===== MUTE CACHE =====
 
     public void loadActiveMuteIntoCache(Long playerId) {
-        // find active mute by playerId
         feature.getOrm().runInTransaction(session -> {
             PlayerEntity p = session.get(PlayerEntity.class, playerId);
             if (p == null) return null;
@@ -168,7 +221,11 @@ public class SanctionsService {
                     .setParameter("t", SanctionType.MUTE)
                     .setParameter("tp", p)
                     .uniqueResultOptional();
-            opt.ifPresentOrElse(s -> muteCache.put(playerId, s), () -> muteCache.remove(playerId));
+            opt.ifPresentOrElse(s -> {
+                if (!s.isExpired(Instant.now())) {
+                    muteCache.put(playerId, s);
+                }
+            }, () -> muteCache.remove(playerId));
             return null;
         });
     }
@@ -192,8 +249,14 @@ public class SanctionsService {
         long seconds = Math.max(0, s.getExpiresAt().getEpochSecond() - Instant.now().getEpochSecond());
         long days = seconds / 86400; seconds %= 86400;
         long hours = seconds / 3600; seconds %= 3600;
-        long minutes = seconds / 60;
-        return (days > 0 ? days + "d " : "") + (hours > 0 ? hours + "h " : "") + (minutes > 0 ? minutes + "m" : "0m");
+        long minutes = seconds / 60; seconds %= 60;
+        StringBuilder sb = new StringBuilder();
+        if (days > 0) sb.append(days).append("d ");
+        if (hours > 0) sb.append(hours).append("h ");
+        if (minutes > 0) sb.append(minutes).append("m ");
+        if (days == 0 && hours == 0 && minutes == 0) sb.append(seconds).append("s");
+        String out = sb.toString().trim();
+        return out.isEmpty() ? "0m" : out;
     }
 
     private void deactivateById(Long id) {
@@ -206,16 +269,43 @@ public class SanctionsService {
 
     // ===== UTIL =====
 
+    /**
+     * Parses tokens like: "p", "perm", "permanent" (=> null), or "30d", "7d12h", "1w3d", "2h30m", "1mo", "1y", etc.
+     */
     public Instant parseLengthToExpiry(String token) {
-        if (token == null) return null;
-        token = token.trim().toLowerCase(Locale.ROOT);
-        if (token.equals("p")) return null; // permanent
-        if (!token.endsWith("d")) throw new IllegalArgumentException("invalid");
-        String num = token.substring(0, token.length() - 1);
-        long days = Long.parseLong(num);
-        return Instant.now().plus(Duration.ofDays(days));
+        if (token == null) throw new IllegalArgumentException("length null");
+        String t = token.trim().toLowerCase(Locale.ROOT);
+        if (t.equals("p") || t.equals("perm") || t.equals("permanent")) return null; // permanent
+
+        Matcher m = DURATION_TOKEN.matcher(t);
+        long totalSeconds = 0;
+        int found = 0;
+        while (m.find()) {
+            found++;
+            long n = Long.parseLong(m.group(1));
+            String unit = m.group(2).toLowerCase(Locale.ROOT);
+            switch (unit) {
+                case "y"  -> totalSeconds += Duration.ofDays(365).getSeconds() * n;
+                case "mo" -> totalSeconds += Duration.ofDays(30).getSeconds() * n;
+                case "w"  -> totalSeconds += Duration.ofDays(7).getSeconds() * n;
+                case "d"  -> totalSeconds += Duration.ofDays(n).getSeconds();
+                case "h"  -> totalSeconds += Duration.ofHours(n).getSeconds();
+                case "m"  -> totalSeconds += Duration.ofMinutes(n).getSeconds();
+                case "s"  -> totalSeconds += n;
+                default   -> throw new IllegalArgumentException("invalid unit");
+            }
+        }
+        if (found == 0 || totalSeconds <= 0) throw new IllegalArgumentException("invalid length");
+        return Instant.now().plusSeconds(totalSeconds);
     }
 
+    public String sanitizeReason(String reason) {
+        if (reason == null) return "-";
+        String trimmed = reason.trim();
+        if (trimmed.isEmpty()) return "-";
+        if (trimmed.length() > REASON_MAX) return trimmed.substring(0, REASON_MAX);
+        return trimmed;
+    }
 
     public Map<String, String> placeholdersFor(SanctionEntity s) {
         Map<String, String> m = new HashMap<>();
@@ -225,15 +315,22 @@ public class SanctionsService {
         String targetLabel = Optional.ofNullable(resolveUsername(s.getTargetPlayer()))
                 .orElseGet(() -> s.getTargetIp() != null ? s.getTargetIp() : "-");
 
-        // Resolve actor label: username if actor player known, else "CONSOLE"
+        // Resolve actor label: username if actor player known, else actorName if present, else "CONSOLE"
         String actorLabel = Optional.ofNullable(resolveUsername(s.getActorPlayer()))
-                .orElse("CONSOLE");
+                .orElse(Optional.ofNullable(s.getActorName()).orElse("CONSOLE"));
 
-        m.put("reason", s.getReason());
+        String appealUrl = "-";
+        try {
+            Object v = feature.getConfigHandler().getSetting("appealURL");
+            if (v != null) appealUrl = String.valueOf(v);
+        } catch (Throwable ignored) {}
+
+        m.put("reason", Optional.ofNullable(s.getReason()).orElse("-"));
         m.put("duration", dur);
         m.put("target", targetLabel);
         m.put("ip", s.getTargetIp() != null ? s.getTargetIp() : "-");
         m.put("actor", actorLabel);
+        m.put("appeal", appealUrl);
         return m;
     }
 
@@ -248,7 +345,6 @@ public class SanctionsService {
         });
     }
 
-
     public Map<String, String> mapOf(String k, String v) {
         Map<String, String> m = new HashMap<>(); m.put(k, v); return m;
     }
@@ -258,11 +354,12 @@ public class SanctionsService {
         long seconds = Math.max(0, to.getEpochSecond() - from.getEpochSecond());
         long days = seconds / 86400; seconds %= 86400;
         long hours = seconds / 3600; seconds %= 3600;
-        long minutes = seconds / 60;
+        long minutes = seconds / 60; seconds %= 60;
         StringBuilder sb = new StringBuilder();
         if (days > 0) sb.append(days).append("d ");
         if (hours > 0) sb.append(hours).append("h ");
-        if (minutes > 0) sb.append(minutes).append("m");
+        if (minutes > 0) sb.append(minutes).append("m ");
+        if (days == 0 && hours == 0 && minutes == 0) sb.append(seconds).append("s");
         String out = sb.toString().trim();
         return out.isEmpty() ? "0m" : out;
     }
@@ -276,8 +373,9 @@ public class SanctionsService {
                         .getMessage(messageKey).withPlaceholders(ph).forAudience(pl).build());
             }
         });
-        feature.getLogger().info(
-                feature.getLocalizationHandler().getMessage(messageKey).withPlaceholders(ph).build());
+
+        // Also log a concise line server-side (no components).
+        feature.getLogger().info("[Sanctions] " + messageKey + " " + ph);
     }
 
     // Deactivate all active BANs for a player (returns true if any changed)
@@ -285,13 +383,13 @@ public class SanctionsService {
         return feature.getOrm().runInTransaction(session -> {
             var list = session.createQuery(
                             "FROM SanctionEntity WHERE active = true AND type = :t AND targetPlayer = :tp",
-                            nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity.class)
-                    .setParameter("t", nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType.BAN)
+                            SanctionEntity.class)
+                    .setParameter("t", SanctionType.BAN)
                     .setParameter("tp", p)
                     .list();
             if (list.isEmpty()) return false;
             for (var s : list) {
-                var managed = session.get(nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity.class, s.getId());
+                var managed = session.get(SanctionEntity.class, s.getId());
                 if (managed != null) managed.setActive(false);
             }
             return true;
@@ -303,13 +401,13 @@ public class SanctionsService {
         boolean changed = feature.getOrm().runInTransaction(session -> {
             var list = session.createQuery(
                             "FROM SanctionEntity WHERE active = true AND type = :t AND targetPlayer = :tp",
-                            nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity.class)
-                    .setParameter("t", nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType.MUTE)
+                            SanctionEntity.class)
+                    .setParameter("t", SanctionType.MUTE)
                     .setParameter("tp", p)
                     .list();
             if (list.isEmpty()) return false;
             for (var s : list) {
-                var managed = session.get(nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity.class, s.getId());
+                var managed = session.get(SanctionEntity.class, s.getId());
                 if (managed != null) managed.setActive(false);
             }
             return true;
@@ -321,12 +419,12 @@ public class SanctionsService {
     }
 
     // Name suggestions for active sanctions (prefix match, case-insensitive)
-    public java.util.List<String> suggestActiveTargetNames(
-            nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType type,
+    public List<String> suggestActiveTargetNames(
+            SanctionType type,
             String startsWith,
             int limit
     ) {
-        String prefix = (startsWith == null ? "" : startsWith).toLowerCase(java.util.Locale.ROOT) + "%";
+        String prefix = (startsWith == null ? "" : startsWith).toLowerCase(Locale.ROOT) + "%";
         return feature.getOrm().runInTransaction(session ->
                 session.createQuery(
                                 "select s.targetPlayer.username " +
@@ -347,13 +445,13 @@ public class SanctionsService {
         return feature.getOrm().runInTransaction(session -> {
             var list = session.createQuery(
                             "FROM SanctionEntity WHERE active = true AND type = :t AND targetIp = :ip",
-                            nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity.class)
-                    .setParameter("t", nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType.BAN_IP)
+                            SanctionEntity.class)
+                    .setParameter("t", SanctionType.BAN_IP)
                     .setParameter("ip", ip)
                     .list();
             if (list.isEmpty()) return false;
             for (var s : list) {
-                var managed = session.get(nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity.class, s.getId());
+                var managed = session.get(SanctionEntity.class, s.getId());
                 if (managed != null) managed.setActive(false);
             }
             return true;
@@ -361,7 +459,7 @@ public class SanctionsService {
     }
 
     // Suggestions: active banned IPs that start with a prefix (limited)
-    public java.util.List<String> suggestActiveBannedIps(String startsWith, int limit) {
+    public List<String> suggestActiveBannedIps(String startsWith, int limit) {
         String prefix = (startsWith == null ? "" : startsWith) + "%";
         return feature.getOrm().runInTransaction(session ->
                 session.createQuery(
@@ -369,7 +467,7 @@ public class SanctionsService {
                                         "where s.active = true and s.type = :t and s.targetIp is not null " +
                                         "and s.targetIp like :p order by s.targetIp asc",
                                 String.class)
-                        .setParameter("t", nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType.BAN_IP)
+                        .setParameter("t", SanctionType.BAN_IP)
                         .setParameter("p", prefix)
                         .setMaxResults(limit)
                         .list()
@@ -377,7 +475,7 @@ public class SanctionsService {
     }
 
     /** List sanctions for a specific player, newest first. If activeOnly=true, returns only active ones. */
-    public java.util.List<SanctionEntity> listSanctionsForPlayer(PlayerEntity p, boolean activeOnly) {
+    public List<SanctionEntity> listSanctionsForPlayer(PlayerEntity p, boolean activeOnly) {
         return feature.getOrm().runInTransaction(session -> {
             var q = session.createQuery(
                     "FROM SanctionEntity WHERE targetPlayer = :p"
@@ -390,14 +488,26 @@ public class SanctionsService {
     }
 
     /** Resolve a username for a (possibly detached) PlayerEntity safely. */
-    public java.util.Optional<String> usernameOf(PlayerEntity ref) {
-        if (ref == null || ref.getId() == null) return java.util.Optional.empty();
-        return java.util.Optional.ofNullable(
+    public Optional<String> usernameOf(PlayerEntity ref) {
+        if (ref == null || ref.getId() == null) return Optional.empty();
+        return Optional.ofNullable(
                 feature.getOrm().runInTransaction(session -> {
-                    var managed = session.get(nl.hauntedmc.dataregistry.api.entities.PlayerEntity.class, ref.getId());
+                    var managed = session.get(PlayerEntity.class, ref.getId());
                     return managed != null ? managed.getUsername() : null;
                 })
         );
+    }
+
+    /** Check if a target UUID is currently online and exempt from sanctions. */
+    public boolean isTargetExempt(String targetUuid) {
+        try {
+            UUID uuid = UUID.fromString(targetUuid);
+            return feature.getPlugin().getProxy().getPlayer(uuid)
+                    .map(p -> p.hasPermission("proxyfeatures.feature.sanctions.bypass"))
+                    .orElse(false);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
 }
