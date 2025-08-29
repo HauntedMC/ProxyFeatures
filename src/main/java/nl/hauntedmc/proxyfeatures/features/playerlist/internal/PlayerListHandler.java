@@ -4,10 +4,11 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.JoinConfiguration;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.common.util.VelocityUtils;
+import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +39,9 @@ public class PlayerListHandler {
     public Component formatGlobalList(Collection<RegisteredServer> servers, Player audience) {
         // Get all players from the proxy and filter out vanished ones.
         List<Player> allPlayers = feature.getPlugin().getProxy().getAllPlayers().stream()
-                .filter(player -> !VelocityUtils.isVanished(player))
+                .filter(player -> !APIRegistry.get(VanishAPI.class)
+                        .map(api -> api.isVanished(player.getUniqueId()))
+                        .orElse(false))
                 .toList();
         int totalPlayers = allPlayers.size();
 
@@ -64,8 +67,12 @@ public class PlayerListHandler {
         // Order servers by the number of non-vanished online players in descending order.
         List<RegisteredServer> sortedServers = servers.stream()
                 .sorted((s1, s2) -> {
-                    int count1 = (int) s1.getPlayersConnected().stream().filter(p -> !VelocityUtils.isVanished(p)).count();
-                    int count2 = (int) s2.getPlayersConnected().stream().filter(p -> !VelocityUtils.isVanished(p)).count();
+                    int count1 = (int) s1.getPlayersConnected().stream().filter(p -> !APIRegistry.get(VanishAPI.class)
+                            .map(api -> api.isVanished(p.getUniqueId()))
+                            .orElse(false)).count();
+                    int count2 = (int) s2.getPlayersConnected().stream().filter(p -> !APIRegistry.get(VanishAPI.class)
+                            .map(api -> api.isVanished(p.getUniqueId()))
+                            .orElse(false)).count();
                     return Integer.compare(count2, count1);
                 })
                 .toList();
@@ -74,7 +81,9 @@ public class PlayerListHandler {
             String serverName = server.getServerInfo().getName();
             // Only count non-vanished players.
             List<Player> onlinePlayers = server.getPlayersConnected().stream()
-                    .filter(player -> !VelocityUtils.isVanished(player))
+                    .filter(player -> !APIRegistry.get(VanishAPI.class)
+                            .map(api -> api.isVanished(player.getUniqueId()))
+                            .orElse(false))
                     .toList();
             int online = onlinePlayers.size();
             boolean isCurrent = serverName.equals(currentServerName);
@@ -142,7 +151,9 @@ public class PlayerListHandler {
     public Component formatPlayerList(String serverName, Collection<Player> players, Player audience) {
         // Exclude vanished players.
         List<Player> visiblePlayers = players.stream()
-                .filter(player -> !VelocityUtils.isVanished(player))
+                .filter(player -> !APIRegistry.get(VanishAPI.class)
+                        .map(api -> api.isVanished(player.getUniqueId()))
+                        .orElse(false))
                 .toList();
 
         // Separate players into staff and non-staff groups, sorted alphabetically by username.

@@ -3,6 +3,8 @@ package nl.hauntedmc.proxyfeatures.features.friends.meta;
 
 import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
 
+import java.util.List;
+
 public class Meta implements BaseMeta {
 
     @Override
@@ -15,4 +17,8 @@ public class Meta implements BaseMeta {
         return "1.0.0";
     }
 
+    @Override
+    public List<String> getDependencies() {
+        return List.of("Vanish");
+    }
 }

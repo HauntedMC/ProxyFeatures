@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>nl.hauntedmc</groupId>
+    <groupId>nl.hauntedmc.proxyfeatures</groupId>
     <artifactId>proxyfeatures</artifactId>
     <name>ProxyFeatures</name>
     <version>1.5.0</version>
@@ -205,12 +205,6 @@
     </repositories>
 
     <dependencies>
-        <dependency>
-            <groupId>com.github.LeonMangler</groupId>
-            <artifactId>PremiumVanishAPI</artifactId>
-            <version>2.9.0-4</version>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>io.github.classgraph</groupId>
             <artifactId>classgraph</artifactId>

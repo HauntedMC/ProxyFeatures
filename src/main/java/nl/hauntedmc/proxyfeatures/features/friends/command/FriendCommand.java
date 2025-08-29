@@ -6,12 +6,13 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
-import nl.hauntedmc.proxyfeatures.common.util.VelocityUtils;
+import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -47,7 +48,9 @@ public class FriendCommand extends FeatureCommand {
             var onlineFriends = svc.acceptedRelations(me).stream()
                     .map(r -> feature.getPlugin().getProxy()
                             .getPlayer(UUID.fromString(r.getFriend().getUuid()))
-                            .filter(p -> !VelocityUtils.isVanished(p))
+                            .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                                    .map(api -> api.isVanished(pl.getUniqueId()))
+                                    .orElse(false))
                             .orElse(null))
                     .filter(Objects::nonNull)
                     .toList();
@@ -111,7 +114,9 @@ public class FriendCommand extends FeatureCommand {
         long online = friends.stream().filter(f ->
                 feature.getPlugin().getProxy()
                         .getPlayer(UUID.fromString(f.getFriend().getUuid()))
-                        .filter(pl -> !VelocityUtils.isVanished(pl))
+                        .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                                .map(api -> api.isVanished(pl.getUniqueId()))
+                                .orElse(false))
                         .isPresent()).count();
 
         p.sendMessage(feature.getLocalizationHandler()
@@ -125,7 +130,9 @@ public class FriendCommand extends FeatureCommand {
             UUID fid = UUID.fromString(rel.getFriend().getUuid());
             Optional<Player> onlineP = feature.getPlugin().getProxy()
                     .getPlayer(fid)
-                    .filter(pl -> !VelocityUtils.isVanished(pl));
+                    .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                            .map(api -> api.isVanished(pl.getUniqueId()))
+                            .orElse(false));
 
             boolean onl = onlineP.isPresent();
             String status = onl ? "&a● " : "&c● ";
@@ -153,7 +160,9 @@ public class FriendCommand extends FeatureCommand {
         if (args.length != 2) { sendMsg(p, "friend.usage"); return; }
 
         Player targetOnline = feature.getPlugin().getProxy().getPlayer(args[1])
-                .filter(pl -> !VelocityUtils.isVanished(pl))
+                .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                        .map(api -> api.isVanished(pl.getUniqueId()))
+                        .orElse(false))
                 .orElse(null);
         PlayerEntity me = getEntity(p);
         PlayerEntity target = resolvePlayer(args[1]);
@@ -203,7 +212,9 @@ public class FriendCommand extends FeatureCommand {
         sendMsg(p, "friend.add.sent", Map.of("player", target.getUsername()));
 
         feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                .filter(pl -> !VelocityUtils.isVanished(pl))
+                .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                        .map(api -> api.isVanished(pl.getUniqueId()))
+                        .orElse(false))
                 .ifPresent(t -> sendMsg(t, "friend.add.received",
                         Map.of("player", p.getUsername())));
     }
@@ -234,7 +245,9 @@ public class FriendCommand extends FeatureCommand {
             svc.saveRelation(new FriendRelationEntity(me, from, FriendStatus.ACCEPTED));
             sendMsg(p, "friend.accepted", Map.of("player", from.getUsername()));
             feature.getPlugin().getProxy().getPlayer(UUID.fromString(from.getUuid()))
-                    .filter(pl -> !VelocityUtils.isVanished(pl))
+                    .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                            .map(api -> api.isVanished(pl.getUniqueId()))
+                            .orElse(false))
                     .ifPresent(t -> sendMsg(t, "friend.accepted",
                             Map.of("player", p.getUsername())));
         }, () -> sendMsg(p, "friend.not_found"));
@@ -313,7 +326,9 @@ public class FriendCommand extends FeatureCommand {
         if (rel.isEmpty()) { sendMsg(p, "friend.not_friends"); return; }
 
         feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                .filter(pl -> !VelocityUtils.isVanished(pl))
+                .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                        .map(api -> api.isVanished(pl.getUniqueId()))
+                        .orElse(false))
                 .ifPresentOrElse(t -> t.getCurrentServer().ifPresent(conn -> {
                     RegisteredServer srv = conn.getServer();
                     p.createConnectionRequest(srv).fireAndForget();
@@ -428,7 +443,9 @@ public class FriendCommand extends FeatureCommand {
             String partial = a[1].toLowerCase(Locale.ROOT);
             return CompletableFuture.completedFuture(
                     feature.getPlugin().getProxy().getAllPlayers().stream()
-                            .filter(pl -> !VelocityUtils.isVanished(pl))
+                            .filter(pl -> !APIRegistry.get(VanishAPI.class)
+                                    .map(api -> api.isVanished(pl.getUniqueId()))
+                                    .orElse(false))
                             .map(Player::getUsername)
                             .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
                             .collect(Collectors.toList()));
