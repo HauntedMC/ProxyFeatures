@@ -4,8 +4,10 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.messager.Messenger;
 import nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingHandler;
+import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -123,9 +125,7 @@ public class MessagingCommand extends FeatureCommand {
                             .forAudience(p).build());
                 }
             }
-        }, () -> {
-            src.sendMessage(loc.getMessage("message.offline").forAudience(src).build());
-        });
+        }, () -> src.sendMessage(loc.getMessage("message.offline").forAudience(src).build()));
     }
 
     private void handleReply(CommandSource src, String[] args) {
@@ -175,26 +175,41 @@ public class MessagingCommand extends FeatureCommand {
 
         if (args.length == 0 || args[0].isEmpty()) {
             List<String> all = new ArrayList<>(subs);
-            all.addAll(proxy.getAllPlayers().stream()
-                    .map(Player::getUsername).toList());
+
+            all.addAll(APIRegistry.get(VanishAPI.class)
+                    .map(VanishAPI::getAdjustedOnlinePlayers)
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(Player::getUsername)
+                    .toList());
+
             return CompletableFuture.completedFuture(all);
         }
         if (args.length == 1) {
             String partial = args[0].toLowerCase();
             List<String> out = subs.stream()
                     .filter(s->s.startsWith(partial)).collect(Collectors.toList());
-            proxy.getAllPlayers().stream()
+
+            APIRegistry.get(VanishAPI.class)
+                    .map(VanishAPI::getAdjustedOnlinePlayers)
+                    .orElseGet(Collections::emptyList)
+                    .stream()
                     .map(Player::getUsername)
-                    .filter(u->u.toLowerCase().startsWith(partial))
+                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(partial))
                     .forEach(out::add);
+
             return CompletableFuture.completedFuture(out);
         }
         if (args.length==2 && List.of("block","unblock").contains(args[0].toLowerCase())) {
             String pfx = args[1].toLowerCase();
-            List<String> names = proxy.getAllPlayers().stream()
+            List<String> names = APIRegistry.get(VanishAPI.class)
+                    .map(VanishAPI::getAdjustedOnlinePlayers)
+                    .orElseGet(Collections::emptyList)
+                    .stream()
                     .map(Player::getUsername)
-                    .filter(u->u.toLowerCase().startsWith(pfx))
+                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(pfx))
                     .toList();
+
             return CompletableFuture.completedFuture(names);
         }
         return CompletableFuture.completedFuture(List.of());
