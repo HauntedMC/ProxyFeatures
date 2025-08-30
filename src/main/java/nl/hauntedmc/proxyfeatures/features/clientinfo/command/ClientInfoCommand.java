@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.clientinfo.command;
 
 import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
@@ -64,6 +65,10 @@ public class ClientInfoCommand extends FeatureCommand {
 
         Player target = optPlayer.get();
         PlayerSettings settings = target.getPlayerSettings();
+        ProtocolVersion proto = target.getProtocolVersion();
+        String clientVersion = (proto == null)
+                ? "Unknown"
+                : proto.toString() + " (protocol " + proto.getProtocol() + ")";
 
         // Header
         source.sendMessage(
@@ -111,6 +116,16 @@ public class ClientInfoCommand extends FeatureCommand {
                         .withPlaceholders(Map.of(
                                 "setting", "Language",
                                 "value", settings.getLocale().getDisplayCountry()
+                        ))
+                        .forAudience(source)
+                        .build()
+        );
+        source.sendMessage(
+                feature.getLocalizationHandler()
+                        .getMessage("clientinfo.cmd_entry")
+                        .withPlaceholders(Map.of(
+                                "setting", "Client Version",
+                                "value", clientVersion
                         ))
                         .forAudience(source)
                         .build()
