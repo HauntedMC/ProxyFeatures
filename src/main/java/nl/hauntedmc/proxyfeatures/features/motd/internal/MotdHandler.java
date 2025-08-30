@@ -6,7 +6,9 @@ import com.velocitypowered.api.proxy.server.ServerPing;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.util.CastUtils;
 import nl.hauntedmc.commonlib.util.ComponentUtils;
+import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.motd.Motd;
+import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.VersionCheck;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,8 +59,12 @@ public class MotdHandler {
         if (playerCountAdjustment < 0) {
             playerCountAdjustment = 0;
         }
-
-        int playerCount = (int) (unmodifiedPing.getPlayers().get().getOnline() * playerCountAdjustment);
+        int onlinePlayers = unmodifiedPing.getPlayers().map(ServerPing.Players::getOnline).orElse(0);
+        int vanishedPlayers = APIRegistry.get(VanishAPI.class)
+                .map(VanishAPI::getVanishedCount)
+                .orElse(0);
+        int vanishedAdjustedPlayers = onlinePlayers - vanishedPlayers;
+        int playerCount = (int) (vanishedAdjustedPlayers * playerCountAdjustment);
         return new ServerPing.Players(playerCount, unmodifiedPing.getPlayers().get().getMax(), unmodifiedPing.getPlayers().get().getSample());
     }
 
