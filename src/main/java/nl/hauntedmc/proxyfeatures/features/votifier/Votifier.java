@@ -2,9 +2,15 @@ package nl.hauntedmc.proxyfeatures.features.votifier;
 
 import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
+import nl.hauntedmc.dataprovider.database.DatabaseProvider;
+import nl.hauntedmc.dataprovider.database.DatabaseType;
+import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
+import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.votifier.command.VotifierCommand;
+import nl.hauntedmc.proxyfeatures.features.votifier.messaging.EventBusHandler;
+import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
 import nl.hauntedmc.proxyfeatures.features.votifier.meta.Meta;
 import nl.hauntedmc.proxyfeatures.features.votifier.model.Vote;
 import nl.hauntedmc.proxyfeatures.features.votifier.server.VotifierServer;
@@ -18,10 +24,14 @@ import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
+import java.util.Optional;
 
 public class Votifier extends VelocityBaseFeature<Meta> {
 
     private VotifierServer server;
+
+    private EventBusHandler eventBusHandler;
+    private static final String VOTE_CHANNEL = "vote";
 
     public Votifier(ProxyFeatures plugin) {
         super(plugin, new Meta());
@@ -73,6 +83,30 @@ public class Votifier extends VelocityBaseFeature<Meta> {
     @Override
     public void initialize() {
         getLifecycleManager().getCommandManager().registerFeatureCommand(new VotifierCommand(this));
+
+        Optional<DatabaseProvider> opt = getLifecycleManager()
+                .getDataManager()
+                .registerConnection(
+                        "redis",
+                        DatabaseType.REDIS_MESSAGING,
+                        "default"
+                );
+
+        if (opt.isEmpty()) {
+            getLogger().warn("Votifier: Redis messaging provider not available; votes will NOT be distributed.");
+        } else {
+            DatabaseProvider dbp = opt.get();
+            MessagingDataAccess redisBus;
+            try {
+                redisBus = (MessagingDataAccess) dbp.getDataAccess();
+                // Registreer ons berichttype één keer
+                MessageRegistry.register("votifier", VoteMessage.class);
+                this.eventBusHandler = new EventBusHandler(this, redisBus);
+            } catch (ClassCastException e) {
+                getLogger().warn("Votifier: DataAccess is not MessagingDataAccess; votes will NOT be distributed.");
+            }
+        }
+
         startOrReloadServer();
     }
 
@@ -162,6 +196,16 @@ public class Votifier extends VelocityBaseFeature<Meta> {
                         + " ip=" + vote.address()
                         + " ts=" + vote.timestamp()
         );
+
+        if (eventBusHandler != null) {
+            VoteMessage msg = new VoteMessage(
+                    vote.serviceName(),
+                    vote.username(),
+                    vote.address(),
+                    vote.timestamp()
+            );
+            eventBusHandler.publishVote(msg, VOTE_CHANNEL);
+        }
     }
 
     /* =========================  Introspection for command  ========================= */

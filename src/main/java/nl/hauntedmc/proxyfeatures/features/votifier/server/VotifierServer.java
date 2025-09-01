@@ -58,7 +58,7 @@ public final class VotifierServer {
         } catch (Throwable ignored) {}
         if (keyBytes <= 0) {
             keyBytes = 256;
-            logger.warn("[Votifier] Unable to introspect RSA modulus; defaulting block size to " + keyBytes + " bytes.");
+            logger.warn("Unable to introspect RSA modulus; defaulting block size to " + keyBytes + " bytes.");
         }
         this.rsaBlockBytes = keyBytes;
     }
@@ -79,18 +79,18 @@ public final class VotifierServer {
         running = true;
 
         pool.execute(() -> {
-            logger.info("[Votifier] Listening on " + host + ":" + port + " (expect " + rsaBlockBytes + "B RSA blocks)");
+            logger.info("Listening on " + host + ":" + port + " (expect " + rsaBlockBytes + "B RSA blocks)");
             while (running) {
                 try {
                     Socket s = server.accept();
                     pool.execute(() -> handleClient(s));
                 } catch (SocketException se) {
-                    if (running) logger.warn("[Votifier] Socket exception: " + safeMsg(se));
+                    if (running) logger.warn("Socket exception: " + safeMsg(se));
                 } catch (Throwable t) {
-                    if (running) logger.warn("[Votifier] Accept error: " + safeMsg(t) + "\n" + stackTrace(t));
+                    if (running) logger.warn("Accept error: " + safeMsg(t) + "\n" + stackTrace(t));
                 }
             }
-            logger.info("[Votifier] Accept loop terminated.");
+            logger.info("Accept loop terminated.");
         });
     }
 
@@ -132,7 +132,7 @@ public final class VotifierServer {
             // 2) Read exactly one RSA block, tolerating slow/bursty senders until global deadline.
             byte[] enc = readExactWithDeadline(s.getInputStream(), rsaBlockBytes, maxPacketBytes, readTimeoutMillis);
             if (enc.length != rsaBlockBytes) {
-                logger.warn("[Votifier] Invalid block size from " + ip + ": " + enc.length + "B (expected " + rsaBlockBytes + "B)");
+                logger.warn("Invalid block size from " + ip + ": " + enc.length + "B (expected " + rsaBlockBytes + "B)");
                 return;
             }
 
@@ -142,7 +142,7 @@ public final class VotifierServer {
             // Expected format: "VOTE\nservice\nusername\naddress\ntimestamp\n"
             String[] parts = msg.split("\n");
             if (parts.length < 5 || !parts[0].equals("VOTE")) {
-                logger.warn("[Votifier] Invalid payload from " + ip + ": " + shorten(msg));
+                logger.warn("Invalid payload from " + ip + ": " + shorten(msg));
                 return;
             }
 
@@ -156,13 +156,13 @@ public final class VotifierServer {
 
             handler.onVote(new Vote(service, user, addrStr, ts));
         } catch (EOFException eof) {
-            logger.warn("[Votifier] Incomplete RSA block from " + safeRemote(remote) + ": " + safeMsg(eof));
+            logger.warn("Incomplete RSA block from " + safeRemote(remote) + ": " + safeMsg(eof));
         } catch (SocketTimeoutException ste) {
-            logger.warn("[Votifier] Read timeout from " + safeRemote(remote));
+            logger.warn("Read timeout from " + safeRemote(remote));
         } catch (GeneralSecurityException gse) {
-            logger.warn("[Votifier] Decryption error from " + safeRemote(remote) + ": " + safeMsg(gse));
+            logger.warn("Decryption error from " + safeRemote(remote) + ": " + safeMsg(gse));
         } catch (Throwable t) {
-            logger.warn("[Votifier] Error handling " + safeRemote(remote) + ": " + safeMsg(t) + "\n" + stackTrace(t));
+            logger.warn("Error handling " + safeRemote(remote) + ": " + safeMsg(t) + "\n" + stackTrace(t));
         } finally {
             safeClose(s);
         }
