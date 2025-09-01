@@ -6,7 +6,7 @@ public final class VoteMessage extends AbstractEventMessage {
     private final String serviceName;
     private final String username;
     private final String address;
-    private final long   timestamp;
+    private final long   voteTimestamp;
 
     // No-arg voor Gson
     @SuppressWarnings("unused")
@@ -15,19 +15,19 @@ public final class VoteMessage extends AbstractEventMessage {
         this.serviceName = null;
         this.username    = null;
         this.address     = null;
-        this.timestamp   = 0L;
+        this.voteTimestamp   = 0L;
     }
 
-    public VoteMessage(String serviceName, String username, String address, long timestamp) {
-        super("votifier"); // type key in de bus
+    public VoteMessage(String serviceName, String username, String address, long voteTimestamp) {
+        super("votifier");
         this.serviceName = serviceName;
         this.username    = username;
         this.address     = address;
-        this.timestamp   = timestamp;
+        this.voteTimestamp   = voteTimestamp;
     }
 
     public String getServiceName() { return serviceName; }
     public String getUsername()    { return username; }
     public String getAddress()     { return address; }
-    public long   getTimestamp()   { return timestamp; }
+    public long   getVoteTimestamp()   { return voteTimestamp; }
 }
