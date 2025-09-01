@@ -84,6 +84,11 @@ public class Votifier extends VelocityBaseFeature<Meta> {
     public void initialize() {
         getLifecycleManager().getCommandManager().registerFeatureCommand(new VotifierCommand(this));
 
+        getLifecycleManager()
+                .getDataManager()
+                .initDataProvider(getFeatureName());
+
+
         Optional<DatabaseProvider> opt = getLifecycleManager()
                 .getDataManager()
                 .registerConnection(
@@ -92,8 +97,9 @@ public class Votifier extends VelocityBaseFeature<Meta> {
                         "default"
                 );
 
+
         if (opt.isEmpty()) {
-            getLogger().warn("Votifier: Redis messaging provider not available; votes will NOT be distributed.");
+            getLogger().warn("Redis messaging provider not available; votes will NOT be distributed.");
         } else {
             DatabaseProvider dbp = opt.get();
             MessagingDataAccess redisBus;
@@ -103,7 +109,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
                 MessageRegistry.register("votifier", VoteMessage.class);
                 this.eventBusHandler = new EventBusHandler(this, redisBus);
             } catch (ClassCastException e) {
-                getLogger().warn("Votifier: DataAccess is not MessagingDataAccess; votes will NOT be distributed.");
+                getLogger().warn("DataAccess is not MessagingDataAccess; votes will NOT be distributed.");
             }
         }
 
