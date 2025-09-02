@@ -82,7 +82,7 @@ public class PlayerListener {
         boolean foundRecommendation = false;
         List<Component> recommendationMessage = new ArrayList<>();
         recommendationMessage.add(feature.getLocalizationHandler()
-                .getMessage("clientinfo.header").build());
+                .getMessage("clientinfo.header").forAudience(player).build());
 
         // Check view distance
         if (settings.getViewDistance() < idealViewDistance) {

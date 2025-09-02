@@ -55,7 +55,7 @@ public class MessagingHandler {
 
         } catch (Exception ex) {
             feature.getPlugin().getLogger()
-                    .error("Failed to load messaging settings for " + player.getUsername(), ex);
+                    .error("Failed to load messaging settings for {}", player.getUsername(), ex);
             player.sendMessage(loc.getMessage("message.error.player_not_found")
                     .forAudience(player).build());
         }
@@ -96,18 +96,14 @@ public class MessagingHandler {
                         "sender_server", s.getCurrentServer().map(x->x.getServerInfo().getName()).orElse("unknown"),
                         "sender", s.getUsername(),
                         "message", msg))
+                .forAudience(r)
                 .build();
         var to   = loc.getMessage("message.format.to")
                 .withPlaceholders(Map.of(
                         "receiver_server", r.getCurrentServer().map(x->x.getServerInfo().getName()).orElse("unknown"),
                         "receiver", r.getUsername(),
                         "message", msg))
-                .build();
-        var spy  = loc.getMessage("message.format.spy")
-                .withPlaceholders(Map.of(
-                        "sender", s.getUsername(),
-                        "receiver", r.getUsername(),
-                        "message", msg))
+                .forAudience(s)
                 .build();
 
         r.sendMessage(from);
@@ -117,7 +113,13 @@ public class MessagingHandler {
                 .filter(id -> !id.equals(s.getUniqueId()) && !id.equals(r.getUniqueId()))
                 .map(id -> feature.getPlugin().getProxy().getPlayer(id))
                 .flatMap(Optional::stream)
-                .forEach(p -> p.sendMessage(spy));
+                .forEach(p -> p.sendMessage(loc.getMessage("message.format.spy")
+                        .withPlaceholders(Map.of(
+                                "sender", s.getUsername(),
+                                "receiver", r.getUsername(),
+                                "message", msg))
+                                .forAudience(p)
+                        .build()));
     }
 
     public Optional<UUID> getLastRecipient(UUID who) {

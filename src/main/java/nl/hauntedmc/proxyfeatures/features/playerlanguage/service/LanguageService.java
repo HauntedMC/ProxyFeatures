@@ -8,6 +8,7 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,6 +16,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LanguageService implements LanguageAPI {
+
+    private static final String DEFAULT_CODE = "NL";
 
     private final PlayerLanguage feature;
     private final ORMContext orm;
@@ -31,7 +34,7 @@ public class LanguageService implements LanguageAPI {
 
     /** Warm cache on login (non-fatal if PlayerEntity not yet persisted). */
     public void warm(UUID uuid) {
-        get(uuid); // lazy loads into cache (and creates default row if possible)
+        get(uuid); // lazy loads into cache
         // also try to cache the playerId if possible
         loadPlayerId(uuid).ifPresent(id -> idCache.put(uuid, id));
     }
@@ -49,7 +52,7 @@ public class LanguageService implements LanguageAPI {
         Language cached = langCache.get(playerUuid);
         if (cached != null) return cached;
 
-        // 2) Load from DB, and if missing, CREATE a default row (NL)
+        // 2) Load from DB, and if missing, CREATE a default row (DEFAULT_CODE)
         Language resolved = orm.runInTransaction(session -> {
             // Resolve PlayerEntity; if not there yet, we can’t create the row
             PlayerEntity p = session.createQuery("FROM PlayerEntity WHERE uuid = :u", PlayerEntity.class)
@@ -57,8 +60,7 @@ public class LanguageService implements LanguageAPI {
                     .uniqueResult();
             if (p == null) {
                 // DataRegistry hasn’t persisted the PlayerEntity yet (plugin order/timing).
-                // Return NL for now; a later call will create the row once PlayerEntity exists.
-                feature.getLogger().debug("[PlayerLanguage] get(): PlayerEntity not present for " + playerUuid + " yet; returning NL (not persisted).");
+                // Return default for now; a later call will create the row once PlayerEntity exists.
                 return null;
             }
 
@@ -67,17 +69,19 @@ public class LanguageService implements LanguageAPI {
 
             PlayerLanguageEntity ple = session.get(PlayerLanguageEntity.class, pid);
             if (ple == null) {
-                // CREATE default row once and persist it
+                // CREATE default row once and persist it (as plain string code)
                 ple = new PlayerLanguageEntity();
                 ple.setPlayer(p);
-                ple.setLanguage(Language.NL);      // default
+                ple.setLanguage(DEFAULT_CODE);
                 session.persist(ple);
+                return fromCode(DEFAULT_CODE);
+            } else {
+                return fromCode(ple.getLanguage());
             }
-            return ple.getLanguage();
         });
 
-        // If PlayerEntity didn't exist yet, we still return NL (but won’t have persisted).
-        if (resolved == null) resolved = Language.NL;
+        // If PlayerEntity didn't exist yet, we still return default (but won’t have persisted).
+        if (resolved == null) resolved = fromCode(DEFAULT_CODE);
 
         // 3) Cache it for fast future reads in this session
         langCache.put(playerUuid, resolved);
@@ -98,7 +102,6 @@ public class LanguageService implements LanguageAPI {
                         .uniqueResult();
                 if (p == null) {
                     // PlayerEntity not yet persisted by DataRegistry; just exit softly.
-                    feature.getLogger().warn("[PlayerLanguage] set(): PlayerEntity missing for " + playerUuid + " - cannot persist language yet.");
                     return null;
                 }
                 pid = p.getId();
@@ -107,19 +110,20 @@ public class LanguageService implements LanguageAPI {
                 p = session.get(PlayerEntity.class, pid);
                 if (p == null) {
                     idCache.remove(playerUuid);
-                    feature.getLogger().warn("[PlayerLanguage] set(): Cached playerId invalidated for " + playerUuid + "; skipping write.");
                     return null;
                 }
             }
+
+            String code = toCode(language);
 
             PlayerLanguageEntity ple = session.get(PlayerLanguageEntity.class, pid);
             if (ple == null) {
                 ple = new PlayerLanguageEntity();
                 ple.setPlayer(p);
-                ple.setLanguage(language);
+                ple.setLanguage(code);
                 session.persist(ple);
             } else {
-                ple.setLanguage(language);
+                ple.setLanguage(code);
                 session.merge(ple);
             }
             return null;
@@ -154,7 +158,7 @@ public class LanguageService implements LanguageAPI {
         return findUuidByName(username);
     }
 
-    /** Exact username match; uses DataRegistry. */
+    /** Exact username match (case-sensitive or insensitive as you prefer); uses DataRegistry. */
     public Optional<UUID> findUuidByName(String username) {
         return Optional.ofNullable(orm.runInTransaction(session -> {
             var p = session.createQuery("FROM PlayerEntity WHERE username = :u", PlayerEntity.class)
@@ -162,5 +166,20 @@ public class LanguageService implements LanguageAPI {
                     .uniqueResult();
             return (p != null && p.getUuid() != null) ? UUID.fromString(p.getUuid()) : null;
         }));
+    }
+
+    private static String toCode(Language lang) {
+        // Normalize to UPPERCASE symbolic code (e.g., "NL", "EN")
+        return (lang == null) ? DEFAULT_CODE : lang.name().toUpperCase(Locale.ROOT);
+    }
+
+    private static Language fromCode(String code) {
+        if (code == null || code.isBlank()) return Language.NL;
+        try {
+            return Language.valueOf(code.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            // Unknown/legacy code stored -> fall back safely
+            return Language.NL;
+        }
     }
 }

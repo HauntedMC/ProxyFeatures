@@ -74,6 +74,7 @@ public class HubCommand extends FeatureCommand {
                 } else {
                     Component unknown = feature.getLocalizationHandler()
                             .getMessage("hub.unknown_failure_reason")
+                            .forAudience(player)
                             .build();
                     reason = LegacyComponentSerializer.legacyAmpersand().serialize(unknown);
                 }

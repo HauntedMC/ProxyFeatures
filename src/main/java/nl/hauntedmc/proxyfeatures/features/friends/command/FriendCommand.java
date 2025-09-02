@@ -347,6 +347,7 @@ public class FriendCommand extends FeatureCommand {
                 feature.getLocalizationHandler()
                         .getMessage("friend.requests.outgoing_entry")
                         .withPlaceholders(Map.of("player", r.getFriend().getUsername()))
+                        .forAudience(p)
                         .build()
         ));
     }

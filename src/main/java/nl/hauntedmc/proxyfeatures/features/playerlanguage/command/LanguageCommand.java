@@ -112,7 +112,7 @@ public class LanguageCommand extends FeatureCommand {
         }
 
         feature.getService().set(targetUuid.get(), chosen);
-        src.sendMessage(feature.getLocalizationHandler().getMessage("language.set.other")
+        src.sendMessage(feature.getLocalizationHandler().getMessage("language.set_other")
                 .withPlaceholders(Map.of("target", targetName, "lang", chosen.name()))
                 .forAudience(src).build());
     }
