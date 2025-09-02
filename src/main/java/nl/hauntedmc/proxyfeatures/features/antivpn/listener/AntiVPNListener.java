@@ -1,30 +1,44 @@
 package nl.hauntedmc.proxyfeatures.features.antivpn.listener;
 
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.DisconnectEvent;
+import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.util.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.antivpn.AntiVPN;
+import nl.hauntedmc.proxyfeatures.features.antivpn.internal.CountryService;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPCheckResult;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPChecker;
-import net.kyori.adventure.text.Component;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class AntiVPNListener {
 
     private final AntiVPN feature;
     private final IPChecker ipChecker;
+    private final CountryService countryService;
     private final List<String> whitelist;
-    private final List<String> allowedCountries;
+    private final List<String> allowedCountriesUpper;
+    private final boolean useRegionCheck;
+    private final boolean useVpnCheck;
 
-    public AntiVPNListener(AntiVPN feature) {
+    public AntiVPNListener(AntiVPN feature, CountryService countryService) {
         this.feature = feature;
         this.ipChecker = feature.getIPChecker();
-        whitelist = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("whitelist_ips"), String.class);
-        allowedCountries = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("allowed_countries"), String.class);
+        this.countryService = countryService;
+
+        this.whitelist = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("whitelist_ips"), String.class);
+        List<String> allowed = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("allowed_countries"), String.class);
+        this.allowedCountriesUpper = allowed.stream().map(s -> s.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
+        this.useRegionCheck = (boolean) feature.getConfigHandler().getSetting("use_region_check");
+        this.useVpnCheck = (boolean) feature.getConfigHandler().getSetting("use_vpn_check");
     }
 
     @Subscribe
@@ -33,54 +47,70 @@ public class AntiVPNListener {
         InetSocketAddress address = connection.getRemoteAddress();
         String ip = address.getAddress().getHostAddress();
 
+        // Whitelisted IPs bypass checks
         if (whitelist.contains(ip)) {
             return;
         }
 
-        // Perform region check if enabled.
-        boolean useRegionCheck = (boolean) feature.getConfigHandler().getSetting("use_region_check");
-        if (useRegionCheck) {
-            IPCheckResult result = ipChecker.check(ip);
-            if (result == null) {
-                event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.error").build()
-                ));
-                return;
-            }
-            if (!allowedCountries.contains(result.getCountryCode())) {
-                // Notify staff about a region block.
-                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_region").withPlaceholders(
-                        Map.of("player", event.getUsername(), "country", result.getCountryCode())).build();
-                notifyStaff(notifyMessage);
-
-                event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.blocked_region").build()
-                ));
-                return;
-            }
+        // If neither check is enabled, do nothing
+        if (!useRegionCheck && !useVpnCheck) {
+            return;
         }
 
-        // Perform VPN/proxy check if enabled.
-        boolean useVpnCheck = (boolean) feature.getConfigHandler().getSetting("use_vpn_check");
-        if (useVpnCheck) {
-            IPCheckResult result = ipChecker.check(ip);
-            if (result == null) {
-                event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.error").build()
-                ));
-                return;
-            }
-            if (result.isVpn()) {
-                // Notify staff about a VPN/proxy block.
-                Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_vpn").withPlaceholders(
-                        Map.of("player", event.getUsername())).build();
-                notifyStaff(notifyMessage);
-
-                event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage("antivpn.blocked_vpn").build()
-                ));
-            }
+        // Single lookup to avoid duplicate API calls
+        IPCheckResult result = ipChecker.check(ip);
+        if (result == null) {
+            event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
+                    feature.getLocalizationHandler().getMessage("antivpn.error").build()
+            ));
+            return;
         }
+
+        String playerName = event.getUsername();
+        String country = result.getCountryCode() == null ? "" : result.getCountryCode().toUpperCase(Locale.ROOT);
+
+        // Region policy
+        if (useRegionCheck && !country.isBlank() && !allowedCountriesUpper.contains(country)) {
+            // Notify staff about a region block.
+            Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_region")
+                    .withPlaceholders(Map.of("player", playerName, "country", country)).build();
+            notifyStaff(notifyMessage);
+
+            event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
+                    feature.getLocalizationHandler().getMessage("antivpn.blocked_region").build()
+            ));
+            return;
+        }
+
+        // VPN policy
+        if (useVpnCheck && result.isVpn()) {
+            // Notify staff about a VPN/proxy block.
+            Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_vpn")
+                    .withPlaceholders(Map.of("player", playerName)).build();
+            notifyStaff(notifyMessage);
+
+            event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
+                    feature.getLocalizationHandler().getMessage("antivpn.blocked_vpn").build()
+            ));
+            return;
+        }
+
+        // At this point, login will proceed — stage the country by username.
+        if (!country.isBlank()) {
+            countryService.stageForUsername(playerName, country);
+        }
+    }
+
+    @Subscribe(priority = 20)
+    public void onPostLogin(PostLoginEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        String name = event.getPlayer().getUsername();
+        countryService.promoteToUuid(name, uuid);
+    }
+
+    @Subscribe
+    public void onDisconnect(DisconnectEvent event) {
+        countryService.clear(event.getPlayer().getUniqueId());
     }
 
     private void notifyStaff(Component message) {

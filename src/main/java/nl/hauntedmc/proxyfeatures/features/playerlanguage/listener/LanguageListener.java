@@ -13,7 +13,7 @@ public class LanguageListener {
         this.feature = feature;
     }
 
-    @Subscribe
+    @Subscribe(priority = 10)
     public void onPostLogin(PostLoginEvent e) {
         feature.getService().warm(e.getPlayer().getUniqueId());
     }

@@ -3,17 +3,21 @@ package nl.hauntedmc.proxyfeatures.features.antivpn;
 import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.features.antivpn.api.CountryAPI;
 import nl.hauntedmc.proxyfeatures.features.antivpn.listener.AntiVPNListener;
 import nl.hauntedmc.proxyfeatures.features.antivpn.meta.Meta;
+import nl.hauntedmc.proxyfeatures.features.antivpn.internal.CountryService;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPChecker;
 
 import java.util.List;
 
 /**
- * The AntiVPN feature checks incoming connections for allowed regions and VPN/proxy usage.
+ * The AntiVPN feature checks incoming connections for allowed regions and VPN/proxy usage,
+ * and exposes a CountryAPI to fetch a player's country code.
  */
-public class AntiVPN extends VelocityBaseFeature<Meta> { // Using Object for meta; adjust as needed.
+public class AntiVPN extends VelocityBaseFeature<Meta> {
 
     private IPChecker ipChecker;
 
@@ -48,11 +52,18 @@ public class AntiVPN extends VelocityBaseFeature<Meta> { // Using Object for met
     @Override
     public void initialize() {
         this.ipChecker = new IPChecker(this);
-        getLifecycleManager().getListenerManager().registerListener(new AntiVPNListener(this));
+        CountryService countryService = new CountryService();
+
+        // API: register in the proxy APIRegistry
+        APIRegistry.register(CountryAPI.class, countryService);
+
+        // Listener (uses ipChecker + countryService)
+        getLifecycleManager().getListenerManager().registerListener(new AntiVPNListener(this, countryService));
     }
 
     @Override
     public void disable() {
+        APIRegistry.unregister(CountryAPI.class);
     }
 
     public IPChecker getIPChecker() {

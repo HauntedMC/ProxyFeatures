@@ -5,6 +5,7 @@ import nl.hauntedmc.commonlib.localization.Language;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
+import nl.hauntedmc.proxyfeatures.common.util.LanguageUtils;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
 
@@ -17,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LanguageService implements LanguageAPI {
 
-    private static final String DEFAULT_CODE = "NL";
+    private static final String DEFAULT_CODE = "EN"; // fallback for unknowns
 
     private final PlayerLanguage feature;
     private final ORMContext orm;
@@ -34,7 +35,7 @@ public class LanguageService implements LanguageAPI {
 
     /** Warm cache on login (non-fatal if PlayerEntity not yet persisted). */
     public void warm(UUID uuid) {
-        get(uuid); // lazy loads into cache
+        get(uuid); // lazy loads into cache / persists default if possible
         // also try to cache the playerId if possible
         loadPlayerId(uuid).ifPresent(id -> idCache.put(uuid, id));
     }
@@ -52,7 +53,10 @@ public class LanguageService implements LanguageAPI {
         Language cached = langCache.get(playerUuid);
         if (cached != null) return cached;
 
-        // 2) Load from DB, and if missing, CREATE a default row (DEFAULT_CODE)
+        // Compute the smart default up-front (we'll use it if no DB row exists)
+        Language smartDefault = computeDefaultLanguage(playerUuid);
+
+        // 2) Load from DB, and if missing, CREATE a default row using smartDefault
         Language resolved = orm.runInTransaction(session -> {
             // Resolve PlayerEntity; if not there yet, we can’t create the row
             PlayerEntity p = session.createQuery("FROM PlayerEntity WHERE uuid = :u", PlayerEntity.class)
@@ -60,7 +64,7 @@ public class LanguageService implements LanguageAPI {
                     .uniqueResult();
             if (p == null) {
                 // DataRegistry hasn’t persisted the PlayerEntity yet (plugin order/timing).
-                // Return default for now; a later call will create the row once PlayerEntity exists.
+                // We will return the smart default but NOT cache/persist yet.
                 return null;
             }
 
@@ -72,16 +76,18 @@ public class LanguageService implements LanguageAPI {
                 // CREATE default row once and persist it (as plain string code)
                 ple = new PlayerLanguageEntity();
                 ple.setPlayer(p);
-                ple.setLanguage(DEFAULT_CODE);
+                ple.setLanguage(toCode(smartDefault));
                 session.persist(ple);
-                return fromCode(DEFAULT_CODE);
+                return smartDefault;
             } else {
                 return fromCode(ple.getLanguage());
             }
         });
 
-        // If PlayerEntity didn't exist yet, we still return default (but won’t have persisted).
-        if (resolved == null) resolved = fromCode(DEFAULT_CODE);
+        // If PlayerEntity didn't exist yet, we return the smart default (not cached/persisted).
+        if (resolved == null) {
+            return smartDefault;
+        }
 
         // 3) Cache it for fast future reads in this session
         langCache.put(playerUuid, resolved);
@@ -168,18 +174,39 @@ public class LanguageService implements LanguageAPI {
         }));
     }
 
+    // --- language code mapping ---
+
     private static String toCode(Language lang) {
-        // Normalize to UPPERCASE symbolic code (e.g., "NL", "EN")
+        // Normalize to UPPERCASE symbolic code (e.g., "NL", "DE", "EN")
         return (lang == null) ? DEFAULT_CODE : lang.name().toUpperCase(Locale.ROOT);
     }
 
     private static Language fromCode(String code) {
-        if (code == null || code.isBlank()) return Language.NL;
+        if (code == null || code.isBlank()) return Language.EN;
         try {
             return Language.valueOf(code.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             // Unknown/legacy code stored -> fall back safely
+            return Language.EN;
+        }
+    }
+
+    /**
+     * Compute a smart default based on the player's country from CountryAPI.
+     * NL group -> NL; DE group -> DE; otherwise EN.
+     */
+    private Language computeDefaultLanguage(UUID uuid) {
+        String cc = LanguageUtils.getPlayerCountry(uuid);
+
+        // NL group
+        if (cc.equals("NL") || cc.equals("BE") || cc.equals("SR") || cc.equals("CW") || cc.equals("AW") || cc.equals("SX")) {
             return Language.NL;
         }
+        // DE group
+        if (cc.equals("DE") || cc.equals("LI") || cc.equals("AT") || cc.equals("CH")) {
+            return Language.DE;
+        }
+        // default
+        return Language.EN;
     }
 }
