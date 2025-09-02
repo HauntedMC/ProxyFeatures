@@ -10,7 +10,7 @@ import nl.hauntedmc.commonlib.util.ComponentUtils;
 import nl.hauntedmc.commonlib.util.PlaceholderUtils;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
-import nl.hauntedmc.proxyfeatures.common.util.VelocityUtils;
+import nl.hauntedmc.proxyfeatures.common.util.LanguageUtils;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.util.EnumMap;
@@ -157,7 +157,7 @@ public class LocalizationHandler {
      * Falls back to the default message if a localized version is not found.
      */
     private String getTranslatedMessage(String key, Player targetPlayer) {
-        Language language = VelocityUtils.getPlayerLanguage(targetPlayer);
+        Language language = LanguageUtils.getPlayerLanguage(targetPlayer);
         String message = null;
         if (language != null) {
             ResourceHandler resource = languageResources.get(language);
