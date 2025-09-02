@@ -31,7 +31,7 @@ public class Vanish extends VelocityBaseFeature<Meta> {
     @Override
     public ConfigMap getDefaultConfig() {
         ConfigMap defaults = new ConfigMap();
-        defaults.put("enabled", true);
+        defaults.put("enabled", false);
         return defaults;
     }
 

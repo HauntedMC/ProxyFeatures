@@ -3,34 +3,44 @@ package nl.hauntedmc.proxyfeatures.features.textcommands.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.commonlib.util.ComponentUtils;
+import nl.hauntedmc.commonlib.localization.MessageType;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.textcommands.TextCommands;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class TextCommand extends FeatureCommand {
 
     private final String name;
-    private final String rawOutput;
+    private final String messageKey;
+    private final Map<String, String> placeholders;
     private final TextCommands feature;
 
-    public TextCommand(TextCommands feature, String name, String rawOutput) {
+    public TextCommand(TextCommands feature, String name, String messageKey, Map<String, String> placeholders) {
         this.feature = feature;
         this.name = name;
-        this.rawOutput = rawOutput;
+        this.messageKey = messageKey;
+        this.placeholders = placeholders;
     }
 
     @Override
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
+            // Reuse your global message if available; otherwise add your own key to this feature.
             source.sendMessage(feature.getLocalizationHandler().getMessage("general.player_command").forAudience(source).build());
             return;
         }
-        
-        Component output = ComponentUtils.deserializeMMComponent(this.rawOutput);
+
+        Component output = feature.getLocalizationHandler()
+                .getMessage(this.messageKey)
+                .withPlaceholders(this.placeholders)
+                .forAudience(player)
+                .ofType(MessageType.MiniMessage)
+                .build();
+
         player.sendMessage(output);
     }
 
