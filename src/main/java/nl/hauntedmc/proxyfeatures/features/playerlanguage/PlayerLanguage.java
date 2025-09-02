@@ -26,7 +26,7 @@ public class PlayerLanguage extends VelocityBaseFeature<Meta> {
     @Override
     public ConfigMap getDefaultConfig() {
         ConfigMap cfg = new ConfigMap();
-        cfg.put("enabled", true);
+        cfg.put("enabled", false);
         return cfg;
     }
 
@@ -38,6 +38,12 @@ public class PlayerLanguage extends VelocityBaseFeature<Meta> {
         m.add("language.invalid", "&8&l[&b&lLanguage&8&l]&r &cOnbekende taal &f{input}&c.");
         m.add("language.current", "&8&l[&b&lLanguage&8&l]&r &7Jouw huidige taal: &f{lang}");
         m.add("language.set", "&8&l[&b&lLanguage&8&l]&r &aTaal ingesteld op &f{lang}. Log opnieuw in om de taalweergave te vernieuwen.");
+
+        // Staff / others
+        m.add("language.no_permission_others", "&8&l[&b&lLanguage&8&l]&r &cJe hebt geen permissie om de taal van anderen aan te passen.");
+        m.add("language.not_found", "&8&l[&b&lLanguage&8&l]&r &cSpeler &f{target}&c niet gevonden.");
+        m.add("language.set_other", "&8&l[&b&lLanguage&8&l]&r &aTaal van &f{target}&a ingesteld op &f{lang}");
+        m.add("language.current_other", "&8&l[&b&lLanguage&8&l]&r &7Taal van &f{target}&7: &f{lang}");
         return m;
     }
 

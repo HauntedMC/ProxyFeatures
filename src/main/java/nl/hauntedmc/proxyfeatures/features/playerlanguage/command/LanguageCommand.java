@@ -33,7 +33,7 @@ public class LanguageCommand extends FeatureCommand {
         }
 
         if (!src.hasPermission(PERM_SELF)) {
-            // If you want a specific "no permission" message for self, add & use it here.
+            // Optional: send a "no permission" for self if you add a message key.
             return;
         }
 
@@ -47,7 +47,7 @@ public class LanguageCommand extends FeatureCommand {
             return;
         }
 
-        // Staff QoL: /language <player>  -> show that player's current language
+        // Staff QoL: /language <player>  -> show that player's current language (if arg is not a language token)
         if (args.length == 1 && src.hasPermission(PERM_OTHERS) && !isLanguageToken(args[0])) {
             String targetName = args[0];
             Optional<UUID> targetUuid = feature.getService().resolveUuidByName(targetName);
@@ -58,7 +58,7 @@ public class LanguageCommand extends FeatureCommand {
                 return;
             }
             Language lang = feature.getService().get(targetUuid.get());
-            src.sendMessage(feature.getLocalizationHandler().getMessage("language.current.other")
+            src.sendMessage(feature.getLocalizationHandler().getMessage("language.current_other")
                     .withPlaceholders(Map.of("target", targetName, "lang", lang.name()))
                     .forAudience(src).build());
             return;

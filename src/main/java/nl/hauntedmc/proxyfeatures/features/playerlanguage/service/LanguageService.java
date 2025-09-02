@@ -8,7 +8,6 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,7 +31,7 @@ public class LanguageService implements LanguageAPI {
 
     /** Warm cache on login (non-fatal if PlayerEntity not yet persisted). */
     public void warm(UUID uuid) {
-        get(uuid); // lazy loads into cache
+        get(uuid); // lazy loads into cache (and creates default row if possible)
         // also try to cache the playerId if possible
         loadPlayerId(uuid).ifPresent(id -> idCache.put(uuid, id));
     }
@@ -59,6 +58,7 @@ public class LanguageService implements LanguageAPI {
             if (p == null) {
                 // DataRegistry hasn’t persisted the PlayerEntity yet (plugin order/timing).
                 // Return NL for now; a later call will create the row once PlayerEntity exists.
+                feature.getLogger().debug("[PlayerLanguage] get(): PlayerEntity not present for " + playerUuid + " yet; returning NL (not persisted).");
                 return null;
             }
 
@@ -71,12 +71,9 @@ public class LanguageService implements LanguageAPI {
                 ple = new PlayerLanguageEntity();
                 ple.setPlayer(p);
                 ple.setLanguage(Language.NL);      // default
-                ple.setUpdatedAt(Instant.now());
                 session.persist(ple);
-                return ple.getLanguage();
-            } else {
-                return ple.getLanguage();
             }
+            return ple.getLanguage();
         });
 
         // If PlayerEntity didn't exist yet, we still return NL (but won’t have persisted).
@@ -86,7 +83,6 @@ public class LanguageService implements LanguageAPI {
         langCache.put(playerUuid, resolved);
         return resolved;
     }
-
 
     @Override
     public void set(UUID playerUuid, Language language) {
@@ -102,6 +98,7 @@ public class LanguageService implements LanguageAPI {
                         .uniqueResult();
                 if (p == null) {
                     // PlayerEntity not yet persisted by DataRegistry; just exit softly.
+                    feature.getLogger().warn("[PlayerLanguage] set(): PlayerEntity missing for " + playerUuid + " - cannot persist language yet.");
                     return null;
                 }
                 pid = p.getId();
@@ -110,6 +107,7 @@ public class LanguageService implements LanguageAPI {
                 p = session.get(PlayerEntity.class, pid);
                 if (p == null) {
                     idCache.remove(playerUuid);
+                    feature.getLogger().warn("[PlayerLanguage] set(): Cached playerId invalidated for " + playerUuid + "; skipping write.");
                     return null;
                 }
             }
@@ -119,11 +117,9 @@ public class LanguageService implements LanguageAPI {
                 ple = new PlayerLanguageEntity();
                 ple.setPlayer(p);
                 ple.setLanguage(language);
-                ple.setUpdatedAt(Instant.now());
                 session.persist(ple);
             } else {
                 ple.setLanguage(language);
-                ple.setUpdatedAt(Instant.now());
                 session.merge(ple);
             }
             return null;
@@ -158,7 +154,7 @@ public class LanguageService implements LanguageAPI {
         return findUuidByName(username);
     }
 
-    /** Exact username match (case-sensitive or insensitive as you prefer); uses DataRegistry. */
+    /** Exact username match; uses DataRegistry. */
     public Optional<UUID> findUuidByName(String username) {
         return Optional.ofNullable(orm.runInTransaction(session -> {
             var p = session.createQuery("FROM PlayerEntity WHERE username = :u", PlayerEntity.class)
