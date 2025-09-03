@@ -18,6 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LanguageService implements LanguageAPI {
 
+    // Helper to carry both the language and whether this was a first-time create
+    private record LoadResult(Language language, boolean createdDefault) {}
+
     private static final String DEFAULT_CODE = "EN"; // fallback for unknowns
 
     private final PlayerLanguage feature;
@@ -49,22 +52,20 @@ public class LanguageService implements LanguageAPI {
     // === API ===
     @Override
     public Language get(UUID playerUuid) {
-        // 1) Fast path: cache
+        // 1) Cache
         Language cached = langCache.get(playerUuid);
         if (cached != null) return cached;
 
-        // Compute the smart default up-front (we'll use it if no DB row exists)
+        // Pre-compute smart default
         Language smartDefault = computeDefaultLanguage(playerUuid);
 
-        // 2) Load from DB, and if missing, CREATE a default row using smartDefault
-        Language resolved = orm.runInTransaction(session -> {
-            // Resolve PlayerEntity; if not there yet, we can’t create the row
+        // 2) Load or create default row
+        LoadResult result = orm.runInTransaction(session -> {
             PlayerEntity p = session.createQuery("FROM PlayerEntity WHERE uuid = :u", PlayerEntity.class)
                     .setParameter("u", playerUuid.toString())
                     .uniqueResult();
             if (p == null) {
-                // DataRegistry hasn’t persisted the PlayerEntity yet (plugin order/timing).
-                // We will return the smart default but NOT cache/persist yet.
+                // PlayerEntity not yet present; return null -> we'll fall back to smartDefault (no cache/persist yet)
                 return null;
             }
 
@@ -73,24 +74,40 @@ public class LanguageService implements LanguageAPI {
 
             PlayerLanguageEntity ple = session.get(PlayerLanguageEntity.class, pid);
             if (ple == null) {
-                // CREATE default row once and persist it (as plain string code)
+                // First time: persist default and mark as created
                 ple = new PlayerLanguageEntity();
                 ple.setPlayer(p);
                 ple.setLanguage(toCode(smartDefault));
                 session.persist(ple);
-                return smartDefault;
+                return new LoadResult(smartDefault, true);
             } else {
-                return fromCode(ple.getLanguage());
+                return new LoadResult(fromCode(ple.getLanguage()), false);
             }
         });
 
-        // If PlayerEntity didn't exist yet, we return the smart default (not cached/persisted).
-        if (resolved == null) {
+        // If PlayerEntity doesn't exist yet, return smart default without caching or messaging
+        if (result == null) {
             return smartDefault;
         }
 
-        // 3) Cache it for fast future reads in this session
+        Language resolved = result.language();
+        // 3) Cache for quick future reads
         langCache.put(playerUuid, resolved);
+
+        // 4) If we just created the default, notify the player (delayed)
+        if (result.createdDefault()) {
+            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> {
+                feature.getPlugin().getProxy().getPlayer(playerUuid).ifPresent(player -> {
+                    var msg = feature.getLocalizationHandler()
+                            .getMessage("language.default_auto")
+                            .withPlaceholders(Map.of("language", resolved.name()))
+                            .forAudience(player)
+                            .build();
+                    player.sendMessage(msg);
+                });
+            }, 5L*1000);
+        }
+
         return resolved;
     }
 

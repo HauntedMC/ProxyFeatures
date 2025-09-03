@@ -38,7 +38,9 @@ public class PlayerLanguage extends VelocityBaseFeature<Meta> {
         m.add("language.invalid", "&8&l[&b&lLanguage&8&l]&r &cOnbekende taal &f{input}&c.");
         m.add("language.current", "&8&l[&b&lLanguage&8&l]&r &7Jouw huidige taal: &f{lang}");
         m.add("language.set", "&8&l[&b&lLanguage&8&l]&r &aTaal ingesteld op &f{lang}. Log opnieuw in om de taalweergave te vernieuwen.");
-
+        m.add("language.default_auto",
+                "&8&l[&b&lLanguage&8&l]&r &7Op basis van je locatie is je standaardtaal ingesteld op &f{language}&7. " +
+                        "Wil je dit wijzigen? Gebruik &f/language &b<LANG>&7.");
         // Staff / others
         m.add("language.no_permission_others", "&8&l[&b&lLanguage&8&l]&r &cJe hebt geen permissie om de taal van anderen aan te passen.");
         m.add("language.not_found", "&8&l[&b&lLanguage&8&l]&r &cSpeler &f{target}&c niet gevonden.");
