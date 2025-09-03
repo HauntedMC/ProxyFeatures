@@ -31,11 +31,17 @@ public class ConnectListener {
     }
 
     /**
-     * Broadcasts a message to all viewers in the given channel.
+     * Broadcasts a localized message to all viewers in the given channel,
+     * building the message per *recipient* so translations are correct.
      */
-    private void broadcastToChannel(ChatChannel channel, Component message) {
+    private void broadcastToChannel(ChatChannel channel, String messageKey, Map<String, String> placeholders) {
         for (Player viewer : channel.getViewers()) {
             if (viewer.hasPermission(channel.getPermission())) {
+                Component message = feature.getLocalizationHandler()
+                        .getMessage(messageKey)
+                        .withPlaceholders(placeholders)
+                        .forAudience(viewer) // build for the recipient's locale
+                        .build();
                 viewer.sendMessage(message);
             }
         }
@@ -53,9 +59,11 @@ public class ConnectListener {
         // Special behavior for the staff channel.
         if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
             getStaffChannel().ifPresent(staffChannel -> {
-                Component joinMessage = feature.getLocalizationHandler().getMessage("staffchat.staff_join").forAudience(player).withPlaceholders(
-                        Map.of("player", player.getUsername())).build();
-                broadcastToChannel(staffChannel, joinMessage);
+                broadcastToChannel(
+                        staffChannel,
+                        "staffchat.staff_join",
+                        Map.of("player", player.getUsername())
+                );
             });
         }
     }
@@ -70,9 +78,11 @@ public class ConnectListener {
         // Special behavior for the staff channel.
         if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
             getStaffChannel().ifPresent(staffChannel -> {
-                Component leaveMessage = feature.getLocalizationHandler().getMessage("staffchat.staff_leave").forAudience(player).withPlaceholders(
-                        Map.of("player", player.getUsername())).build();
-                broadcastToChannel(staffChannel, leaveMessage);
+                broadcastToChannel(
+                        staffChannel,
+                        "staffchat.staff_leave",
+                        Map.of("player", player.getUsername())
+                );
             });
         }
     }
@@ -89,9 +99,11 @@ public class ConnectListener {
             getStaffChannel().ifPresent(staffChannel -> {
                 String from = event.getPreviousServer().get().getServerInfo().getName();
                 String to = event.getServer().getServerInfo().getName();
-                Component switchMessage = feature.getLocalizationHandler().getMessage("staffchat.staff_switch").forAudience(player).withPlaceholders(
-                        Map.of("player", player.getUsername(), "from", from, "to", to)).build();
-                broadcastToChannel(staffChannel, switchMessage);
+                broadcastToChannel(
+                        staffChannel,
+                        "staffchat.staff_switch",
+                        Map.of("player", player.getUsername(), "from", from, "to", to)
+                );
             });
         }
     }
