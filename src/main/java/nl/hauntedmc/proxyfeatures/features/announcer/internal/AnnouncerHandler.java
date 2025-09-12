@@ -5,6 +5,8 @@ import nl.hauntedmc.proxyfeatures.features.announcer.Announcer;
 import nl.hauntedmc.proxyfeatures.lifecycle.FeatureTaskManager;
 import net.kyori.adventure.text.Component;
 
+import java.time.Duration;
+
 public class AnnouncerHandler {
 
     private final FeatureTaskManager taskManager;
@@ -32,7 +34,7 @@ public class AnnouncerHandler {
                 player.sendMessage(message);
             });
             currentMessageIndex = (currentMessageIndex + 1) % announcerRegistry.getTotalMessages();
-        }, messageInterval*1000L);
+        }, Duration.ofSeconds(messageInterval));
     }
 
 

@@ -9,6 +9,7 @@ import nl.hauntedmc.proxyfeatures.common.util.LanguageUtils;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
 
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -105,7 +106,7 @@ public class LanguageService implements LanguageAPI {
                             .build();
                     player.sendMessage(msg);
                 });
-            }, 5L*1000);
+            }, Duration.ofSeconds(5L));
         }
 
         return resolved;

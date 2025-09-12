@@ -15,6 +15,8 @@ import nl.hauntedmc.proxyfeatures.features.sanctions.service.SanctionsService;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.sanctions.service.ServiceLookup;
 
+import java.time.Duration;
+
 public class Sanctions extends VelocityBaseFeature<Meta> {
 
     private ORMContext orm;
@@ -194,7 +196,7 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         int sweep = (int) getConfigHandler().getSetting("expirySweepSeconds");
         getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
             service.sweepExpiries();
-        }, sweep * 1000L);
+        }, Duration.ofSeconds(sweep));
     }
 
     @Override

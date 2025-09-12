@@ -10,6 +10,7 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.features.clientinfo.ClientInfo;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,7 @@ public class PlayerListener {
         // Schedule recommendation after 10 seconds (10000 ms)
         ScheduledTask task = feature.getLifecycleManager()
                 .getTaskManager()
-                .scheduleDelayedTask(() -> runRecommendationCheck(player), delay);
+                .scheduleDelayedTask(() -> runRecommendationCheck(player), Duration.ofMillis(delay));
         pendingTasks.put(uuid, task);
     }
 
