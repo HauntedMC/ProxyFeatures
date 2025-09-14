@@ -12,11 +12,11 @@ import net.luckperms.api.track.Track;
 import net.luckperms.api.track.TrackManager;
 import nl.hauntedmc.commonlib.http.SimpleHttpClient;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.api.AccountRequest;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.api.LinkRequest;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 public class HLinkHandler {
 
     private final HLink feature;
-    private final ProxyFeatures plugin;
     private final Gson gson = new Gson();
     private final String apiKey;
     private final boolean friendly;
@@ -36,7 +35,6 @@ public class HLinkHandler {
 
     public HLinkHandler(HLink feature) {
         this.feature = feature;
-        this.plugin = feature.getPlugin();
         this.apiKey = (String) feature.getConfigHandler().getSetting("api-key");
         this.friendly = (boolean) feature.getConfigHandler().getSetting("full-friendly-urls-enabled");
         this.websiteUrl = (String) feature.getConfigHandler().getSetting("website-url");
@@ -101,19 +99,7 @@ public class HLinkHandler {
             }
 
             // Iterate each track and pick the *highest* direct group present
-            TrackManager tm = lp.getTrackManager();
-            List<String> highestPerTrack = new ArrayList<>();
-
-            for (Track track : tm.getLoadedTracks()) {
-                List<String> ladder = track.getGroups();
-                for (int i = ladder.size() - 1; i >= 0; i--) {
-                    String grp = ladder.get(i);
-                    if (directGroups.contains(grp)) {
-                        highestPerTrack.add(grp);
-                        break;
-                    }
-                }
-            }
+            List<String> highestPerTrack = getTracks(lp, directGroups);
 
             return String.join(",", highestPerTrack);
 
@@ -121,6 +107,23 @@ public class HLinkHandler {
             feature.getLogger().error(Component.text("Error retrieving LuckPerms groups for " + player.getUsername()));
             return "default";
         }
+    }
+
+    private static @NotNull List<String> getTracks(LuckPerms lp, Set<String> directGroups) {
+        TrackManager tm = lp.getTrackManager();
+        List<String> highestPerTrack = new ArrayList<>();
+
+        for (Track track : tm.getLoadedTracks()) {
+            List<String> ladder = track.getGroups();
+            for (int i = ladder.size() - 1; i >= 0; i--) {
+                String grp = ladder.get(i);
+                if (directGroups.contains(grp)) {
+                    highestPerTrack.add(grp);
+                    break;
+                }
+            }
+        }
+        return highestPerTrack;
     }
 
     public String doesKeyExist(String uuid, int keyType) {

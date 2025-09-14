@@ -13,7 +13,7 @@ public class IPCheckCache {
      */
     public IPCheckResult get(String ip) {
         IPCheckResult result = cache.get(ip);
-        if (result != null && (System.currentTimeMillis() - result.getTimestamp()) < ttlMillis) {
+        if (result != null && (System.currentTimeMillis() - result.timestamp()) < ttlMillis) {
             return result;
         } else {
             cache.remove(ip);

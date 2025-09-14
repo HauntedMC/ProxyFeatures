@@ -111,7 +111,7 @@ public final class VotifierServer {
 
     private void handleClient(Socket s) {
         SocketAddress remote = s.getRemoteSocketAddress();
-        String ip = "-";
+        String ip;
         try {
             // Use small step timeout and enforce our own overall deadline.
             final int stepTimeoutMs = Math.min(300, Math.max(100, readTimeoutMillis / 10));

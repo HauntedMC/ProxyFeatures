@@ -67,7 +67,7 @@ public class AntiVPNListener {
         }
 
         String playerName = event.getUsername();
-        String country = result.getCountryCode() == null ? "" : result.getCountryCode().toUpperCase(Locale.ROOT);
+        String country = result.countryCode() == null ? "" : result.countryCode().toUpperCase(Locale.ROOT);
 
         // Region policy
         if (useRegionCheck && !country.isBlank() && !allowedCountriesUpper.contains(country)) {
@@ -83,7 +83,7 @@ public class AntiVPNListener {
         }
 
         // VPN policy
-        if (useVpnCheck && result.isVpn()) {
+        if (useVpnCheck && result.vpn()) {
             // Notify staff about a VPN/proxy block.
             Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_vpn")
                     .withPlaceholders(Map.of("player", playerName)).build();

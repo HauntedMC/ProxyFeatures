@@ -58,13 +58,11 @@ public class ConnectListener {
         }
         // Special behavior for the staff channel.
         if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
-            getStaffChannel().ifPresent(staffChannel -> {
-                broadcastToChannel(
-                        staffChannel,
-                        "staffchat.staff_join",
-                        Map.of("player", player.getUsername())
-                );
-            });
+            getStaffChannel().ifPresent(staffChannel -> broadcastToChannel(
+                    staffChannel,
+                    "staffchat.staff_join",
+                    Map.of("player", player.getUsername())
+            ));
         }
     }
 
@@ -77,13 +75,11 @@ public class ConnectListener {
         }
         // Special behavior for the staff channel.
         if (player.hasPermission("proxyfeatures.feature.staffchat.staff")) {
-            getStaffChannel().ifPresent(staffChannel -> {
-                broadcastToChannel(
-                        staffChannel,
-                        "staffchat.staff_leave",
-                        Map.of("player", player.getUsername())
-                );
-            });
+            getStaffChannel().ifPresent(staffChannel -> broadcastToChannel(
+                    staffChannel,
+                    "staffchat.staff_leave",
+                    Map.of("player", player.getUsername())
+            ));
         }
     }
 

@@ -33,8 +33,7 @@ public class CommandLogger extends VelocityBaseFeature<Meta> {
 
     @Override
     public MessageMap getDefaultMessages() {
-        MessageMap messageMap = new MessageMap();
-        return messageMap;
+        return new MessageMap();
     }
 
     @Override

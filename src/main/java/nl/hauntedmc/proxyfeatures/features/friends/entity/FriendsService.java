@@ -50,7 +50,7 @@ public class FriendsService {
 
     public void deleteRelation(FriendRelationEntity rel) {
         feature.getOrm().runInTransaction(s -> {
-            FriendRelationEntity managed = (FriendRelationEntity) s.merge(rel);
+            FriendRelationEntity managed = s.merge(rel);
             s.remove(managed);
             return null;
         });

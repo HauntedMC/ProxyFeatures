@@ -27,7 +27,7 @@ public class TabList extends VelocityBaseFeature<Meta> {
 
     @Override
     public void initialize() {
-        getLifecycleManager().getListenerManager().registerListener(new JoinListener(this));
+        getLifecycleManager().getListenerManager().registerListener(new JoinListener());
     }
 
     @Override

@@ -12,12 +12,10 @@ import java.util.function.Function;
 
 /**
  * Centralized scheduler for feature-scoped tasks (Velocity).
- *
  * Goals:
  * - Track every scheduled task so we can cancel all on feature shutdown.
  * - For one-shot tasks, automatically remove the finished task from tracking.
  * - Safe to modify from any thread (CopyOnWriteArrayList).
- *
  * Time units:
  * - Uses {@link Duration} for delays and periods.
  */

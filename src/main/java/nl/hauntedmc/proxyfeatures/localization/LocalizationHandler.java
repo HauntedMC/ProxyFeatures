@@ -81,9 +81,7 @@ public class LocalizationHandler {
     /**
      * Entry point for retrieving messages. Use the returned builder to configure
      * the audience, message type, placeholders, and then call build() to get the message.
-     *
      * Example usage:
-     *
      *     Component comp = localizationHandler
      *                            .message("welcome.message")
      *                            .audience(someAudience)

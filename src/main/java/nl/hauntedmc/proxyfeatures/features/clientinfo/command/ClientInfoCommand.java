@@ -68,7 +68,7 @@ public class ClientInfoCommand extends FeatureCommand {
         ProtocolVersion proto = target.getProtocolVersion();
         String clientVersion = (proto == null)
                 ? "Unknown"
-                : proto.toString() + " (protocol " + proto.getProtocol() + ")";
+                : proto + " (protocol " + proto.getProtocol() + ")";
 
         // Header
         source.sendMessage(

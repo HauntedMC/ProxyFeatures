@@ -90,30 +90,34 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
 
         // Disconnect messages (SCREEN) — multi-line for clarity
         m.add("sanctions.disconnect.banned.temp",
-                "&8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.\n"
-                        + "&7Status: &fTijdelijke ban\n"
-                        + "&7Resterende tijd: &f{duration}\n"
-                        + "&7Reden: &f{reason}\n"
-                        + "&7Appeal: &f{appeal}");
+                """
+                        &8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.
+                        &7Status: &fTijdelijke ban
+                        &7Resterende tijd: &f{duration}
+                        &7Reden: &f{reason}
+                        &7Appeal: &f{appeal}""");
 
         m.add("sanctions.disconnect.banned.perm",
-                "&8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.\n"
-                        + "&7Status: &f&lPermanente ban\n"
-                        + "&7Reden: &f{reason}\n"
-                        + "&7Appeal: &f{appeal}");
+                """
+                        &8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.
+                        &7Status: &f&lPermanente ban
+                        &7Reden: &f{reason}
+                        &7Appeal: &f{appeal}""");
 
         m.add("sanctions.disconnect.muted.temp",
-                "&8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.\n"
-                        + "&7Status: &fTijdelijke mute\n"
-                        + "&7Resterende tijd: &f{duration}\n"
-                        + "&7Reden: &f{reason}\n"
-                        + "&7Appeal: &f{appeal}");
+                """
+                        &8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.
+                        &7Status: &fTijdelijke mute
+                        &7Resterende tijd: &f{duration}
+                        &7Reden: &f{reason}
+                        &7Appeal: &f{appeal}""");
 
         m.add("sanctions.disconnect.muted.perm",
-                "&8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.\n"
-                        + "&7Status: &f&lPermanente mute\n"
-                        + "&7Reden: &f{reason}\n"
-                        + "&7Appeal: &f{appeal}");
+                """
+                        &8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.
+                        &7Status: &f&lPermanente mute
+                        &7Reden: &f{reason}
+                        &7Appeal: &f{appeal}""");
 
         // Staff announcements (CHAT) — single-line, compact & labeled
         m.add("sanctions.announce.unban",
@@ -194,9 +198,7 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
 
         // Expiry sweeper
         int sweep = (int) getConfigHandler().getSetting("expirySweepSeconds");
-        getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
-            service.sweepExpiries();
-        }, Duration.ofSeconds(sweep));
+        getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> service.sweepExpiries(), Duration.ofSeconds(sweep));
     }
 
     @Override

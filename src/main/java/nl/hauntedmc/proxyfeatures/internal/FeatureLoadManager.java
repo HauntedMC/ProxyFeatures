@@ -176,7 +176,7 @@ public class FeatureLoadManager {
         VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
         feature.getConfigHandler().reloadConfig();
         feature.getLocalizationHandler().reloadLocalization();
-        plugin.getLogger().info("Feature " + featureName + " soft reloaded.");
+        plugin.getLogger().info("Feature {} soft reloaded.", featureName);
         return true;
     }
 

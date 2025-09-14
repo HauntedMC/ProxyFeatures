@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LanguageService implements LanguageAPI {
 
-    // Helper to carry both the language and whether this was a first-time create
+    // Helper to carry both the language and whether this is a new entry
     private record LoadResult(Language language, boolean createdDefault) {}
 
     private static final String DEFAULT_CODE = "EN"; // fallback for unknowns
@@ -97,16 +97,14 @@ public class LanguageService implements LanguageAPI {
 
         // 4) If we just created the default, notify the player (delayed)
         if (result.createdDefault()) {
-            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> {
-                feature.getPlugin().getProxy().getPlayer(playerUuid).ifPresent(player -> {
-                    var msg = feature.getLocalizationHandler()
-                            .getMessage("language.default_auto")
-                            .withPlaceholders(Map.of("language", resolved.name()))
-                            .forAudience(player)
-                            .build();
-                    player.sendMessage(msg);
-                });
-            }, Duration.ofSeconds(5L));
+            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> feature.getPlugin().getProxy().getPlayer(playerUuid).ifPresent(player -> {
+                var msg = feature.getLocalizationHandler()
+                        .getMessage("language.default_auto")
+                        .withPlaceholders(Map.of("language", resolved.name()))
+                        .forAudience(player)
+                        .build();
+                player.sendMessage(msg);
+            }), Duration.ofSeconds(5L));
         }
 
         return resolved;

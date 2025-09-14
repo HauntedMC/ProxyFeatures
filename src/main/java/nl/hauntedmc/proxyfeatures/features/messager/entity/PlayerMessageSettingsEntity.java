@@ -31,7 +31,7 @@ public class PlayerMessageSettingsEntity {
             joinColumns = @JoinColumn(name = "player_id"),
             inverseJoinColumns = @JoinColumn(name = "blocked_player_id")
     )
-    private Set<PlayerEntity> blockedPlayers = new HashSet<>();
+    private final Set<PlayerEntity> blockedPlayers = new HashSet<>();
 
     public PlayerMessageSettingsEntity() {}
 

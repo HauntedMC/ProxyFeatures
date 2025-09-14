@@ -97,14 +97,9 @@ public class TextCommands extends VelocityBaseFeature<Meta> {
     @Override
     public void disable() { }
 
-    /** Simple holder for a message key and its placeholder map. */
-    private static class CommandDef {
-        final String messageKey;
-        final Map<String, String> placeholders;
-
-        private CommandDef(String messageKey, Map<String, String> placeholders) {
-            this.messageKey = messageKey;
-            this.placeholders = placeholders;
-        }
+    /**
+     * Simple holder for a message key and its placeholder map.
+     */
+        private record CommandDef(String messageKey, Map<String, String> placeholders) {
     }
 }

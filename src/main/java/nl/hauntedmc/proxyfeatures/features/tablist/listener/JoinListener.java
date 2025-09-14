@@ -6,17 +6,13 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.player.TabListEntry;
 import com.velocitypowered.api.util.GameProfile;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.proxyfeatures.features.tablist.TabList;
 
 import java.util.Collections;
 import java.util.UUID;
 
 public class JoinListener {
 
-    private final TabList feature;
-
-    public JoinListener(TabList feature) {
-        this.feature = feature;
+    public JoinListener() {
     }
 
     @Subscribe

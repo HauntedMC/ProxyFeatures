@@ -19,26 +19,9 @@ public class ResourcePackStatusListener {
         PlayerResourcePackStatusEvent.Status status = event.getStatus();
         Component message;
         switch (status) {
-            case ACCEPTED:
-//                message = feature.getLocalizationHandler()
-//                                .getMessage("resourcepack.accepted")
-//                                .forAudience(player)
-//                                .build();
-//                player.sendMessage(message);
-                return;
-            case DOWNLOADED:
-//                message = feature.getLocalizationHandler()
-//                        .getMessage("resourcepack.downloaded")
-//                        .forAudience(player)
-//                        .build();
-//                player.sendMessage(message);
+            case ACCEPTED, DOWNLOADED:
                 return;
             case SUCCESSFUL:
-//                message = feature.getLocalizationHandler()
-//                                .getMessage("resourcepack.loaded")
-//                                .forAudience(player)
-//                                .build();
-//                player.sendMessage(message);
                 feature.getResourcePackHandler().unblockConfiguration(player.getUniqueId());
                 return;
             case DECLINED, DISCARDED:
