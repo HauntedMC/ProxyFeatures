@@ -47,7 +47,7 @@ public class FriendCommand extends FeatureCommand {
             var friendSnaps = svc.acceptedFriendSnapshots(me);
             var onlineFriends = friendSnaps.stream()
                     .map(snap -> feature.getPlugin().getProxy()
-                            .getPlayer(java.util.UUID.fromString(snap.getUuid()))
+                            .getPlayer(java.util.UUID.fromString(snap.uuid()))
                             .filter(pl -> !APIRegistry.get(VanishAPI.class)
                                     .map(api -> api.isVanished(pl.getUniqueId()))
                                     .orElse(false))
@@ -84,7 +84,6 @@ public class FriendCommand extends FeatureCommand {
 
         switch (sub) {
             case "list" -> list(player);
-            case "info" -> info(player, args);
             case "add" -> add(player, args);
             case "remove" -> remove(player, args);
             case "accept" -> accept(player, args);
@@ -115,7 +114,7 @@ public class FriendCommand extends FeatureCommand {
 
         long online = friends.stream().filter(f ->
                 feature.getPlugin().getProxy()
-                        .getPlayer(java.util.UUID.fromString(f.getUuid()))
+                        .getPlayer(java.util.UUID.fromString(f.uuid()))
                         .filter(pl -> !APIRegistry.get(VanishAPI.class)
                                 .map(api -> api.isVanished(pl.getUniqueId()))
                                 .orElse(false))
@@ -129,7 +128,7 @@ public class FriendCommand extends FeatureCommand {
                 .build());
 
         for (var snap : friends) {
-            java.util.UUID fid = java.util.UUID.fromString(snap.getUuid());
+            java.util.UUID fid = java.util.UUID.fromString(snap.uuid());
             Optional<Player> onlineP = feature.getPlugin().getProxy()
                     .getPlayer(fid)
                     .filter(pl -> !APIRegistry.get(VanishAPI.class)
@@ -138,7 +137,7 @@ public class FriendCommand extends FeatureCommand {
 
             boolean onl = onlineP.isPresent();
             String status = onl ? "&a● " : "&c● ";
-            String name = onlineP.map(Player::getUsername).orElse(snap.getUsername());
+            String name = onlineP.map(Player::getUsername).orElse(snap.username());
 
             String suffix = "";
             if (onl) {
@@ -154,50 +153,6 @@ public class FriendCommand extends FeatureCommand {
                             "status", status,
                             "player", name + suffix))
                     .build());
-        }
-    }
-
-    private void info(Player p, String[] args) {
-        if (args.length != 2) {
-            sendMsg(p, "friend.usage");
-            return;
-        }
-
-        Player targetOnline = feature.getPlugin().getProxy().getPlayer(args[1])
-                .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                        .map(api -> api.isVanished(pl.getUniqueId()))
-                        .orElse(false))
-                .orElse(null);
-        PlayerEntity me = getEntity(p);
-        PlayerEntity target = resolvePlayer(args[1]);
-
-        if (target == null) {
-            sendMsg(p, "friend.not_found");
-            return;
-        }
-
-        Optional<FriendRelationEntity> rel = svc.relation(me, target)
-                .filter(r -> r.getStatus() == FriendStatus.ACCEPTED);
-
-        if (rel.isEmpty()) {
-            sendMsg(p, "friend.not_friends");
-            return;
-        }
-
-        p.sendMessage(feature.getLocalizationHandler()
-                .getMessage("friend.info.header")
-                .withPlaceholders(Map.of("player", target.getUsername()))
-                .build());
-
-        if (targetOnline != null) {
-            RegisteredServer srv = targetOnline.getCurrentServer()
-                    .map(ServerConnection::getServer)
-                    .orElse(null);
-            String serverName = srv != null ? srv.getServerInfo().getName() : "Onbekend";
-            sendLine(p, "friend.info.online", Map.of("server", serverName));
-        } else {
-            String last = "not implemented yet";
-            sendLine(p, "friend.info.offline", Map.of("last", last));
         }
     }
 
@@ -572,11 +527,6 @@ public class FriendCommand extends FeatureCommand {
                 .withPlaceholders(ph).forAudience(src).build());
     }
 
-    private void sendLine(Player p, String key, Map<String, String> ph) {
-        p.sendMessage(feature.getLocalizationHandler().getMessage(key)
-                .withPlaceholders(ph).forAudience(p).build());
-    }
-
     private PlayerEntity getEntity(Player p) {
         return svc.getPlayer(p.getUniqueId().toString()).orElseThrow();
     }
@@ -597,7 +547,7 @@ public class FriendCommand extends FeatureCommand {
 
         String[] a = inv.arguments();
         List<String> subs = List.of(
-                "list", "info", "add", "remove", "accept", "deny",
+                "list", "add", "remove", "accept", "deny",
                 "acceptall", "denyall", "server", "requests", "block", "unblock",
                 "disable", "enable", "cancel");
 
@@ -634,14 +584,14 @@ public class FriendCommand extends FeatureCommand {
                 .toList();
 
         // Sets uit de database
-        List<String> friendNames   = svc.acceptedFriendUsernames(me);
-        List<String> blockedNames  = svc.blockedUsernames(me);
+        List<String> friendNames = svc.acceptedFriendUsernames(me);
+        List<String> blockedNames = svc.blockedUsernames(me);
         List<String> incomingNames = svc.incomingRequestUsernames(me);
         List<String> outgoingNames = svc.outgoingRequestUsernames(me);
 
         // Voor /server hebben we alléén online vrienden nodig (en non-vanished)
         Set<UUID> friendUUIDs = svc.acceptedFriendSnapshots(me).stream()
-                .map(snap -> java.util.UUID.fromString(snap.getUuid()))
+                .map(snap -> java.util.UUID.fromString(snap.uuid()))
                 .collect(Collectors.toSet());
 
         List<String> onlineFriendNames = onlineNonVanished.stream()
@@ -653,7 +603,6 @@ public class FriendCommand extends FeatureCommand {
         List<String> result;
         switch (sub) {
             case "remove":
-            case "info":
                 // Alleen geaccepteerde vrienden
                 result = friendNames.stream().filter(startsWith).toList();
                 break;

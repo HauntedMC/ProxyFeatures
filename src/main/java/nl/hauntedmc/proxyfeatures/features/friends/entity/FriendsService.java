@@ -1,15 +1,19 @@
 package nl.hauntedmc.proxyfeatures.features.friends.entity;
 
 import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.Optional;
+
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 
 public class FriendsService {
     private final Friends feature;
 
-    public FriendsService(Friends feature) { this.feature = feature; }
+    public FriendsService(Friends feature) {
+        this.feature = feature;
+    }
 
     public Optional<PlayerEntity> getPlayer(@NotNull String uuid) {
         return feature.getOrm().runInTransaction(
@@ -43,7 +47,9 @@ public class FriendsService {
         });
     }
 
-    /** Keep for internal, transactional uses (avoid touching lazy relations outside). */
+    /**
+     * Keep for internal, transactional uses (avoid touching lazy relations outside).
+     */
     public Optional<FriendRelationEntity> relation(PlayerEntity owner, PlayerEntity target) {
         return feature.getOrm().runInTransaction(s ->
                 s.createQuery("FROM FriendRelationEntity WHERE player = :p AND friend = :f",
@@ -53,7 +59,9 @@ public class FriendsService {
                         .uniqueResultOptional());
     }
 
-    /** Internal transactional uses only (size checks etc. are fine). */
+    /**
+     * Internal transactional uses only (size checks etc. are fine).
+     */
     public List<FriendRelationEntity> incomingRequests(PlayerEntity p) {
         return feature.getOrm().runInTransaction(
                 s -> s.createQuery("FROM FriendRelationEntity WHERE friend = :me AND status = :st",
@@ -63,7 +71,9 @@ public class FriendsService {
                         .list());
     }
 
-    /** Usernames of players who sent me a pending request (incoming). */
+    /**
+     * Usernames of players who sent me a pending request (incoming).
+     */
     public List<String> incomingRequestUsernames(PlayerEntity me) {
         return feature.getOrm().runInTransaction(s ->
                 s.createQuery(
@@ -77,7 +87,9 @@ public class FriendsService {
         );
     }
 
-    /** Usernames I have sent a pending request to (outgoing). */
+    /**
+     * Usernames I have sent a pending request to (outgoing).
+     */
     public List<String> outgoingRequestUsernames(PlayerEntity me) {
         return feature.getOrm().runInTransaction(s ->
                 s.createQuery(
@@ -91,7 +103,9 @@ public class FriendsService {
         );
     }
 
-    /** Snapshots of my accepted friends (id/uuid/username), safe to use outside a session. */
+    /**
+     * Snapshots of my accepted friends (id/uuid/username), safe to use outside a session.
+     */
     public List<FriendSnapshot> acceptedFriendSnapshots(PlayerEntity me) {
         return feature.getOrm().runInTransaction(s ->
                 s.createQuery(
@@ -321,7 +335,9 @@ public class FriendsService {
 
     // FriendsService.java
 
-    /** Usernames van mijn geaccepteerde vrienden. */
+    /**
+     * Usernames van mijn geaccepteerde vrienden.
+     */
     public List<String> acceptedFriendUsernames(PlayerEntity me) {
         return feature.getOrm().runInTransaction(s ->
                 s.createQuery(
@@ -335,7 +351,9 @@ public class FriendsService {
         );
     }
 
-    /** Usernames van spelers die ik heb geblokkeerd. */
+    /**
+     * Usernames van spelers die ik heb geblokkeerd.
+     */
     public List<String> blockedUsernames(PlayerEntity me) {
         return feature.getOrm().runInTransaction(s ->
                 s.createQuery(
