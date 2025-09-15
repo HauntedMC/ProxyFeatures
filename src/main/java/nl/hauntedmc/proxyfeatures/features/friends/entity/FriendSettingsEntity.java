@@ -11,14 +11,15 @@ public class FriendSettingsEntity {
     @Column(name = "player_id")
     private Long playerId;
 
-    @OneToOne @MapsId
+    @OneToOne(optional = false, fetch = FetchType.LAZY) @MapsId
     @JoinColumn(name = "player_id")
     private PlayerEntity player;
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
 
-    public FriendSettingsEntity() {}
+    protected FriendSettingsEntity() {}
+
     public FriendSettingsEntity(PlayerEntity player) {
         this.player   = player;
         this.playerId = player.getId();

@@ -31,7 +31,7 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
     @Override
     public ConfigMap getDefaultConfig() {
         ConfigMap cfg = new ConfigMap();
-        cfg.put("enabled", true);
+        cfg.put("enabled", false);
         cfg.put("expirySweepSeconds", 30);
         cfg.put("discordWebhookURL", "");
         cfg.put("appealURL", "https://www.hauntedmc.nl/support/");

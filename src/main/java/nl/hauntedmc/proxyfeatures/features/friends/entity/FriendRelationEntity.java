@@ -12,18 +12,20 @@ public class FriendRelationEntity {
     private Long id;
 
     /* Who owns this row */
-    @ManyToOne @JoinColumn(name = "player_id",  nullable = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "player_id",  nullable = false)
     private PlayerEntity player;
 
-    /* Counter‑party */
-    @ManyToOne @JoinColumn(name = "friend_id",  nullable = false)
+    /* Counter-party */
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "friend_id",  nullable = false)
     private PlayerEntity friend;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 16)
     private FriendStatus status;
 
-    public FriendRelationEntity() {}
+    protected FriendRelationEntity() {}
 
     public FriendRelationEntity(PlayerEntity player,
                                 PlayerEntity friend,
@@ -33,10 +35,10 @@ public class FriendRelationEntity {
         this.status  = status;
     }
 
-    public Long         getId()    { return id; }
-    public PlayerEntity getPlayer(){ return player; }
-    public PlayerEntity getFriend(){ return friend; }
-    public FriendStatus getStatus(){ return status; }
+    public Long         getId()     { return id; }
+    public PlayerEntity getPlayer() { return player; }
+    public PlayerEntity getFriend() { return friend; }
+    public FriendStatus getStatus() { return status; }
 
     public void setStatus(FriendStatus s) { this.status = s; }
 }

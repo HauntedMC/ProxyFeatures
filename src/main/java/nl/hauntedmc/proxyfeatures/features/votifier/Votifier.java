@@ -44,7 +44,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         ConfigMap cfg = new ConfigMap();
 
         // Core
-        cfg.put("enabled", true);
+        cfg.put("enabled", false);
 
         // Network
         cfg.put("host", "0.0.0.0");
