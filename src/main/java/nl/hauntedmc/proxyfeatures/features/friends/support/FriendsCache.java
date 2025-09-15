@@ -2,9 +2,9 @@ package nl.hauntedmc.proxyfeatures.features.friends.support;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendSnapshot;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
+import nl.hauntedmc.proxyfeatures.features.friends.entity.PlayerRef;
 
 import java.time.Duration;
 import java.util.List;
@@ -18,13 +18,13 @@ public class FriendsCache {
 
     private record PairKey(long a, long b) { }
 
-    private final Cache<String, Optional<PlayerEntity>> playerByUuid =
+    private final Cache<String, Optional<PlayerRef>> playerByUuid =
             Caffeine.newBuilder()
                     .maximumSize(50_000)
                     .expireAfterWrite(Duration.ofMinutes(5))
                     .build();
 
-    private final Cache<String, Optional<PlayerEntity>> playerByLowerName =
+    private final Cache<String, Optional<PlayerRef>> playerByLowerName =
             Caffeine.newBuilder()
                     .maximumSize(50_000)
                     .expireAfterWrite(Duration.ofMinutes(2))
@@ -68,13 +68,13 @@ public class FriendsCache {
 
     // -------- Getters with loaders --------
 
-    public Optional<PlayerEntity> getPlayerByUuid(String uuid,
-                                                  java.util.function.Supplier<Optional<PlayerEntity>> loader) {
+    public Optional<PlayerRef> getPlayerByUuid(String uuid,
+                                               java.util.function.Supplier<Optional<PlayerRef>> loader) {
         return playerByUuid.get(uuid, k -> loader.get());
     }
 
-    public Optional<PlayerEntity> getPlayerByLowerName(String lowerName,
-                                                       java.util.function.Supplier<Optional<PlayerEntity>> loader) {
+    public Optional<PlayerRef> getPlayerByLowerName(String lowerName,
+                                                    java.util.function.Supplier<Optional<PlayerRef>> loader) {
         return playerByLowerName.get(lowerName, k -> loader.get());
     }
 

@@ -117,7 +117,7 @@ public class Friends extends VelocityBaseFeature<Meta> {
                         PlayerEntity.class)
                 .orElseThrow();
 
-        // New: shared cache for this feature instance
+        // Shared cache for this feature instance
         cache = new FriendsCache();
 
         service = new FriendsService(this, cache);

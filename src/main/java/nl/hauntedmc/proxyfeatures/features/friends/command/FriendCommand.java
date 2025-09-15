@@ -7,9 +7,10 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
-import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity;
+import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
+import nl.hauntedmc.proxyfeatures.features.friends.entity.PlayerRef;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 
 import java.util.*;
@@ -20,10 +21,12 @@ public class FriendCommand extends FeatureCommand {
 
     private final Friends feature;
     private final FriendsService svc;
+    private final Optional<VanishAPI> vanishApi;
 
     public FriendCommand(Friends feature) {
         this.feature = feature;
         this.svc = feature.getService();
+        this.vanishApi = APIRegistry.get(VanishAPI.class);
     }
 
     @Override
@@ -37,7 +40,7 @@ public class FriendCommand extends FeatureCommand {
         }
 
         if (args.length == 0) {
-            PlayerEntity me = getEntity(player);
+            PlayerRef me = getRef(player);
             if (!svc.getOrCreateSettings(me).isEnabled()) {
                 sendMsg(player, "friend.mode_disabled");
                 return;
@@ -48,9 +51,7 @@ public class FriendCommand extends FeatureCommand {
             var onlineFriends = friendSnaps.stream()
                     .map(snap -> feature.getPlugin().getProxy()
                             .getPlayer(java.util.UUID.fromString(snap.uuid()))
-                            .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                                    .map(api -> api.isVanished(pl.getUniqueId()))
-                                    .orElse(false))
+                            .filter(pl -> !isVanished(pl))
                             .orElse(null))
                     .filter(Objects::nonNull)
                     .toList();
@@ -72,7 +73,7 @@ public class FriendCommand extends FeatureCommand {
                 });
             }
 
-            // Use cached, cheap projection instead of loading full entities
+            // Cheap, cached projection
             int pending = svc.incomingRequestUsernames(me).size();
             if (pending > 0) {
                 sendMsg(player, "friend.pending_requests",
@@ -108,7 +109,7 @@ public class FriendCommand extends FeatureCommand {
     }
 
     private void list(Player p) {
-        PlayerEntity me = getEntity(p);
+        PlayerRef me = getRef(p);
 
         // Use snapshots to avoid lazy loads
         var friends = svc.acceptedFriendSnapshots(me);
@@ -116,9 +117,7 @@ public class FriendCommand extends FeatureCommand {
         long online = friends.stream().filter(f ->
                 feature.getPlugin().getProxy()
                         .getPlayer(java.util.UUID.fromString(f.uuid()))
-                        .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                                .map(api -> api.isVanished(pl.getUniqueId()))
-                                .orElse(false))
+                        .filter(pl -> !isVanished(pl))
                         .isPresent()).count();
 
         p.sendMessage(feature.getLocalizationHandler()
@@ -132,9 +131,7 @@ public class FriendCommand extends FeatureCommand {
             java.util.UUID fid = java.util.UUID.fromString(snap.uuid());
             Optional<Player> onlineP = feature.getPlugin().getProxy()
                     .getPlayer(fid)
-                    .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                            .map(api -> api.isVanished(pl.getUniqueId()))
-                            .orElse(false));
+                    .filter(pl -> !isVanished(pl));
 
             boolean onl = onlineP.isPresent();
             String status = onl ? "&a● " : "&c● ";
@@ -162,14 +159,14 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
+        PlayerRef me = getRef(p);
 
-        PlayerEntity target = resolvePlayer(args[1]);
+        PlayerRef target = resolvePlayerRef(args[1]);
         if (target == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (target.getId().equals(me.getId())) {
+        if (target.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
@@ -182,19 +179,17 @@ public class FriendCommand extends FeatureCommand {
 
         // Block checks (cache-backed)
         if (svc.didIBlockTarget(me, target)) {
-            sendMsg(p, "friend.you_blocked_target", Map.of("player", target.getUsername()));
+            sendMsg(p, "friend.you_blocked_target", Map.of("player", target.username()));
             return;
         }
         if (svc.isBlockedByTarget(me, target)) {
-            sendMsg(p, "friend.blocked_by_target", Map.of("player", target.getUsername()));
+            sendMsg(p, "friend.blocked_by_target", Map.of("player", target.username()));
             return;
         }
 
-        // Existing relation checks (both directions).
-        // Use entity-based relation here (not relationStatus) to avoid writing a negative into the cache
-        // just before we create a pending relation, which could cause brief staleness.
-        Optional<nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity> meToTarget = svc.relation(me, target);
-        Optional<nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity> targetToMe = svc.relation(target, me);
+        // Existing relation checks (both directions)
+        Optional<FriendRelationEntity> meToTarget = svc.relation(me, target);
+        Optional<FriendRelationEntity> targetToMe = svc.relation(target, me);
 
         if (meToTarget.isPresent()) {
             FriendStatus st = meToTarget.get().getStatus();
@@ -207,7 +202,7 @@ public class FriendCommand extends FeatureCommand {
                 return;
             }
             if (st == FriendStatus.BLOCKED) {
-                sendMsg(p, "friend.you_blocked_target", Map.of("player", target.getUsername()));
+                sendMsg(p, "friend.you_blocked_target", Map.of("player", target.username()));
                 return;
             }
         }
@@ -219,18 +214,16 @@ public class FriendCommand extends FeatureCommand {
                 return;
             }
             if (st == FriendStatus.BLOCKED) {
-                sendMsg(p, "friend.blocked_by_target", Map.of("player", target.getUsername()));
+                sendMsg(p, "friend.blocked_by_target", Map.of("player", target.username()));
                 return;
             }
             if (st == FriendStatus.PENDING) {
                 // Mutual request -> auto-accept atomically
                 boolean ok = svc.acceptPending(target, me);
                 if (ok) {
-                    sendMsg(p, "friend.accepted", Map.of("player", target.getUsername()));
-                    feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                            .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                                    .map(api -> api.isVanished(pl.getUniqueId()))
-                                    .orElse(false))
+                    sendMsg(p, "friend.accepted", Map.of("player", target.username()));
+                    feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.uuid()))
+                            .filter(pl -> !isVanished(pl))
                             .ifPresent(t -> sendMsg(t, "friend.accepted",
                                     Map.of("player", p.getUsername())));
                 } else {
@@ -240,21 +233,17 @@ public class FriendCommand extends FeatureCommand {
             }
         }
 
-        // Create outgoing pending (kept here). Note: service handles most invalidations,
-        // but pending creation goes straight to DB; short TTLs keep cache fresh enough.
-        feature.getOrm().runInTransaction(s -> {
-            PlayerEntity m = s.get(PlayerEntity.class, me.getId());
-            PlayerEntity t = s.get(PlayerEntity.class, target.getId());
-            s.persist(new nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity(m, t, FriendStatus.PENDING));
-            return null;
-        });
+        // Create outgoing pending via service (handles invalidation)
+        boolean created = svc.createPending(me, target);
+        if (!created) {
+            sendMsg(p, "friend.request_exists");
+            return;
+        }
 
-        sendMsg(p, "friend.add.sent", Map.of("player", target.getUsername()));
+        sendMsg(p, "friend.add.sent", Map.of("player", target.username()));
 
-        feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                        .map(api -> api.isVanished(pl.getUniqueId()))
-                        .orElse(false))
+        feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.uuid()))
+                .filter(pl -> !isVanished(pl))
                 .ifPresent(t -> sendMsg(t, "friend.add.received",
                         Map.of("player", p.getUsername())));
     }
@@ -264,20 +253,20 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
-        PlayerEntity target = resolvePlayer(args[1]);
+        PlayerRef me = getRef(p);
+        PlayerRef target = resolvePlayerRef(args[1]);
         if (target == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (target.getId().equals(me.getId())) {
+        if (target.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
 
         boolean removed = svc.removeFriendship(me, target);
         if (removed) {
-            sendMsg(p, "friend.removed", Map.of("player", target.getUsername()));
+            sendMsg(p, "friend.removed", Map.of("player", target.username()));
         } else {
             sendMsg(p, "friend.not_friends");
         }
@@ -288,13 +277,13 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
-        PlayerEntity from = resolvePlayer(args[1]);
+        PlayerRef me = getRef(p);
+        PlayerRef from = resolvePlayerRef(args[1]);
         if (from == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (from.getId().equals(me.getId())) {
+        if (from.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
@@ -307,11 +296,9 @@ public class FriendCommand extends FeatureCommand {
 
         boolean ok = svc.acceptPending(from, me);
         if (ok) {
-            sendMsg(p, "friend.accepted", Map.of("player", from.getUsername()));
-            feature.getPlugin().getProxy().getPlayer(UUID.fromString(from.getUuid()))
-                    .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                            .map(api -> api.isVanished(pl.getUniqueId()))
-                            .orElse(false))
+            sendMsg(p, "friend.accepted", Map.of("player", from.username()));
+            feature.getPlugin().getProxy().getPlayer(UUID.fromString(from.uuid()))
+                    .filter(pl -> !isVanished(pl))
                     .ifPresent(t -> sendMsg(t, "friend.accepted",
                             Map.of("player", p.getUsername())));
         } else {
@@ -324,13 +311,13 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
-        PlayerEntity other = resolvePlayer(args[1]);
+        PlayerRef me = getRef(p);
+        PlayerRef other = resolvePlayerRef(args[1]);
         if (other == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (other.getId().equals(me.getId())) {
+        if (other.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
@@ -338,14 +325,14 @@ public class FriendCommand extends FeatureCommand {
         // Incoming?
         boolean denied = svc.denyIncoming(me, other);
         if (denied) {
-            sendMsg(p, "friend.denied", Map.of("player", other.getUsername()));
+            sendMsg(p, "friend.denied", Map.of("player", other.username()));
             return;
         }
 
         // Outgoing pending? Then instruct to cancel.
         Optional<FriendStatus> outStatus = svc.relationStatus(me, other);
         if (outStatus.isPresent() && outStatus.get() == FriendStatus.PENDING) {
-            sendMsg(p, "friend.cannot_deny_outgoing", Map.of("player", other.getUsername()));
+            sendMsg(p, "friend.cannot_deny_outgoing", Map.of("player", other.username()));
             return;
         }
 
@@ -357,27 +344,27 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
-        PlayerEntity target = resolvePlayer(args[1]);
+        PlayerRef me = getRef(p);
+        PlayerRef target = resolvePlayerRef(args[1]);
         if (target == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (target.getId().equals(me.getId())) {
+        if (target.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
 
         boolean ok = svc.cancelPending(me, target);
         if (ok) {
-            sendMsg(p, "friend.cancelled", Map.of("player", target.getUsername()));
+            sendMsg(p, "friend.cancelled", Map.of("player", target.username()));
         } else {
             sendMsg(p, "friend.not_found");
         }
     }
 
     private void acceptAll(Player p) {
-        PlayerEntity me = getEntity(p);
+        PlayerRef me = getRef(p);
         int n = svc.acceptAll(me);
         if (n == 0) {
             sendMsg(p, "friend.no_requests");
@@ -387,7 +374,7 @@ public class FriendCommand extends FeatureCommand {
     }
 
     private void denyAll(Player p) {
-        PlayerEntity me = getEntity(p);
+        PlayerRef me = getRef(p);
         int n = svc.denyAll(me);
         if (n == 0) {
             sendMsg(p, "friend.no_requests");
@@ -401,13 +388,13 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
-        PlayerEntity target = resolvePlayer(args[1]);
+        PlayerRef me = getRef(p);
+        PlayerRef target = resolvePlayerRef(args[1]);
         if (target == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (target.getId().equals(me.getId())) {
+        if (target.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
@@ -419,10 +406,8 @@ public class FriendCommand extends FeatureCommand {
             return;
         }
 
-        feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
-                .filter(pl -> !APIRegistry.get(VanishAPI.class)
-                        .map(api -> api.isVanished(pl.getUniqueId()))
-                        .orElse(false))
+        feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.uuid()))
+                .filter(pl -> !isVanished(pl))
                 .ifPresentOrElse(t -> t.getCurrentServer().ifPresent(conn -> {
                     RegisteredServer srv = conn.getServer();
                     p.createConnectionRequest(srv).fireAndForget();
@@ -431,7 +416,7 @@ public class FriendCommand extends FeatureCommand {
     }
 
     private void requests(Player p) {
-        PlayerEntity me = getEntity(p);
+        PlayerRef me = getRef(p);
 
         // Project to plain usernames (cached)
         List<String> incoming = svc.incomingRequestUsernames(me);
@@ -465,13 +450,13 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
-        PlayerEntity target = resolvePlayer(args[1]);
+        PlayerRef me = getRef(p);
+        PlayerRef target = resolvePlayerRef(args[1]);
         if (target == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (target.getId().equals(me.getId())) {
+        if (target.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
@@ -483,7 +468,7 @@ public class FriendCommand extends FeatureCommand {
         }
 
         svc.block(me, target);
-        sendMsg(p, "friend.blocked", Map.of("player", target.getUsername()));
+        sendMsg(p, "friend.blocked", Map.of("player", target.username()));
     }
 
     private void unblock(Player p, String[] args) {
@@ -491,32 +476,32 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.usage");
             return;
         }
-        PlayerEntity me = getEntity(p);
-        PlayerEntity target = resolvePlayer(args[1]);
+        PlayerRef me = getRef(p);
+        PlayerRef target = resolvePlayerRef(args[1]);
         if (target == null) {
             sendMsg(p, "friend.not_found");
             return;
         }
-        if (target.getId().equals(me.getId())) {
+        if (target.id().equals(me.id())) {
             sendMsg(p, "friend.self");
             return;
         }
 
         boolean ok = svc.unblock(me, target);
         if (ok) {
-            sendMsg(p, "friend.unblocked", Map.of("player", target.getUsername()));
+            sendMsg(p, "friend.unblocked", Map.of("player", target.username()));
         } else {
             sendMsg(p, "friend.not_blocked");
         }
     }
 
     private void disable(Player p) {
-        svc.setEnabled(getEntity(p), false);
+        svc.setEnabled(getRef(p), false);
         sendMsg(p, "friend.mode_now_disabled");
     }
 
     private void enable(Player p) {
-        svc.setEnabled(getEntity(p), true);
+        svc.setEnabled(getRef(p), true);
         sendMsg(p, "friend.mode_enabled");
     }
 
@@ -530,11 +515,11 @@ public class FriendCommand extends FeatureCommand {
                 .withPlaceholders(ph).forAudience(src).build());
     }
 
-    private PlayerEntity getEntity(Player p) {
+    private PlayerRef getRef(Player p) {
         return svc.getPlayer(p.getUniqueId().toString()).orElseThrow();
     }
 
-    private PlayerEntity resolvePlayer(String name) {
+    private PlayerRef resolvePlayerRef(String name) {
         // Use cache-backed, case-insensitive resolver
         return svc.resolvePlayerByUsernameCaseInsensitive(name).orElse(null);
     }
@@ -552,7 +537,7 @@ public class FriendCommand extends FeatureCommand {
                 "acceptall", "denyall", "server", "requests", "block", "unblock",
                 "disable", "enable", "cancel");
 
-        // 0 of 1 argument: subcommand suggestions
+        // 0 or 1st argument: subcommand suggestions
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
             return CompletableFuture.completedFuture(subs);
         }
@@ -568,7 +553,7 @@ public class FriendCommand extends FeatureCommand {
         String sub = a[0].toLowerCase(Locale.ROOT);
         String partial = a[1].toLowerCase(Locale.ROOT);
 
-        PlayerEntity me = getEntity(p);
+        PlayerRef me = getRef(p);
 
         // Helpers
         java.util.function.Predicate<String> startsWith = name ->
@@ -660,9 +645,7 @@ public class FriendCommand extends FeatureCommand {
 
     // Small util to consistently check vanish
     private boolean isVanished(Player pl) {
-        return APIRegistry.get(VanishAPI.class)
-                .map(api -> api.isVanished(pl.getUniqueId()))
-                .orElse(false);
+        return vanishApi.map(api -> api.isVanished(pl.getUniqueId())).orElse(false);
     }
 
     @Override

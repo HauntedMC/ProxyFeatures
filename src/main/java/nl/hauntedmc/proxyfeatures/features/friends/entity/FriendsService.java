@@ -17,23 +17,29 @@ public class FriendsService {
         this.cache = cache;
     }
 
-    // -------- Player lookups (cached) --------
+    // -------- Player lookups (cached, lightweight) --------
 
-    public Optional<PlayerEntity> getPlayer(@NotNull String uuid) {
+    public Optional<PlayerRef> getPlayer(@NotNull String uuid) {
         return cache.getPlayerByUuid(uuid, () ->
                 feature.getOrm().runInTransaction(
-                        s -> s.createQuery("FROM PlayerEntity WHERE uuid = :u", PlayerEntity.class)
+                        s -> s.createQuery(
+                                        "SELECT new nl.hauntedmc.proxyfeatures.features.friends.entity.PlayerRef(p.id, p.uuid, p.username) " +
+                                                "FROM PlayerEntity p WHERE p.uuid = :u",
+                                        PlayerRef.class)
                                 .setParameter("u", uuid)
                                 .uniqueResultOptional()
                 )
         );
     }
 
-    public Optional<PlayerEntity> resolvePlayerByUsernameCaseInsensitive(@NotNull String username) {
+    public Optional<PlayerRef> resolvePlayerByUsernameCaseInsensitive(@NotNull String username) {
         String key = username.toLowerCase(Locale.ROOT);
         return cache.getPlayerByLowerName(key, () ->
                 feature.getOrm().runInTransaction(s ->
-                        s.createQuery("FROM PlayerEntity WHERE lower(username) = :u", PlayerEntity.class)
+                        s.createQuery(
+                                        "SELECT new nl.hauntedmc.proxyfeatures.features.friends.entity.PlayerRef(p.id, p.uuid, p.username) " +
+                                                "FROM PlayerEntity p WHERE lower(p.username) = :u",
+                                        PlayerRef.class)
                                 .setParameter("u", key)
                                 .uniqueResultOptional()
                 )
@@ -42,43 +48,42 @@ public class FriendsService {
 
     // -------- Settings (cached) --------
 
-    public FriendSettingsEntity getOrCreateSettings(PlayerEntity p) {
+    public FriendSettingsEntity getOrCreateSettings(PlayerRef p) {
         // Use DB to ensure the row exists, then refresh cache
         FriendSettingsEntity settings = feature.getOrm().runInTransaction(session -> {
-            FriendSettingsEntity s = session.get(FriendSettingsEntity.class, p.getId());
+            FriendSettingsEntity s = session.get(FriendSettingsEntity.class, p.id());
             if (s == null) {
-                PlayerEntity managedPlayer = session.get(PlayerEntity.class, p.getId());
+                PlayerEntity managedPlayer = session.get(PlayerEntity.class, p.id());
                 s = new FriendSettingsEntity(managedPlayer);
                 session.persist(s);
             }
             return s;
         });
-        cache.invalidatePlayer(p.getId());
-        cache.getSettingsEnabled(p.getId(), settings::isEnabled);
+        cache.invalidatePlayer(p.id());
+        cache.getSettingsEnabled(p.id(), settings::isEnabled);
         return settings;
     }
 
-    public void setEnabled(PlayerEntity player, boolean enabled) {
+    public void setEnabled(PlayerRef player, boolean enabled) {
         feature.getOrm().runInTransaction(session -> {
-            FriendSettingsEntity s = session.get(FriendSettingsEntity.class, player.getId());
+            FriendSettingsEntity s = session.get(FriendSettingsEntity.class, player.id());
             if (s == null) {
-                PlayerEntity managed = session.get(PlayerEntity.class, player.getId());
+                PlayerEntity managed = session.get(PlayerEntity.class, player.id());
                 s = new FriendSettingsEntity(managed);
                 session.persist(s);
             }
             s.setEnabled(enabled);
             return null;
         });
-        cache.invalidatePlayer(player.getId());
+        cache.invalidatePlayer(player.id());
     }
 
-    public boolean targetAcceptsRequests(PlayerEntity target) {
-        // Prefer cached enabled flag; if missing, ensure row exists then cache it
-        Boolean enabled = cache.getSettingsEnabled(target.getId(), () -> {
+    public boolean targetAcceptsRequests(PlayerRef target) {
+        Boolean enabled = cache.getSettingsEnabled(target.id(), () -> {
             FriendSettingsEntity s = feature.getOrm().runInTransaction(session -> {
-                FriendSettingsEntity se = session.get(FriendSettingsEntity.class, target.getId());
+                FriendSettingsEntity se = session.get(FriendSettingsEntity.class, target.id());
                 if (se == null) {
-                    PlayerEntity managed = session.get(PlayerEntity.class, target.getId());
+                    PlayerEntity managed = session.get(PlayerEntity.class, target.id());
                     se = new FriendSettingsEntity(managed);
                     session.persist(se);
                 }
@@ -89,71 +94,59 @@ public class FriendsService {
         return Boolean.TRUE.equals(enabled);
     }
 
-    // -------- Relations (cached) --------
+    // -------- Relations --------
 
-    /**
-     * Keep for internal, transactional uses (avoid touching lazy relations outside).
-     */
-    public Optional<FriendRelationEntity> relation(PlayerEntity owner, PlayerEntity target) {
-        // For actual relation entity we still hit DB (rare), but for status checks we use getRelationStatus(...)
+    /** Fetch full relation entity (rare). Prefer relationStatus(...) on hot paths. */
+    public Optional<FriendRelationEntity> relation(PlayerRef owner, PlayerRef target) {
         return feature.getOrm().runInTransaction(s ->
-                s.createQuery("FROM FriendRelationEntity WHERE player = :p AND friend = :f",
+                s.createQuery("FROM FriendRelationEntity fr WHERE fr.player.id = :p AND fr.friend.id = :f",
                                 FriendRelationEntity.class)
-                        .setParameter("p", owner)
-                        .setParameter("f", target)
+                        .setParameter("p", owner.id())
+                        .setParameter("f", target.id())
                         .uniqueResultOptional());
     }
 
-    public Optional<FriendStatus> relationStatus(PlayerEntity owner, PlayerEntity target) {
-        return cache.getRelationStatus(owner.getId(), target.getId(), () ->
+    public Optional<FriendStatus> relationStatus(PlayerRef owner, PlayerRef target) {
+        return cache.getRelationStatus(owner.id(), target.id(), () ->
                 feature.getOrm().runInTransaction(s -> {
-                    FriendRelationEntity fr = s.createQuery(
-                                    "FROM FriendRelationEntity WHERE player = :p AND friend = :f",
-                                    FriendRelationEntity.class)
-                            .setParameter("p", owner)
-                            .setParameter("f", target)
+                    FriendStatus st = s.createQuery(
+                                    "SELECT fr.status FROM FriendRelationEntity fr " +
+                                            "WHERE fr.player.id = :p AND fr.friend.id = :f",
+                                    FriendStatus.class)
+                            .setParameter("p", owner.id())
+                            .setParameter("f", target.id())
                             .uniqueResult();
-                    return Optional.ofNullable(fr != null ? fr.getStatus() : null);
+                    return Optional.ofNullable(st);
                 })
         );
     }
 
     // -------- Pending lists (cached) --------
 
-    public List<FriendRelationEntity> incomingRequests(PlayerEntity p) {
-        // Not cached: full entity list is only used for size in one place; keep DB
-        return feature.getOrm().runInTransaction(
-                s -> s.createQuery("FROM FriendRelationEntity WHERE friend = :me AND status = :st",
-                                FriendRelationEntity.class)
-                        .setParameter("me", p)
-                        .setParameter("st", FriendStatus.PENDING)
-                        .list());
-    }
-
-    public List<String> incomingRequestUsernames(PlayerEntity me) {
-        return cache.getIncomingUsernames(me.getId(), () ->
+    public List<String> incomingRequestUsernames(PlayerRef me) {
+        return cache.getIncomingUsernames(me.id(), () ->
                 feature.getOrm().runInTransaction(s ->
                         s.createQuery(
                                         "SELECT p.username FROM FriendRelationEntity fr " +
                                                 "JOIN fr.player p " +
-                                                "WHERE fr.friend = :me AND fr.status = :st",
+                                                "WHERE fr.friend.id = :me AND fr.status = :st",
                                         String.class)
-                                .setParameter("me", me)
+                                .setParameter("me", me.id())
                                 .setParameter("st", FriendStatus.PENDING)
                                 .list()
                 )
         );
     }
 
-    public List<String> outgoingRequestUsernames(PlayerEntity me) {
-        return cache.getOutgoingUsernames(me.getId(), () ->
+    public List<String> outgoingRequestUsernames(PlayerRef me) {
+        return cache.getOutgoingUsernames(me.id(), () ->
                 feature.getOrm().runInTransaction(s ->
                         s.createQuery(
                                         "SELECT f.username FROM FriendRelationEntity fr " +
                                                 "JOIN fr.friend f " +
-                                                "WHERE fr.player = :me AND fr.status = :st",
+                                                "WHERE fr.player.id = :me AND fr.status = :st",
                                         String.class)
-                                .setParameter("me", me)
+                                .setParameter("me", me.id())
                                 .setParameter("st", FriendStatus.PENDING)
                                 .list()
                 )
@@ -162,83 +155,74 @@ public class FriendsService {
 
     // -------- Accepted friends (cached) --------
 
-    /**
-     * Snapshots of my accepted friends (id/uuid/username), safe to use outside a session.
-     */
-    public List<FriendSnapshot> acceptedFriendSnapshots(PlayerEntity me) {
-        return List.copyOf(cache.getAcceptedSnapshots(me.getId(), () ->
+    /** Snapshots of my accepted friends (id/uuid/username). */
+    public List<FriendSnapshot> acceptedFriendSnapshots(PlayerRef me) {
+        return List.copyOf(cache.getAcceptedSnapshots(me.id(), () ->
                 feature.getOrm().runInTransaction(s ->
                         s.createQuery(
                                         "SELECT new nl.hauntedmc.proxyfeatures.features.friends.entity.FriendSnapshot(" +
                                                 "f.id, f.uuid, f.username) " +
                                                 "FROM FriendRelationEntity fr " +
                                                 "JOIN fr.friend f " +
-                                                "WHERE fr.player = :me AND fr.status = :st",
+                                                "WHERE fr.player.id = :me AND fr.status = :st",
                                         FriendSnapshot.class)
-                                .setParameter("me", me)
+                                .setParameter("me", me.id())
                                 .setParameter("st", FriendStatus.ACCEPTED)
                                 .list()
                 )
         ));
     }
 
-    /**
-     * Usernames van mijn geaccepteerde vrienden (derived from snapshots).
-     */
-    public List<String> acceptedFriendUsernames(PlayerEntity me) {
+    /** Usernames of my accepted friends (derived from snapshots). */
+    public List<String> acceptedFriendUsernames(PlayerRef me) {
         return acceptedFriendSnapshots(me).stream()
                 .map(FriendSnapshot::username)
                 .toList();
     }
 
-    /**
-     * Usernames van spelers die ik heb geblokkeerd.
-     */
-    public List<String> blockedUsernames(PlayerEntity me) {
-        return List.copyOf(cache.getBlockedUsernames(me.getId(), () ->
+    /** Usernames of players I blocked. */
+    public List<String> blockedUsernames(PlayerRef me) {
+        return List.copyOf(cache.getBlockedUsernames(me.id(), () ->
                 feature.getOrm().runInTransaction(s ->
                         s.createQuery(
                                         "SELECT f.username FROM FriendRelationEntity fr " +
                                                 "JOIN fr.friend f " +
-                                                "WHERE fr.player = :me AND fr.status = :st",
+                                                "WHERE fr.player.id = :me AND fr.status = :st",
                                         String.class)
-                                .setParameter("me", me)
+                                .setParameter("me", me.id())
                                 .setParameter("st", FriendStatus.BLOCKED)
                                 .list()
                 )
         ));
     }
 
-    public boolean isBlockedByTarget(PlayerEntity me, PlayerEntity target) {
-        // Use relation status in reverse direction if exists, otherwise count
+    public boolean isBlockedByTarget(PlayerRef me, PlayerRef target) {
         Optional<FriendStatus> rev = relationStatus(target, me);
-        if (rev.isPresent()) {
-            return rev.get() == FriendStatus.BLOCKED;
-        }
+        if (rev.isPresent()) return rev.get() == FriendStatus.BLOCKED;
+
         Long cnt = feature.getOrm().runInTransaction(s ->
                 s.createQuery(
                                 "SELECT COUNT(fr) FROM FriendRelationEntity fr " +
-                                        "WHERE fr.player = :target AND fr.friend = :me AND fr.status = :st",
+                                        "WHERE fr.player.id = :target AND fr.friend.id = :me AND fr.status = :st",
                                 Long.class)
-                        .setParameter("target", target)
-                        .setParameter("me", me)
+                        .setParameter("target", target.id())
+                        .setParameter("me", me.id())
                         .setParameter("st", FriendStatus.BLOCKED)
                         .uniqueResult());
         return cnt != null && cnt > 0;
     }
 
-    public boolean didIBlockTarget(PlayerEntity me, PlayerEntity target) {
+    public boolean didIBlockTarget(PlayerRef me, PlayerRef target) {
         Optional<FriendStatus> st = relationStatus(me, target);
-        if (st.isPresent()) {
-            return st.get() == FriendStatus.BLOCKED;
-        }
+        if (st.isPresent()) return st.get() == FriendStatus.BLOCKED;
+
         Long cnt = feature.getOrm().runInTransaction(s ->
                 s.createQuery(
                                 "SELECT COUNT(fr) FROM FriendRelationEntity fr " +
-                                        "WHERE fr.player = :me AND fr.friend = :target AND fr.status = :st",
+                                        "WHERE fr.player.id = :me AND fr.friend.id = :target AND fr.status = :st",
                                 Long.class)
-                        .setParameter("me", me)
-                        .setParameter("target", target)
+                        .setParameter("me", me.id())
+                        .setParameter("target", target.id())
                         .setParameter("st", FriendStatus.BLOCKED)
                         .uniqueResult());
         return cnt != null && cnt > 0;
@@ -247,17 +231,17 @@ public class FriendsService {
     // -------- Mutations (with cache invalidation) --------
 
     private void upsertRelationInTx(org.hibernate.Session s,
-                                    PlayerEntity owner, PlayerEntity friend,
+                                    long ownerId, long friendId,
                                     FriendStatus status) {
         FriendRelationEntity rel = s.createQuery(
-                        "FROM FriendRelationEntity WHERE player = :p AND friend = :f",
+                        "FROM FriendRelationEntity WHERE player.id = :p AND friend.id = :f",
                         FriendRelationEntity.class)
-                .setParameter("p", owner)
-                .setParameter("f", friend)
+                .setParameter("p", ownerId)
+                .setParameter("f", friendId)
                 .uniqueResult();
         if (rel == null) {
-            PlayerEntity mo = s.get(PlayerEntity.class, owner.getId());
-            PlayerEntity mf = s.get(PlayerEntity.class, friend.getId());
+            PlayerEntity mo = s.get(PlayerEntity.class, ownerId);
+            PlayerEntity mf = s.get(PlayerEntity.class, friendId);
             rel = new FriendRelationEntity(mo, mf, status);
             s.persist(rel);
         } else {
@@ -266,13 +250,38 @@ public class FriendsService {
         }
     }
 
-    public boolean acceptPending(PlayerEntity from, PlayerEntity to) {
+    /** Create a PENDING request if none exists, and invalidate caches immediately. */
+    public boolean createPending(PlayerRef from, PlayerRef to) {
+        Boolean ok = feature.getOrm().runInTransaction(s -> {
+            FriendRelationEntity existing = s.createQuery(
+                            "FROM FriendRelationEntity WHERE player.id = :f AND friend.id = :t",
+                            FriendRelationEntity.class)
+                    .setParameter("f", from.id())
+                    .setParameter("t", to.id())
+                    .uniqueResult();
+            if (existing != null) return false;
+
+            PlayerEntity f = s.get(PlayerEntity.class, from.id());
+            PlayerEntity t = s.get(PlayerEntity.class, to.id());
+            s.persist(new FriendRelationEntity(f, t, FriendStatus.PENDING));
+            return true;
+        });
+
+        if (Boolean.TRUE.equals(ok)) {
+            cache.invalidateRelation(from.id(), to.id());
+            cache.invalidatePlayer(from.id());
+            cache.invalidatePlayer(to.id());
+        }
+        return Boolean.TRUE.equals(ok);
+    }
+
+    public boolean acceptPending(PlayerRef from, PlayerRef to) {
         Boolean result = feature.getOrm().runInTransaction(s -> {
             FriendRelationEntity incoming = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player = :from AND friend = :to",
+                            "FROM FriendRelationEntity WHERE player.id = :from AND friend.id = :to",
                             FriendRelationEntity.class)
-                    .setParameter("from", from)
-                    .setParameter("to", to)
+                    .setParameter("from", from.id())
+                    .setParameter("to", to.id())
                     .uniqueResult();
 
             if (incoming == null || incoming.getStatus() != FriendStatus.PENDING) {
@@ -281,10 +290,10 @@ public class FriendsService {
 
             Long blocks = s.createQuery(
                             "SELECT COUNT(fr) FROM FriendRelationEntity fr WHERE " +
-                                    "((fr.player = :a AND fr.friend = :b) OR (fr.player = :b AND fr.friend = :a)) " +
+                                    "((fr.player.id = :a AND fr.friend.id = :b) OR (fr.player.id = :b AND fr.friend.id = :a)) " +
                                     "AND fr.status = :st",
                             Long.class)
-                    .setParameter("a", from).setParameter("b", to)
+                    .setParameter("a", from.id()).setParameter("b", to.id())
                     .setParameter("st", FriendStatus.BLOCKED)
                     .uniqueResult();
             if (blocks != null && blocks > 0) {
@@ -293,30 +302,30 @@ public class FriendsService {
 
             incoming.setStatus(FriendStatus.ACCEPTED);
             s.merge(incoming);
-            upsertRelationInTx(s, to, from, FriendStatus.ACCEPTED);
+            upsertRelationInTx(s, to.id(), from.id(), FriendStatus.ACCEPTED);
             return true;
         });
         if (Boolean.TRUE.equals(result)) {
-            cache.invalidateRelation(from.getId(), to.getId());
-            cache.invalidatePlayer(from.getId());
-            cache.invalidatePlayer(to.getId());
+            cache.invalidateRelation(from.id(), to.id());
+            cache.invalidatePlayer(from.id());
+            cache.invalidatePlayer(to.id());
         }
         return Boolean.TRUE.equals(result);
     }
 
-    public boolean removeFriendship(PlayerEntity a, PlayerEntity b) {
+    public boolean removeFriendship(PlayerRef a, PlayerRef b) {
         Boolean changed = feature.getOrm().runInTransaction(s -> {
             boolean ch = false;
 
             FriendRelationEntity ab = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player = :a AND friend = :b",
+                            "FROM FriendRelationEntity WHERE player.id = :a AND friend.id = :b",
                             FriendRelationEntity.class)
-                    .setParameter("a", a).setParameter("b", b).uniqueResult();
+                    .setParameter("a", a.id()).setParameter("b", b.id()).uniqueResult();
 
             FriendRelationEntity ba = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player = :b AND friend = :a",
+                            "FROM FriendRelationEntity WHERE player.id = :b AND friend.id = :a",
                             FriendRelationEntity.class)
-                    .setParameter("a", a).setParameter("b", b).uniqueResult();
+                    .setParameter("a", a.id()).setParameter("b", b.id()).uniqueResult();
 
             if (ab != null && ab.getStatus() == FriendStatus.ACCEPTED) {
                 s.remove(ab);
@@ -330,37 +339,37 @@ public class FriendsService {
             return ch;
         });
         if (Boolean.TRUE.equals(changed)) {
-            cache.invalidateRelation(a.getId(), b.getId());
-            cache.invalidatePlayer(a.getId());
-            cache.invalidatePlayer(b.getId());
+            cache.invalidateRelation(a.id(), b.id());
+            cache.invalidatePlayer(a.id());
+            cache.invalidatePlayer(b.id());
         }
         return Boolean.TRUE.equals(changed);
     }
 
-    public void block(PlayerEntity blocker, PlayerEntity target) {
+    public void block(PlayerRef blocker, PlayerRef target) {
         feature.getOrm().runInTransaction(s -> {
-            upsertRelationInTx(s, blocker, target, FriendStatus.BLOCKED);
+            upsertRelationInTx(s, blocker.id(), target.id(), FriendStatus.BLOCKED);
 
             FriendRelationEntity reverse = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player = :t AND friend = :b",
+                            "FROM FriendRelationEntity WHERE player.id = :t AND friend.id = :b",
                             FriendRelationEntity.class)
-                    .setParameter("t", target).setParameter("b", blocker).uniqueResult();
+                    .setParameter("t", target.id()).setParameter("b", blocker.id()).uniqueResult();
             if (reverse != null && reverse.getStatus() != FriendStatus.BLOCKED) {
                 s.remove(reverse);
             }
             return null;
         });
-        cache.invalidateRelation(blocker.getId(), target.getId());
-        cache.invalidatePlayer(blocker.getId());
-        cache.invalidatePlayer(target.getId());
+        cache.invalidateRelation(blocker.id(), target.id());
+        cache.invalidatePlayer(blocker.id());
+        cache.invalidatePlayer(target.id());
     }
 
-    public boolean unblock(PlayerEntity blocker, PlayerEntity target) {
+    public boolean unblock(PlayerRef blocker, PlayerRef target) {
         Boolean ok = feature.getOrm().runInTransaction(s -> {
             FriendRelationEntity rel = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player = :b AND friend = :t",
+                            "FROM FriendRelationEntity WHERE player.id = :b AND friend.id = :t",
                             FriendRelationEntity.class)
-                    .setParameter("b", blocker).setParameter("t", target).uniqueResult();
+                    .setParameter("b", blocker.id()).setParameter("t", target.id()).uniqueResult();
             if (rel != null && rel.getStatus() == FriendStatus.BLOCKED) {
                 s.remove(rel);
                 return true;
@@ -368,19 +377,19 @@ public class FriendsService {
             return false;
         });
         if (Boolean.TRUE.equals(ok)) {
-            cache.invalidateRelation(blocker.getId(), target.getId());
-            cache.invalidatePlayer(blocker.getId());
-            cache.invalidatePlayer(target.getId());
+            cache.invalidateRelation(blocker.id(), target.id());
+            cache.invalidatePlayer(blocker.id());
+            cache.invalidatePlayer(target.id());
         }
         return Boolean.TRUE.equals(ok);
     }
 
-    public boolean cancelPending(PlayerEntity from, PlayerEntity to) {
+    public boolean cancelPending(PlayerRef from, PlayerRef to) {
         Boolean ok = feature.getOrm().runInTransaction(s -> {
             FriendRelationEntity rel = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player = :f AND friend = :t",
+                            "FROM FriendRelationEntity WHERE player.id = :f AND friend.id = :t",
                             FriendRelationEntity.class)
-                    .setParameter("f", from).setParameter("t", to)
+                    .setParameter("f", from.id()).setParameter("t", to.id())
                     .uniqueResult();
             if (rel != null && rel.getStatus() == FriendStatus.PENDING) {
                 s.remove(rel);
@@ -389,19 +398,19 @@ public class FriendsService {
             return false;
         });
         if (Boolean.TRUE.equals(ok)) {
-            cache.invalidateRelation(from.getId(), to.getId());
-            cache.invalidatePlayer(from.getId());
-            cache.invalidatePlayer(to.getId());
+            cache.invalidateRelation(from.id(), to.id());
+            cache.invalidatePlayer(from.id());
+            cache.invalidatePlayer(to.id());
         }
         return Boolean.TRUE.equals(ok);
     }
 
-    public boolean denyIncoming(PlayerEntity to, PlayerEntity from) {
+    public boolean denyIncoming(PlayerRef to, PlayerRef from) {
         Boolean ok = feature.getOrm().runInTransaction(s -> {
             FriendRelationEntity rel = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player = :f AND friend = :t",
+                            "FROM FriendRelationEntity WHERE player.id = :f AND friend.id = :t",
                             FriendRelationEntity.class)
-                    .setParameter("f", from).setParameter("t", to)
+                    .setParameter("f", from.id()).setParameter("t", to.id())
                     .uniqueResult();
             if (rel != null && rel.getStatus() == FriendStatus.PENDING) {
                 s.remove(rel);
@@ -410,62 +419,90 @@ public class FriendsService {
             return false;
         });
         if (Boolean.TRUE.equals(ok)) {
-            cache.invalidateRelation(from.getId(), to.getId());
-            cache.invalidatePlayer(from.getId());
-            cache.invalidatePlayer(to.getId());
+            cache.invalidateRelation(from.id(), to.id());
+            cache.invalidatePlayer(from.id());
+            cache.invalidatePlayer(to.id());
         }
         return Boolean.TRUE.equals(ok);
     }
 
-    public int acceptAll(PlayerEntity me) {
+    public int acceptAll(PlayerRef me) {
+        record Pair(long otherId) {}
+        var affected = new ArrayList<Pair>();
+
         Integer accepted = feature.getOrm().runInTransaction(s -> {
-            List<FriendRelationEntity> reqs = s.createQuery(
-                            "FROM FriendRelationEntity WHERE friend = :me AND status = :st",
-                            FriendRelationEntity.class)
-                    .setParameter("me", me).setParameter("st", FriendStatus.PENDING)
+            // gather senders for pending incoming
+            List<Long> senderIds = s.createQuery(
+                            "SELECT fr.player.id FROM FriendRelationEntity fr " +
+                                    "WHERE fr.friend.id = :me AND fr.status = :st",
+                            Long.class)
+                    .setParameter("me", me.id())
+                    .setParameter("st", FriendStatus.PENDING)
                     .list();
+
             int n = 0;
-            for (FriendRelationEntity rel : reqs) {
+            for (Long otherId : senderIds) {
                 Long blocks = s.createQuery(
                                 "SELECT COUNT(fr) FROM FriendRelationEntity fr WHERE " +
-                                        "((fr.player = :a AND fr.friend = :b) OR (fr.player = :b AND fr.friend = :a)) " +
+                                        "((fr.player.id = :a AND fr.friend.id = :b) OR (fr.player.id = :b AND fr.friend.id = :a)) " +
                                         "AND fr.status = :st",
                                 Long.class)
-                        .setParameter("a", me).setParameter("b", rel.getPlayer())
+                        .setParameter("a", me.id()).setParameter("b", otherId)
                         .setParameter("st", FriendStatus.BLOCKED)
                         .uniqueResult();
                 if (blocks != null && blocks > 0) continue;
 
-                rel.setStatus(FriendStatus.ACCEPTED);
-                s.merge(rel);
-                upsertRelationInTx(s, me, rel.getPlayer(), FriendStatus.ACCEPTED);
-                n++;
+                FriendRelationEntity incoming = s.createQuery(
+                                "FROM FriendRelationEntity WHERE player.id = :from AND friend.id = :to",
+                                FriendRelationEntity.class)
+                        .setParameter("from", otherId)
+                        .setParameter("to", me.id())
+                        .uniqueResult();
+
+                if (incoming != null && incoming.getStatus() == FriendStatus.PENDING) {
+                    incoming.setStatus(FriendStatus.ACCEPTED);
+                    s.merge(incoming);
+                    upsertRelationInTx(s, me.id(), otherId, FriendStatus.ACCEPTED);
+                    n++;
+                    affected.add(new Pair(otherId));
+                }
             }
             return n;
         });
-        if (accepted != null && accepted > 0) {
-            cache.invalidatePlayer(me.getId());
-            // Also invalidate all counterparties affected (safe but a bit coarse)
-            // If you want, load the usernames/ids in the tx and invalidate pairwise.
+
+        int count = accepted == null ? 0 : accepted;
+        if (count > 0) {
+            cache.invalidatePlayer(me.id());
+            for (var pair : affected) {
+                cache.invalidateRelation(me.id(), pair.otherId());
+                cache.invalidatePlayer(pair.otherId());
+            }
         }
-        return accepted == null ? 0 : accepted;
+        return count;
     }
 
-    public int denyAll(PlayerEntity me) {
+    public int denyAll(PlayerRef me) {
+        var affected = new ArrayList<Long>();
         Integer denied = feature.getOrm().runInTransaction(s -> {
             List<FriendRelationEntity> reqs = s.createQuery(
-                            "FROM FriendRelationEntity WHERE friend = :me AND status = :st",
+                            "FROM FriendRelationEntity WHERE friend.id = :me AND status = :st",
                             FriendRelationEntity.class)
-                    .setParameter("me", me).setParameter("st", FriendStatus.PENDING)
+                    .setParameter("me", me.id()).setParameter("st", FriendStatus.PENDING)
                     .list();
             for (FriendRelationEntity rel : reqs) {
+                affected.add(rel.getPlayer().getId());
                 s.remove(rel);
             }
             return reqs.size();
         });
-        if (denied != null && denied > 0) {
-            cache.invalidatePlayer(me.getId());
+        int count = denied == null ? 0 : denied;
+        if (count > 0) {
+            cache.invalidatePlayer(me.id());
+            for (Long otherId : affected) {
+                cache.invalidateRelation(me.id(), otherId);
+                cache.invalidatePlayer(otherId);
+            }
         }
-        return denied == null ? 0 : denied;
+        return count;
     }
 }

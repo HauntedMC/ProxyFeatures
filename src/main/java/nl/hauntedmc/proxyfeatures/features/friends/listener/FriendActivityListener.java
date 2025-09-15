@@ -5,11 +5,11 @@ import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendSnapshot;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
+import nl.hauntedmc.proxyfeatures.features.friends.entity.PlayerRef;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 
 import java.util.*;
@@ -18,10 +18,12 @@ public final class FriendActivityListener {
 
     private final Friends feature;
     private final FriendsService svc;
+    private final Optional<VanishAPI> vanishApi;
 
     public FriendActivityListener(Friends feature) {
         this.feature = feature;
         this.svc = feature.getService();
+        this.vanishApi = APIRegistry.get(VanishAPI.class);
     }
 
     @Subscribe
@@ -94,10 +96,10 @@ public final class FriendActivityListener {
      * Uses snapshots and direct UUID lookups to avoid scanning all players.
      */
     private List<Player> onlineFriendsOf(Player subject) {
-        Optional<PlayerEntity> subjEntityOpt = svc.getPlayer(subject.getUniqueId().toString());
-        if (subjEntityOpt.isEmpty()) return Collections.emptyList();
+        Optional<PlayerRef> subjRefOpt = svc.getPlayer(subject.getUniqueId().toString());
+        if (subjRefOpt.isEmpty()) return Collections.emptyList();
 
-        List<FriendSnapshot> snaps = svc.acceptedFriendSnapshots(subjEntityOpt.get());
+        List<FriendSnapshot> snaps = svc.acceptedFriendSnapshots(subjRefOpt.get());
         if (snaps.isEmpty()) return Collections.emptyList();
 
         List<Player> result = new ArrayList<>(snaps.size());
@@ -112,8 +114,6 @@ public final class FriendActivityListener {
     }
 
     private boolean isVanished(Player pl) {
-        return APIRegistry.get(VanishAPI.class)
-                .map(api -> api.isVanished(pl.getUniqueId()))
-                .orElse(false);
+        return vanishApi.map(api -> api.isVanished(pl.getUniqueId())).orElse(false);
     }
 }
