@@ -13,11 +13,13 @@ import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendSettingsEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
 import nl.hauntedmc.proxyfeatures.features.friends.listener.FriendActivityListener;
 import nl.hauntedmc.proxyfeatures.features.friends.meta.Meta;
+import nl.hauntedmc.proxyfeatures.features.friends.support.FriendsCache;
 
 public class Friends extends VelocityBaseFeature<Meta> {
 
     private ORMContext orm;
     private FriendsService service;
+    private FriendsCache cache;
 
     public Friends(ProxyFeatures plugin) {
         super(plugin, new Meta());
@@ -95,7 +97,7 @@ public class Friends extends VelocityBaseFeature<Meta> {
         m.add("friend.cannot_deny_outgoing",
                 P + "&cJe kunt geen uitgaand verzoek weigeren. Gebruik &f/friend cancel {player} &com het verzoek te annuleren.");
 
-        // Notifications (friend presence & server switches)
+        // Notifications
         m.add("friend.notify.online", P + "&f{player} &7is nu &aonline &7(&f{server}&7).");
         m.add("friend.notify.offline", P + "&f{player} &7is nu &coffline&7.");
         m.add("friend.notify.switch", P + "&f{player} &7is van &c{from} &7naar &a{to} &7gegaan.");
@@ -115,7 +117,10 @@ public class Friends extends VelocityBaseFeature<Meta> {
                         PlayerEntity.class)
                 .orElseThrow();
 
-        service = new FriendsService(this);
+        // New: shared cache for this feature instance
+        cache = new FriendsCache();
+
+        service = new FriendsService(this, cache);
 
         getLifecycleManager().getCommandManager()
                 .registerFeatureCommand(new FriendCommand(this));
@@ -133,5 +138,9 @@ public class Friends extends VelocityBaseFeature<Meta> {
 
     public FriendsService getService() {
         return service;
+    }
+
+    public FriendsCache getCache() {
+        return cache;
     }
 }

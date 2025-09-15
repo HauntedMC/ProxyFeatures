@@ -13,7 +13,6 @@ import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class FriendActivityListener {
 
@@ -25,15 +24,11 @@ public final class FriendActivityListener {
         this.svc = feature.getService();
     }
 
-    /**
-     * Handlet zowel eerste join (online notify) als server switch (switch notify).
-     * Eerste join herken je aan de afwezigheid van een previous server.
-     */
     @Subscribe
     public void onServerConnected(ServerConnectedEvent event) {
         Player subject = event.getPlayer();
 
-        // Nooit de aanwezigheid/switches van een vanished subject lekken
+        // Do not leak vanished presence/switches of the subject
         if (isVanished(subject)) return;
 
         String to = event.getServer().getServerInfo().getName();
@@ -45,24 +40,17 @@ public final class FriendActivityListener {
                 notifyFriendsSwitch(subject, from, to);
             }
         } else {
-            // Eerste succesvolle connect na login → “nu online”
+            // First successful connect after login → “now online”
             notifyFriendsOnline(subject, to);
         }
     }
 
-    /**
-     * Meld vrienden wanneer de speler de proxy verlaat.
-     */
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         Player subject = event.getPlayer();
         if (isVanished(subject)) return;
         notifyFriendsOffline(subject);
     }
-
-    // ---------------------
-    // Notification helpers
-    // ---------------------
 
     private void notifyFriendsOnline(Player subject, String serverName) {
         for (Player friend : onlineFriendsOf(subject)) {
@@ -101,9 +89,9 @@ public final class FriendActivityListener {
     }
 
     /**
-     * Geeft ALLE online vrienden terug (inclusief vanished ontvangers!),
-     * zodat vanished spelers nog steeds meldingen over hun vrienden krijgen.
-     * Gebruikt snapshots om lazy loads buiten een tx te vermijden.
+     * Return all online friends (including vanished receivers),
+     * so vanished players still receive notifications about their friends.
+     * Uses snapshots and direct UUID lookups to avoid scanning all players.
      */
     private List<Player> onlineFriendsOf(Player subject) {
         Optional<PlayerEntity> subjEntityOpt = svc.getPlayer(subject.getUniqueId().toString());
@@ -112,14 +100,15 @@ public final class FriendActivityListener {
         List<FriendSnapshot> snaps = svc.acceptedFriendSnapshots(subjEntityOpt.get());
         if (snaps.isEmpty()) return Collections.emptyList();
 
-        Set<UUID> friendUUIDs = snaps.stream()
-                .map(s -> java.util.UUID.fromString(s.uuid()))
-                .collect(Collectors.toSet());
-
-        return feature.getPlugin().getProxy().getAllPlayers().stream()
-                .filter(pl -> friendUUIDs.contains(pl.getUniqueId()))
-                // Belangrijk: géén filter op !isVanished(pl)
-                .toList();
+        List<Player> result = new ArrayList<>(snaps.size());
+        for (FriendSnapshot s : snaps) {
+            try {
+                UUID fid = UUID.fromString(s.uuid());
+                feature.getPlugin().getProxy().getPlayer(fid).ifPresent(result::add);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return result;
     }
 
     private boolean isVanished(Player pl) {

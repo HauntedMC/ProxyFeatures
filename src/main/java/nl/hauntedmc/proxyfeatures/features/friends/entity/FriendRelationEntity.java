@@ -5,7 +5,12 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
 @Entity
 @Table(name = "player_friends",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"player_id", "friend_id"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"player_id", "friend_id"}),
+        indexes = {
+                @Index(name = "idx_friend_player_status", columnList = "player_id,status"),
+                @Index(name = "idx_friend_friend_status", columnList = "friend_id,status"),
+                @Index(name = "idx_friend_pair_status", columnList = "player_id,friend_id,status")
+        })
 public class FriendRelationEntity {
 
     @Id

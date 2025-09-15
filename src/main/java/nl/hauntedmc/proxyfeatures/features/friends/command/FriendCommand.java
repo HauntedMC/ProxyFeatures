@@ -8,7 +8,6 @@ import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
-import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
@@ -44,6 +43,7 @@ public class FriendCommand extends FeatureCommand {
                 return;
             }
 
+            // Use cached snapshots + live proxy lookups (skip vanished)
             var friendSnaps = svc.acceptedFriendSnapshots(me);
             var onlineFriends = friendSnaps.stream()
                     .map(snap -> feature.getPlugin().getProxy()
@@ -72,7 +72,8 @@ public class FriendCommand extends FeatureCommand {
                 });
             }
 
-            int pending = svc.incomingRequests(me).size();
+            // Use cached, cheap projection instead of loading full entities
+            int pending = svc.incomingRequestUsernames(me).size();
             if (pending > 0) {
                 sendMsg(player, "friend.pending_requests",
                         Map.of("count", String.valueOf(pending)));
@@ -109,7 +110,7 @@ public class FriendCommand extends FeatureCommand {
     private void list(Player p) {
         PlayerEntity me = getEntity(p);
 
-        // CHANGED: use snapshots to avoid lazy loads
+        // Use snapshots to avoid lazy loads
         var friends = svc.acceptedFriendSnapshots(me);
 
         long online = friends.stream().filter(f ->
@@ -179,7 +180,7 @@ public class FriendCommand extends FeatureCommand {
             return;
         }
 
-        // Block checks
+        // Block checks (cache-backed)
         if (svc.didIBlockTarget(me, target)) {
             sendMsg(p, "friend.you_blocked_target", Map.of("player", target.getUsername()));
             return;
@@ -189,9 +190,11 @@ public class FriendCommand extends FeatureCommand {
             return;
         }
 
-        // Existing relation checks (both directions)
-        Optional<FriendRelationEntity> meToTarget = svc.relation(me, target);
-        Optional<FriendRelationEntity> targetToMe = svc.relation(target, me);
+        // Existing relation checks (both directions).
+        // Use entity-based relation here (not relationStatus) to avoid writing a negative into the cache
+        // just before we create a pending relation, which could cause brief staleness.
+        Optional<nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity> meToTarget = svc.relation(me, target);
+        Optional<nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity> targetToMe = svc.relation(target, me);
 
         if (meToTarget.isPresent()) {
             FriendStatus st = meToTarget.get().getStatus();
@@ -237,11 +240,12 @@ public class FriendCommand extends FeatureCommand {
             }
         }
 
-        // Create outgoing pending
+        // Create outgoing pending (kept here). Note: service handles most invalidations,
+        // but pending creation goes straight to DB; short TTLs keep cache fresh enough.
         feature.getOrm().runInTransaction(s -> {
             PlayerEntity m = s.get(PlayerEntity.class, me.getId());
             PlayerEntity t = s.get(PlayerEntity.class, target.getId());
-            s.persist(new FriendRelationEntity(m, t, FriendStatus.PENDING));
+            s.persist(new nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity(m, t, FriendStatus.PENDING));
             return null;
         });
 
@@ -339,9 +343,8 @@ public class FriendCommand extends FeatureCommand {
         }
 
         // Outgoing pending? Then instruct to cancel.
-        Optional<FriendRelationEntity> outgoing = svc.relation(me, other)
-                .filter(r -> r.getStatus() == FriendStatus.PENDING);
-        if (outgoing.isPresent()) {
+        Optional<FriendStatus> outStatus = svc.relationStatus(me, other);
+        if (outStatus.isPresent() && outStatus.get() == FriendStatus.PENDING) {
             sendMsg(p, "friend.cannot_deny_outgoing", Map.of("player", other.getUsername()));
             return;
         }
@@ -409,9 +412,9 @@ public class FriendCommand extends FeatureCommand {
             return;
         }
 
-        Optional<FriendRelationEntity> rel = svc.relation(me, target)
-                .filter(r -> r.getStatus() == FriendStatus.ACCEPTED);
-        if (rel.isEmpty()) {
+        // Only need to know if accepted
+        Optional<FriendStatus> st = svc.relationStatus(me, target);
+        if (st.isEmpty() || st.get() != FriendStatus.ACCEPTED) {
             sendMsg(p, "friend.not_friends");
             return;
         }
@@ -430,7 +433,7 @@ public class FriendCommand extends FeatureCommand {
     private void requests(Player p) {
         PlayerEntity me = getEntity(p);
 
-        // CHANGED: project to plain usernames (no lazy entities)
+        // Project to plain usernames (cached)
         List<String> incoming = svc.incomingRequestUsernames(me);
         List<String> outgoing = svc.outgoingRequestUsernames(me);
 
@@ -532,10 +535,8 @@ public class FriendCommand extends FeatureCommand {
     }
 
     private PlayerEntity resolvePlayer(String name) {
-        return feature.getOrm().runInTransaction(s ->
-                s.createQuery("FROM PlayerEntity WHERE lower(username) = :u", PlayerEntity.class)
-                        .setParameter("u", name.toLowerCase(Locale.ROOT))
-                        .uniqueResultOptional()).orElse(null);
+        // Use cache-backed, case-insensitive resolver
+        return svc.resolvePlayerByUsernameCaseInsensitive(name).orElse(null);
     }
 
     @Override
@@ -551,7 +552,7 @@ public class FriendCommand extends FeatureCommand {
                 "acceptall", "denyall", "server", "requests", "block", "unblock",
                 "disable", "enable", "cancel");
 
-        // 0 of 1 argument: subcommand-suggestie(s)
+        // 0 of 1 argument: subcommand suggestions
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
             return CompletableFuture.completedFuture(subs);
         }
@@ -563,7 +564,7 @@ public class FriendCommand extends FeatureCommand {
             return CompletableFuture.completedFuture(out);
         }
 
-        // Vanaf hier: a.length >= 2 -> naam-suggesties per subcommand
+        // From here: a.length >= 2 -> name suggestions per subcommand
         String sub = a[0].toLowerCase(Locale.ROOT);
         String partial = a[1].toLowerCase(Locale.ROOT);
 
@@ -573,7 +574,7 @@ public class FriendCommand extends FeatureCommand {
         java.util.function.Predicate<String> startsWith = name ->
                 name != null && name.toLowerCase(Locale.ROOT).startsWith(partial);
 
-        // Online & non-vanished spelers (usernames), eigen speler uitgesloten
+        // Online & non-vanished players (usernames), excluding self
         List<Player> onlineNonVanished = feature.getPlugin().getProxy().getAllPlayers().stream()
                 .filter(pl -> !isVanished(pl))
                 .filter(pl -> !pl.getUniqueId().equals(p.getUniqueId()))
@@ -583,13 +584,13 @@ public class FriendCommand extends FeatureCommand {
                 .map(Player::getUsername)
                 .toList();
 
-        // Sets uit de database
+        // Sets from database (via cached service methods)
         List<String> friendNames = svc.acceptedFriendUsernames(me);
         List<String> blockedNames = svc.blockedUsernames(me);
         List<String> incomingNames = svc.incomingRequestUsernames(me);
         List<String> outgoingNames = svc.outgoingRequestUsernames(me);
 
-        // Voor /server hebben we alléén online vrienden nodig (en non-vanished)
+        // For /server we only want online friends (non-vanished)
         Set<UUID> friendUUIDs = svc.acceptedFriendSnapshots(me).stream()
                 .map(snap -> java.util.UUID.fromString(snap.uuid()))
                 .collect(Collectors.toSet());
@@ -599,37 +600,31 @@ public class FriendCommand extends FeatureCommand {
                 .map(Player::getUsername)
                 .toList();
 
-        // Subcommand-gebonden keuzes
+        // Subcommand-specific choices
         List<String> result;
         switch (sub) {
             case "remove":
-                // Alleen geaccepteerde vrienden
                 result = friendNames.stream().filter(startsWith).toList();
                 break;
 
             case "server":
-                // Alleen geaccepteerde vrienden die NU online (en niet-vanished) zijn
                 result = onlineFriendNames.stream().filter(startsWith).toList();
                 break;
 
             case "accept":
             case "deny":
-                // Alleen binnenkomende (incoming) pending verzoeken
                 result = incomingNames.stream().filter(startsWith).toList();
                 break;
 
             case "cancel":
-                // Alleen uitgaande (outgoing) pending verzoeken
                 result = outgoingNames.stream().filter(startsWith).toList();
                 break;
 
             case "unblock":
-                // Alleen door mij geblokkeerden
                 result = blockedNames.stream().filter(startsWith).toList();
                 break;
 
             case "block":
-                // Online (non-vanished) spelers, excl. mezelf en excl. reeds door mij geblokkeerd
                 result = onlineNonVanishedNames.stream()
                         .filter(name -> !blockedNames.contains(name))
                         .filter(startsWith)
@@ -637,14 +632,11 @@ public class FriendCommand extends FeatureCommand {
                 break;
 
             case "add":
-                // Online (non-vanished) spelers die ik kán toevoegen:
-                // excl. mezelf, excl. al vriend, excl. pending (beide richtingen),
-                // (optioneel) excl. door mij geblokkeerd
                 Set<String> exclude = new HashSet<>();
                 exclude.addAll(friendNames);
                 exclude.addAll(incomingNames);
                 exclude.addAll(outgoingNames);
-                exclude.addAll(blockedNames); // logisch: waarom iemand suggereren die je blokkeerde?
+                exclude.addAll(blockedNames); // don't suggest players I blocked
 
                 result = onlineNonVanishedNames.stream()
                         .filter(name -> !exclude.contains(name))
@@ -652,7 +644,7 @@ public class FriendCommand extends FeatureCommand {
                         .toList();
                 break;
 
-            // Subcommands zonder naam-argument
+            // Subcommands without a name argument
             case "list":
             case "requests":
             case "acceptall":
@@ -666,13 +658,12 @@ public class FriendCommand extends FeatureCommand {
         return CompletableFuture.completedFuture(result);
     }
 
-    // Kleine util om vanish consistent te checken
+    // Small util to consistently check vanish
     private boolean isVanished(Player pl) {
         return APIRegistry.get(VanishAPI.class)
                 .map(api -> api.isVanished(pl.getUniqueId()))
                 .orElse(false);
     }
-
 
     @Override
     public String getName() {
