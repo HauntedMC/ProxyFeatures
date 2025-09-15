@@ -3,10 +3,14 @@ package nl.hauntedmc.proxyfeatures.features.friends.entity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import jakarta.persistence.PersistenceException;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.support.FriendsCache;
+import org.hibernate.exception.ConstraintViolationException;
 
 public class FriendsService {
     private final Friends feature;
@@ -51,13 +55,13 @@ public class FriendsService {
     public FriendSettingsEntity getOrCreateSettings(PlayerRef p) {
         // Use DB to ensure the row exists, then refresh cache
         FriendSettingsEntity settings = feature.getOrm().runInTransaction(session -> {
-            FriendSettingsEntity s = session.get(FriendSettingsEntity.class, p.id());
-            if (s == null) {
+            FriendSettingsEntity se = session.get(FriendSettingsEntity.class, p.id());
+            if (se == null) {
                 PlayerEntity managedPlayer = session.get(PlayerEntity.class, p.id());
-                s = new FriendSettingsEntity(managedPlayer);
-                session.persist(s);
+                se = new FriendSettingsEntity(managedPlayer);
+                session.persist(se);
             }
-            return s;
+            return se;
         });
         cache.invalidatePlayer(p.id());
         cache.getSettingsEnabled(p.id(), settings::isEnabled);
@@ -80,7 +84,7 @@ public class FriendsService {
 
     public boolean targetAcceptsRequests(PlayerRef target) {
         Boolean enabled = cache.getSettingsEnabled(target.id(), () -> {
-            FriendSettingsEntity s = feature.getOrm().runInTransaction(session -> {
+            FriendSettingsEntity settings = feature.getOrm().runInTransaction(session -> {
                 FriendSettingsEntity se = session.get(FriendSettingsEntity.class, target.id());
                 if (se == null) {
                     PlayerEntity managed = session.get(PlayerEntity.class, target.id());
@@ -89,35 +93,27 @@ public class FriendsService {
                 }
                 return se;
             });
-            return s.isEnabled();
+            return settings.isEnabled();
         });
         return Boolean.TRUE.equals(enabled);
     }
 
     // -------- Relations --------
 
-    /** Fetch full relation entity (rare). Prefer relationStatus(...) on hot paths. */
-    public Optional<FriendRelationEntity> relation(PlayerRef owner, PlayerRef target) {
-        return feature.getOrm().runInTransaction(s ->
-                s.createQuery("FROM FriendRelationEntity fr WHERE fr.player.id = :p AND fr.friend.id = :f",
-                                FriendRelationEntity.class)
-                        .setParameter("p", owner.id())
-                        .setParameter("f", target.id())
-                        .uniqueResultOptional());
-    }
-
+    /**
+     * Fetch full relation entity (rare). Prefer relationStatus(...) on hot paths.
+     */
     public Optional<FriendStatus> relationStatus(PlayerRef owner, PlayerRef target) {
         return cache.getRelationStatus(owner.id(), target.id(), () ->
-                feature.getOrm().runInTransaction(s -> {
-                    FriendStatus st = s.createQuery(
-                                    "SELECT fr.status FROM FriendRelationEntity fr " +
-                                            "WHERE fr.player.id = :p AND fr.friend.id = :f",
-                                    FriendStatus.class)
-                            .setParameter("p", owner.id())
-                            .setParameter("f", target.id())
-                            .uniqueResult();
-                    return Optional.ofNullable(st);
-                })
+                feature.getOrm().runInTransaction(s ->
+                        s.createQuery(
+                                        "SELECT fr.status FROM FriendRelationEntity fr " +
+                                                "WHERE fr.player.id = :p AND fr.friend.id = :f",
+                                        FriendStatus.class)
+                                .setParameter("p", owner.id())
+                                .setParameter("f", target.id())
+                                .uniqueResultOptional()
+                )
         );
     }
 
@@ -155,7 +151,9 @@ public class FriendsService {
 
     // -------- Accepted friends (cached) --------
 
-    /** Snapshots of my accepted friends (id/uuid/username). */
+    /**
+     * Snapshots of my accepted friends (id/uuid/username).
+     */
     public List<FriendSnapshot> acceptedFriendSnapshots(PlayerRef me) {
         return List.copyOf(cache.getAcceptedSnapshots(me.id(), () ->
                 feature.getOrm().runInTransaction(s ->
@@ -173,14 +171,18 @@ public class FriendsService {
         ));
     }
 
-    /** Usernames of my accepted friends (derived from snapshots). */
+    /**
+     * Usernames of my accepted friends (derived from snapshots).
+     */
     public List<String> acceptedFriendUsernames(PlayerRef me) {
         return acceptedFriendSnapshots(me).stream()
                 .map(FriendSnapshot::username)
                 .toList();
     }
 
-    /** Usernames of players I blocked. */
+    /**
+     * Usernames of players I blocked.
+     */
     public List<String> blockedUsernames(PlayerRef me) {
         return List.copyOf(cache.getBlockedUsernames(me.id(), () ->
                 feature.getOrm().runInTransaction(s ->
@@ -250,29 +252,34 @@ public class FriendsService {
         }
     }
 
-    /** Create a PENDING request if none exists, and invalidate caches immediately. */
+    /**
+     * Create a PENDING request if none exists; tolerate races under the UNIQUE constraint.
+     */
     public boolean createPending(PlayerRef from, PlayerRef to) {
-        Boolean ok = feature.getOrm().runInTransaction(s -> {
-            FriendRelationEntity existing = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player.id = :f AND friend.id = :t",
-                            FriendRelationEntity.class)
-                    .setParameter("f", from.id())
-                    .setParameter("t", to.id())
-                    .uniqueResult();
-            if (existing != null) return false;
+        try {
+            Boolean ok = feature.getOrm().runInTransaction(s -> {
+                // Try to insert directly; if it exists, we’ll rely on the UNIQUE constraint.
+                PlayerEntity f = s.get(PlayerEntity.class, from.id());
+                PlayerEntity t = s.get(PlayerEntity.class, to.id());
+                s.persist(new FriendRelationEntity(f, t, FriendStatus.PENDING));
+                return true;
+            });
 
-            PlayerEntity f = s.get(PlayerEntity.class, from.id());
-            PlayerEntity t = s.get(PlayerEntity.class, to.id());
-            s.persist(new FriendRelationEntity(f, t, FriendStatus.PENDING));
-            return true;
-        });
-
-        if (Boolean.TRUE.equals(ok)) {
-            cache.invalidateRelation(from.id(), to.id());
-            cache.invalidatePlayer(from.id());
-            cache.invalidatePlayer(to.id());
+            if (Boolean.TRUE.equals(ok)) {
+                cache.invalidateRelation(from.id(), to.id());
+                cache.invalidatePlayer(from.id());
+                cache.invalidatePlayer(to.id());
+                return true;
+            }
+            return false;
+        } catch (PersistenceException e) {
+            // Likely due to UNIQUE (player_id, friend_id) if another thread inserted first.
+            Throwable cause = e.getCause();
+            if (cause instanceof ConstraintViolationException) {
+                return false;
+            }
+            return false;
         }
-        return Boolean.TRUE.equals(ok);
     }
 
     public boolean acceptPending(PlayerRef from, PlayerRef to) {
@@ -314,49 +321,37 @@ public class FriendsService {
     }
 
     public boolean removeFriendship(PlayerRef a, PlayerRef b) {
-        Boolean changed = feature.getOrm().runInTransaction(s -> {
-            boolean ch = false;
-
-            FriendRelationEntity ab = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player.id = :a AND friend.id = :b",
-                            FriendRelationEntity.class)
-                    .setParameter("a", a.id()).setParameter("b", b.id()).uniqueResult();
-
-            FriendRelationEntity ba = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player.id = :b AND friend.id = :a",
-                            FriendRelationEntity.class)
-                    .setParameter("a", a.id()).setParameter("b", b.id()).uniqueResult();
-
-            if (ab != null && ab.getStatus() == FriendStatus.ACCEPTED) {
-                s.remove(ab);
-                ch = true;
-            }
-            if (ba != null && ba.getStatus() == FriendStatus.ACCEPTED) {
-                s.remove(ba);
-                ch = true;
-            }
-
-            return ch;
-        });
-        if (Boolean.TRUE.equals(changed)) {
+        Integer affected = feature.getOrm().runInTransaction(s -> s.createQuery(
+                        "DELETE FROM FriendRelationEntity fr " +
+                                "WHERE ((fr.player.id = :a AND fr.friend.id = :b) OR (fr.player.id = :b AND fr.friend.id = :a)) " +
+                                "AND fr.status = :st")
+                .setParameter("a", a.id())
+                .setParameter("b", b.id())
+                .setParameter("st", FriendStatus.ACCEPTED)
+                .executeUpdate());
+        int count = affected == null ? 0 : affected;
+        if (count > 0) {
             cache.invalidateRelation(a.id(), b.id());
             cache.invalidatePlayer(a.id());
             cache.invalidatePlayer(b.id());
+            return true;
         }
-        return Boolean.TRUE.equals(changed);
+        return false;
     }
 
     public void block(PlayerRef blocker, PlayerRef target) {
         feature.getOrm().runInTransaction(s -> {
             upsertRelationInTx(s, blocker.id(), target.id(), FriendStatus.BLOCKED);
 
-            FriendRelationEntity reverse = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player.id = :t AND friend.id = :b",
-                            FriendRelationEntity.class)
-                    .setParameter("t", target.id()).setParameter("b", blocker.id()).uniqueResult();
-            if (reverse != null && reverse.getStatus() != FriendStatus.BLOCKED) {
-                s.remove(reverse);
-            }
+            s.createQuery(
+                            "DELETE FROM FriendRelationEntity fr " +
+                                    "WHERE fr.player.id = :t AND fr.friend.id = :b " +
+                                    "AND fr.status <> :st")
+                    .setParameter("t", target.id())
+                    .setParameter("b", blocker.id())
+                    .setParameter("st", FriendStatus.BLOCKED)
+                    .executeUpdate();
+
             return null;
         });
         cache.invalidateRelation(blocker.id(), target.id());
@@ -365,107 +360,131 @@ public class FriendsService {
     }
 
     public boolean unblock(PlayerRef blocker, PlayerRef target) {
-        Boolean ok = feature.getOrm().runInTransaction(s -> {
-            FriendRelationEntity rel = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player.id = :b AND friend.id = :t",
-                            FriendRelationEntity.class)
-                    .setParameter("b", blocker.id()).setParameter("t", target.id()).uniqueResult();
-            if (rel != null && rel.getStatus() == FriendStatus.BLOCKED) {
-                s.remove(rel);
-                return true;
-            }
-            return false;
-        });
-        if (Boolean.TRUE.equals(ok)) {
+        Integer deleted = feature.getOrm().runInTransaction(s ->
+                s.createQuery(
+                                "DELETE FROM FriendRelationEntity fr " +
+                                        "WHERE fr.player.id = :b AND fr.friend.id = :t AND fr.status = :st")
+                        .setParameter("b", blocker.id())
+                        .setParameter("t", target.id())
+                        .setParameter("st", FriendStatus.BLOCKED)
+                        .executeUpdate()
+        );
+        int count = deleted == null ? 0 : deleted;
+        if (count > 0) {
             cache.invalidateRelation(blocker.id(), target.id());
             cache.invalidatePlayer(blocker.id());
             cache.invalidatePlayer(target.id());
+            return true;
         }
-        return Boolean.TRUE.equals(ok);
+        return false;
     }
 
     public boolean cancelPending(PlayerRef from, PlayerRef to) {
-        Boolean ok = feature.getOrm().runInTransaction(s -> {
-            FriendRelationEntity rel = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player.id = :f AND friend.id = :t",
-                            FriendRelationEntity.class)
-                    .setParameter("f", from.id()).setParameter("t", to.id())
-                    .uniqueResult();
-            if (rel != null && rel.getStatus() == FriendStatus.PENDING) {
-                s.remove(rel);
-                return true;
-            }
-            return false;
-        });
-        if (Boolean.TRUE.equals(ok)) {
+        Integer deleted = feature.getOrm().runInTransaction(s ->
+                s.createQuery(
+                                "DELETE FROM FriendRelationEntity fr " +
+                                        "WHERE fr.player.id = :f AND fr.friend.id = :t AND fr.status = :st")
+                        .setParameter("f", from.id())
+                        .setParameter("t", to.id())
+                        .setParameter("st", FriendStatus.PENDING)
+                        .executeUpdate()
+        );
+        int count = deleted == null ? 0 : deleted;
+        if (count > 0) {
             cache.invalidateRelation(from.id(), to.id());
             cache.invalidatePlayer(from.id());
             cache.invalidatePlayer(to.id());
+            return true;
         }
-        return Boolean.TRUE.equals(ok);
+        return false;
     }
 
     public boolean denyIncoming(PlayerRef to, PlayerRef from) {
-        Boolean ok = feature.getOrm().runInTransaction(s -> {
-            FriendRelationEntity rel = s.createQuery(
-                            "FROM FriendRelationEntity WHERE player.id = :f AND friend.id = :t",
-                            FriendRelationEntity.class)
-                    .setParameter("f", from.id()).setParameter("t", to.id())
-                    .uniqueResult();
-            if (rel != null && rel.getStatus() == FriendStatus.PENDING) {
-                s.remove(rel);
-                return true;
-            }
-            return false;
-        });
-        if (Boolean.TRUE.equals(ok)) {
+        Integer deleted = feature.getOrm().runInTransaction(s ->
+                s.createQuery(
+                                "DELETE FROM FriendRelationEntity fr " +
+                                        "WHERE fr.player.id = :f AND fr.friend.id = :t AND fr.status = :st")
+                        .setParameter("f", from.id())
+                        .setParameter("t", to.id())
+                        .setParameter("st", FriendStatus.PENDING)
+                        .executeUpdate()
+        );
+        int count = deleted == null ? 0 : deleted;
+        if (count > 0) {
             cache.invalidateRelation(from.id(), to.id());
             cache.invalidatePlayer(from.id());
             cache.invalidatePlayer(to.id());
+            return true;
         }
-        return Boolean.TRUE.equals(ok);
+        return false;
     }
 
     public int acceptAll(PlayerRef me) {
-        record Pair(long otherId) {}
-        var affected = new ArrayList<Pair>();
+        List<Long> affectedIds = new ArrayList<>();
 
         Integer accepted = feature.getOrm().runInTransaction(s -> {
-            // gather senders for pending incoming
-            List<Long> senderIds = s.createQuery(
-                            "SELECT fr.player.id FROM FriendRelationEntity fr " +
+            // 1) Load all pending incoming
+            List<FriendRelationEntity> incoming = s.createQuery(
+                            "FROM FriendRelationEntity fr " +
                                     "WHERE fr.friend.id = :me AND fr.status = :st",
-                            Long.class)
+                            FriendRelationEntity.class)
                     .setParameter("me", me.id())
                     .setParameter("st", FriendStatus.PENDING)
                     .list();
 
+            if (incoming.isEmpty()) return 0;
+
+            Set<Long> senderIds = incoming.stream()
+                    .map(fr -> fr.getPlayer().getId())
+                    .collect(Collectors.toSet());
+
+            // 2) Load blocks for these pairs in one go
+            Set<Long> blockedSenders = new HashSet<>(s.createQuery(
+                            "SELECT CASE WHEN fr.player.id = :me THEN fr.friend.id ELSE fr.player.id END " +
+                                    "FROM FriendRelationEntity fr " +
+                                    "WHERE fr.status = :st AND " +
+                                    "((fr.player.id = :me AND fr.friend.id IN :senders) " +
+                                    " OR (fr.friend.id = :me AND fr.player.id IN :senders))",
+                            Long.class)
+                    .setParameter("me", me.id())
+                    .setParameter("st", FriendStatus.BLOCKED)
+                    .setParameter("senders", senderIds)
+                    .list());
+
+            // 3) Load existing reciprocals once (me -> senders)
+            Map<Long, FriendRelationEntity> reciprocals = s.createQuery(
+                            "FROM FriendRelationEntity fr " +
+                                    "WHERE fr.player.id = :me AND fr.friend.id IN :senders",
+                            FriendRelationEntity.class)
+                    .setParameter("me", me.id())
+                    .setParameter("senders", senderIds)
+                    .list()
+                    .stream()
+                    .collect(Collectors.toMap(fr -> fr.getFriend().getId(), Function.identity()));
+
             int n = 0;
-            for (Long otherId : senderIds) {
-                Long blocks = s.createQuery(
-                                "SELECT COUNT(fr) FROM FriendRelationEntity fr WHERE " +
-                                        "((fr.player.id = :a AND fr.friend.id = :b) OR (fr.player.id = :b AND fr.friend.id = :a)) " +
-                                        "AND fr.status = :st",
-                                Long.class)
-                        .setParameter("a", me.id()).setParameter("b", otherId)
-                        .setParameter("st", FriendStatus.BLOCKED)
-                        .uniqueResult();
-                if (blocks != null && blocks > 0) continue;
+            for (FriendRelationEntity inc : incoming) {
+                long otherId = inc.getPlayer().getId();
+                if (blockedSenders.contains(otherId)) continue;
 
-                FriendRelationEntity incoming = s.createQuery(
-                                "FROM FriendRelationEntity WHERE player.id = :from AND friend.id = :to",
-                                FriendRelationEntity.class)
-                        .setParameter("from", otherId)
-                        .setParameter("to", me.id())
-                        .uniqueResult();
+                // accept incoming
+                inc.setStatus(FriendStatus.ACCEPTED);
+                s.merge(inc);
 
-                if (incoming != null && incoming.getStatus() == FriendStatus.PENDING) {
-                    incoming.setStatus(FriendStatus.ACCEPTED);
-                    s.merge(incoming);
-                    upsertRelationInTx(s, me.id(), otherId, FriendStatus.ACCEPTED);
-                    n++;
-                    affected.add(new Pair(otherId));
+                // ensure reciprocal
+                FriendRelationEntity rec = reciprocals.get(otherId);
+                if (rec == null) {
+                    PlayerEntity meManaged = s.get(PlayerEntity.class, me.id());
+                    PlayerEntity otherManaged = s.get(PlayerEntity.class, otherId);
+                    rec = new FriendRelationEntity(meManaged, otherManaged, FriendStatus.ACCEPTED);
+                    s.persist(rec);
+                } else {
+                    rec.setStatus(FriendStatus.ACCEPTED);
+                    s.merge(rec);
                 }
+
+                n++;
+                affectedIds.add(otherId);
             }
             return n;
         });
@@ -473,28 +492,37 @@ public class FriendsService {
         int count = accepted == null ? 0 : accepted;
         if (count > 0) {
             cache.invalidatePlayer(me.id());
-            for (var pair : affected) {
-                cache.invalidateRelation(me.id(), pair.otherId());
-                cache.invalidatePlayer(pair.otherId());
+            for (Long otherId : affectedIds) {
+                cache.invalidateRelation(me.id(), otherId);
+                cache.invalidatePlayer(otherId);
             }
         }
         return count;
     }
 
     public int denyAll(PlayerRef me) {
-        var affected = new ArrayList<Long>();
-        Integer denied = feature.getOrm().runInTransaction(s -> {
-            List<FriendRelationEntity> reqs = s.createQuery(
-                            "FROM FriendRelationEntity WHERE friend.id = :me AND status = :st",
-                            FriendRelationEntity.class)
-                    .setParameter("me", me.id()).setParameter("st", FriendStatus.PENDING)
-                    .list();
-            for (FriendRelationEntity rel : reqs) {
-                affected.add(rel.getPlayer().getId());
-                s.remove(rel);
-            }
-            return reqs.size();
-        });
+        // Gather affected first (for cache invalidation), then delete in bulk.
+        List<Long> affected = feature.getOrm().runInTransaction(s ->
+                s.createQuery(
+                                "SELECT fr.player.id FROM FriendRelationEntity fr " +
+                                        "WHERE fr.friend.id = :me AND fr.status = :st",
+                                Long.class)
+                        .setParameter("me", me.id())
+                        .setParameter("st", FriendStatus.PENDING)
+                        .list()
+        );
+
+        if (affected.isEmpty()) return 0;
+
+        Integer denied = feature.getOrm().runInTransaction(s ->
+                s.createQuery(
+                                "DELETE FROM FriendRelationEntity fr " +
+                                        "WHERE fr.friend.id = :me AND fr.status = :st")
+                        .setParameter("me", me.id())
+                        .setParameter("st", FriendStatus.PENDING)
+                        .executeUpdate()
+        );
+
         int count = denied == null ? 0 : denied;
         if (count > 0) {
             cache.invalidatePlayer(me.id());

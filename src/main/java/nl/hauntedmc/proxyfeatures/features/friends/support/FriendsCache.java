@@ -116,12 +116,6 @@ public class FriendsCache {
         blockedUsernamesByPlayerId.invalidate(playerId);
         incomingUsernamesByPlayerId.invalidate(playerId);
         outgoingUsernamesByPlayerId.invalidate(playerId);
-        // relationStatusCache is invalidated per relation via invalidateRelation
-    }
-
-    public void invalidatePlayerIdentity(String uuid, String lowerName) {
-        if (uuid != null) playerByUuid.invalidate(uuid);
-        if (lowerName != null) playerByLowerName.invalidate(lowerName);
     }
 
     public void invalidateRelation(long aId, long bId) {

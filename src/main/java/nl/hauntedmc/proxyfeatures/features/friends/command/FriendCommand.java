@@ -8,7 +8,6 @@ import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
-import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.PlayerRef;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
@@ -51,7 +50,7 @@ public class FriendCommand extends FeatureCommand {
             var onlineFriends = friendSnaps.stream()
                     .map(snap -> feature.getPlugin().getProxy()
                             .getPlayer(java.util.UUID.fromString(snap.uuid()))
-                            .filter(pl -> !isVanished(pl))
+                            .filter(this::notVanished)
                             .orElse(null))
                     .filter(Objects::nonNull)
                     .toList();
@@ -111,13 +110,12 @@ public class FriendCommand extends FeatureCommand {
     private void list(Player p) {
         PlayerRef me = getRef(p);
 
-        // Use snapshots to avoid lazy loads
         var friends = svc.acceptedFriendSnapshots(me);
 
         long online = friends.stream().filter(f ->
                 feature.getPlugin().getProxy()
                         .getPlayer(java.util.UUID.fromString(f.uuid()))
-                        .filter(pl -> !isVanished(pl))
+                        .filter(this::notVanished)
                         .isPresent()).count();
 
         p.sendMessage(feature.getLocalizationHandler()
@@ -131,7 +129,7 @@ public class FriendCommand extends FeatureCommand {
             java.util.UUID fid = java.util.UUID.fromString(snap.uuid());
             Optional<Player> onlineP = feature.getPlugin().getProxy()
                     .getPlayer(fid)
-                    .filter(pl -> !isVanished(pl));
+                    .filter(this::notVanished);
 
             boolean onl = onlineP.isPresent();
             String status = onl ? "&a● " : "&c● ";
@@ -187,12 +185,12 @@ public class FriendCommand extends FeatureCommand {
             return;
         }
 
-        // Existing relation checks (both directions)
-        Optional<FriendRelationEntity> meToTarget = svc.relation(me, target);
-        Optional<FriendRelationEntity> targetToMe = svc.relation(target, me);
+        // Cached status checks (both directions, scalar)
+        Optional<FriendStatus> meToTarget = svc.relationStatus(me, target);
+        Optional<FriendStatus> targetToMe = svc.relationStatus(target, me);
 
         if (meToTarget.isPresent()) {
-            FriendStatus st = meToTarget.get().getStatus();
+            FriendStatus st = meToTarget.get();
             if (st == FriendStatus.ACCEPTED) {
                 sendMsg(p, "friend.already_friends");
                 return;
@@ -208,7 +206,7 @@ public class FriendCommand extends FeatureCommand {
         }
 
         if (targetToMe.isPresent()) {
-            FriendStatus st = targetToMe.get().getStatus();
+            FriendStatus st = targetToMe.get();
             if (st == FriendStatus.ACCEPTED) {
                 sendMsg(p, "friend.already_friends");
                 return;
@@ -223,7 +221,7 @@ public class FriendCommand extends FeatureCommand {
                 if (ok) {
                     sendMsg(p, "friend.accepted", Map.of("player", target.username()));
                     feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.uuid()))
-                            .filter(pl -> !isVanished(pl))
+                            .filter(this::notVanished)
                             .ifPresent(t -> sendMsg(t, "friend.accepted",
                                     Map.of("player", p.getUsername())));
                 } else {
@@ -243,7 +241,7 @@ public class FriendCommand extends FeatureCommand {
         sendMsg(p, "friend.add.sent", Map.of("player", target.username()));
 
         feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.uuid()))
-                .filter(pl -> !isVanished(pl))
+                .filter(this::notVanished)
                 .ifPresent(t -> sendMsg(t, "friend.add.received",
                         Map.of("player", p.getUsername())));
     }
@@ -288,9 +286,13 @@ public class FriendCommand extends FeatureCommand {
             return;
         }
 
-        // Respect blocks or disabled states
-        if (svc.didIBlockTarget(me, from) || svc.isBlockedByTarget(me, from)) {
-            sendMsg(p, "friend.request_exists");
+        // Respect blocks
+        if (svc.didIBlockTarget(me, from)) {
+            sendMsg(p, "friend.you_blocked_target", Map.of("player", from.username()));
+            return;
+        }
+        if (svc.isBlockedByTarget(me, from)) {
+            sendMsg(p, "friend.blocked_by_target", Map.of("player", from.username()));
             return;
         }
 
@@ -298,7 +300,7 @@ public class FriendCommand extends FeatureCommand {
         if (ok) {
             sendMsg(p, "friend.accepted", Map.of("player", from.username()));
             feature.getPlugin().getProxy().getPlayer(UUID.fromString(from.uuid()))
-                    .filter(pl -> !isVanished(pl))
+                    .filter(this::notVanished)
                     .ifPresent(t -> sendMsg(t, "friend.accepted",
                             Map.of("player", p.getUsername())));
         } else {
@@ -407,7 +409,7 @@ public class FriendCommand extends FeatureCommand {
         }
 
         feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.uuid()))
-                .filter(pl -> !isVanished(pl))
+                .filter(this::notVanished)
                 .ifPresentOrElse(t -> t.getCurrentServer().ifPresent(conn -> {
                     RegisteredServer srv = conn.getServer();
                     p.createConnectionRequest(srv).fireAndForget();
@@ -524,6 +526,10 @@ public class FriendCommand extends FeatureCommand {
         return svc.resolvePlayerByUsernameCaseInsensitive(name).orElse(null);
     }
 
+    private boolean notVanished(Player pl) {
+        return vanishApi.map(api -> !api.isVanished(pl.getUniqueId())).orElse(true);
+    }
+
     @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation inv) {
         CommandSource src = inv.source();
@@ -561,7 +567,7 @@ public class FriendCommand extends FeatureCommand {
 
         // Online & non-vanished players (usernames), excluding self
         List<Player> onlineNonVanished = feature.getPlugin().getProxy().getAllPlayers().stream()
-                .filter(pl -> !isVanished(pl))
+                .filter(this::notVanished)
                 .filter(pl -> !pl.getUniqueId().equals(p.getUniqueId()))
                 .toList();
 
@@ -641,11 +647,6 @@ public class FriendCommand extends FeatureCommand {
         }
 
         return CompletableFuture.completedFuture(result);
-    }
-
-    // Small util to consistently check vanish
-    private boolean isVanished(Player pl) {
-        return vanishApi.map(api -> api.isVanished(pl.getUniqueId())).orElse(false);
     }
 
     @Override
