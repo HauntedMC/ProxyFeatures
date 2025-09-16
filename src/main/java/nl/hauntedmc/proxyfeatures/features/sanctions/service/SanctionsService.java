@@ -267,6 +267,61 @@ public class SanctionsService {
         });
     }
 
+    // ===== LISTING / PAGINATION =====
+
+    /** Count sanctions for a player, optionally active only. */
+    public long countSanctionsForPlayer(PlayerEntity p, boolean activeOnly) {
+        return feature.getOrm().runInTransaction(session ->
+                session.createQuery(
+                                "select count(s.id) from SanctionEntity s where s.targetPlayer = :p"
+                                        + (activeOnly ? " and s.active = true" : ""),
+                                Long.class)
+                        .setParameter("p", p)
+                        .uniqueResult()
+        );
+    }
+
+    /** Page sanctions for a player, newest first, DB-level pagination. */
+    public List<SanctionEntity> pageSanctionsForPlayer(PlayerEntity p, boolean activeOnly, int page, int pageSize) {
+        int p1 = Math.max(1, page);
+        int size = Math.max(1, pageSize);
+        int offset = (p1 - 1) * size;
+
+        return feature.getOrm().runInTransaction(session ->
+                session.createQuery(
+                                "from SanctionEntity s where s.targetPlayer = :p"
+                                        + (activeOnly ? " and s.active = true" : "")
+                                        + " order by s.createdAt desc",
+                                SanctionEntity.class)
+                        .setParameter("p", p)
+                        .setFirstResult(offset)
+                        .setMaxResults(size)
+                        .list()
+        );
+    }
+
+    /** Count all sanctions (any type/target). */
+    public long countAllSanctions() {
+        return feature.getOrm().runInTransaction(session ->
+                session.createQuery("select count(s.id) from SanctionEntity s", Long.class)
+                        .uniqueResult()
+        );
+    }
+
+    /** Page all sanctions globally, newest first, DB-level pagination. */
+    public List<SanctionEntity> pageAllSanctions(int page, int pageSize) {
+        int p1 = Math.max(1, page);
+        int size = Math.max(1, pageSize);
+        int offset = (p1 - 1) * size;
+
+        return feature.getOrm().runInTransaction(session ->
+                session.createQuery("from SanctionEntity s order by s.createdAt desc", SanctionEntity.class)
+                        .setFirstResult(offset)
+                        .setMaxResults(size)
+                        .list()
+        );
+    }
+
     // ===== UTIL =====
 
     /**

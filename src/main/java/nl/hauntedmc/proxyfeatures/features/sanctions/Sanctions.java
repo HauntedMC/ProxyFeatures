@@ -35,6 +35,7 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         cfg.put("expirySweepSeconds", 30);
         cfg.put("discordWebhookURL", "");
         cfg.put("appealURL", "https://www.hauntedmc.nl/support/");
+        cfg.put("sanctionListPageSize", 5);
         return cfg;
     }
 
@@ -162,6 +163,26 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         m.add("sanctions.list.entry.line3",
                 "&8  &7Reden: &f{reason}");
         m.add("sanctions.list.entry.separator", "");
+        m.add("sanctions.list.recent.header","&8&l[&c&lSanctions&8&l]&r &eRecente sancties &7(&f{count}&7)");
+        m.add("sanctions.list.recent.empty","&8&l[&c&lSanctions&8&l]&r &7Er zijn nog geen sancties.");
+        m.add("sanctions.list.page","&7Pagina &f{page}&7/&f{pages}&7 &8• &7Per pagina: &f{size}");
+
+        // Status / mode labels
+        m.add("sanctions.status.active", "&aActief");
+        m.add("sanctions.status.inactive", "&cInactief");
+        m.add("sanctions.mode.active", "actief");
+        m.add("sanctions.mode.all", "alles");
+
+        // Duration labels / formatting
+        m.add("sanctions.duration.permanent", "permanent");
+        m.add("sanctions.duration.remaining_fmt", "{total} &7(resterend: &f{remaining}&7)");
+
+        // Type labels (used in list)
+        m.add("sanctions.type.ban", "Ban");
+        m.add("sanctions.type.ban_ip", "IP-Ban");
+        m.add("sanctions.type.mute", "Mute");
+        m.add("sanctions.type.warn", "Warn");
+        m.add("sanctions.type.kick", "Kick");
         return m;
     }
 
