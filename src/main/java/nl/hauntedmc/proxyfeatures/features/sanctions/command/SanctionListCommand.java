@@ -3,11 +3,11 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -33,11 +33,11 @@ public class SanctionListCommand extends FeatureCommand {
 
         int pageSize = getPageSize();
 
-        // Patterns supported:
-        //  - /sanctionlist                      -> recent global, page 1
-        //  - /sanctionlist <page>               -> recent global, specific page
-        //  - /sanctionlist <player> [page]      -> player's all (default), paged
-        //  - /sanctionlist <player> all|active [page] -> player's filtered, paged
+        // Supported:
+        //  - /sanctionlist                           -> recent global, page 1
+        //  - /sanctionlist <page>                    -> recent global, specific page
+        //  - /sanctionlist <player> [page]           -> player's all (default), paged
+        //  - /sanctionlist <player> all|active [page]-> player's filtered, paged
 
         if (a.length == 0) {
             showRecent(src, 1, pageSize);
@@ -98,9 +98,9 @@ public class SanctionListCommand extends FeatureCommand {
         sendMsg(src, "sanctions.list.recent.header", Map.of("count", String.valueOf(total)));
         sendMsg(src, "sanctions.list.entry.separator");
 
-        // Page slice, newest first
+        // Page slice, newest first (lazy paged query)
         List<SanctionEntity> list = feature.getService().pageAllSanctions(pg, pageSize);
-        renderEntries(src, list);
+        renderEntries(src, list, /*globalLayout=*/true);
 
         // Footer
         sendMsg(src, "sanctions.list.page", Map.of(
@@ -134,7 +134,7 @@ public class SanctionListCommand extends FeatureCommand {
         sendMsg(src, "sanctions.list.entry.separator");
 
         List<SanctionEntity> list = feature.getService().pageSanctionsForPlayer(target, activeOnly, pg, pageSize);
-        renderEntries(src, list);
+        renderEntries(src, list, /*globalLayout=*/false);
 
         sendMsg(src, "sanctions.list.page", Map.of(
                 "page", String.valueOf(pg),
@@ -143,46 +143,93 @@ public class SanctionListCommand extends FeatureCommand {
         ));
     }
 
-    private void renderEntries(CommandSource src, List<SanctionEntity> list) {
-        for (SanctionEntity s : list) {
-            Map<String,String> ph = new HashMap<>();
-            ph.put("id", String.valueOf(s.getId()));
-            ph.put("type", typeLabel(src, s.getType()));
-            ph.put("status", raw(src, s.isActive() ? "sanctions.status.active" : "sanctions.status.inactive"));
+    /**
+     * Renders sanctions. When globalLayout=true (the general /sanctionlist),
+     * show the first line as "Player | By", then the next line as "• Type | Status (if applicable)".
+     * For WARN/KICK (simple types) we omit status/duration/expiry.
+     */
+    private void renderEntries(CommandSource src, List<SanctionEntity> list, boolean globalLayout) {
+        final String sep = " &8| ";
 
-            // Prefer stored actorName fallback when actor entity missing
+        for (SanctionEntity s : list) {
+            boolean simple = isSimpleType(s.getType());
             String actor =
                     feature.getService().usernameOf(s.getActorPlayer())
                             .orElse(s.getActorName() == null ? "CONSOLE" : s.getActorName());
-            ph.put("actor", actor);
 
-            ph.put("created", fmt(s.getCreatedAt()));
+            // fallback if entity missing
+            String playerName = feature.getService().usernameOf(s.getTargetPlayer()).orElse(
+                    "-" // IP-ban without player: show "-" here
+            );
 
-            String totalDuration = s.isPermanent()
-                    ? raw(src, "sanctions.duration.permanent")
-                    : feature.getService().humanDuration(
-                    Optional.ofNullable(s.getCreatedAt()).orElse(Instant.now()),
-                    s.getExpiresAt());
+            String type = typeLabel(src, s.getType());
+            String status = raw(src, s.isActive() ? "sanctions.status.active" : "sanctions.status.inactive");
 
-            String durationDisplay = totalDuration;
-            if (s.isActive() && !s.isPermanent() && s.getExpiresAt() != null) {
-                String remaining = feature.getService().humanDuration(Instant.now(), s.getExpiresAt());
-                durationDisplay = raw(src, "sanctions.duration.remaining_fmt",
-                        Map.of("total", totalDuration, "remaining", remaining));
+            // Top line(s)
+            if (globalLayout) {
+
+                // Line A: • Type (+ Status if not simple)
+                StringBuilder lineA = new StringBuilder();
+                lineA.append("&8• ").append(raw(src, "sanctions.label.type")).append(" &f").append(type);
+                if (!simple) {
+                    lineA.append(sep).append(raw(src, "sanctions.label.status")).append(" ").append(status);
+                }
+                sendRawLine(src, lineA.toString());
+
+                // Line B: Player | By
+                sendRawLine(src, "  " + raw(src, "sanctions.label.player") + " &f" + playerName + sep + raw(src, "sanctions.label.by") + " &f" + actor);
+            } else {
+                // Player-specific view: first line keeps previous compact style
+                StringBuilder line1 = new StringBuilder();
+                line1.append("&8• ").append(raw(src, "sanctions.label.type")).append(" &f").append(type);
+                if (!simple) {
+                    line1.append(sep).append(raw(src, "sanctions.label.status")).append(" ").append(status);
+                }
+                line1.append(sep).append(raw(src, "sanctions.label.by")).append(" &f").append(actor);
+                sendRawLine(src, line1.toString());
             }
-            ph.put("duration", durationDisplay);
-            ph.put("reason", (s.getReason() == null || s.getReason().isBlank()) ? "-" : s.getReason());
 
-            // Lines
-            sendMsg(src, "sanctions.list.entry.line1", ph);
-            sendMsg(src, "sanctions.list.entry.line2", ph);
-            if (!s.isPermanent() && s.getExpiresAt() != null) {
-                sendMsg(src, "sanctions.list.entry.line2b",
-                        Map.of("expires", fmt(s.getExpiresAt())));
+            // Time / Duration lines
+            // Always show "On: <created>"
+            StringBuilder lineTime = new StringBuilder();
+            lineTime.append("&8  ").append(raw(src, "sanctions.label.on"))
+                    .append(" &f").append(fmt(s.getCreatedAt()));
+
+            if (!simple) {
+                // Duration (total or "permanent"; if active temporary, show remaining inline)
+                String totalDuration = s.isPermanent()
+                        ? raw(src, "sanctions.duration.permanent")
+                        : feature.getService().humanDuration(
+                        Optional.ofNullable(s.getCreatedAt()).orElse(Instant.now()),
+                        s.getExpiresAt());
+
+                String durationDisplay = totalDuration;
+                if (s.isActive() && !s.isPermanent() && s.getExpiresAt() != null) {
+                    String remaining = feature.getService().humanDuration(Instant.now(), s.getExpiresAt());
+                    durationDisplay = raw(src, "sanctions.duration.remaining_fmt",
+                            Map.of("total", totalDuration, "remaining", remaining));
+                }
+                lineTime.append(sep).append(raw(src, "sanctions.label.duration")).append(" &f").append(durationDisplay);
             }
-            sendMsg(src, "sanctions.list.entry.line3", ph);
+            sendRawLine(src, lineTime.toString());
+
+            // Expiry (only for non-permanent detailed types with expiry)
+            if (!simple && !s.isPermanent() && s.getExpiresAt() != null) {
+                String lineExp = "&8  " + raw(src, "sanctions.label.expires") + " &f" + fmt(s.getExpiresAt());
+                sendRawLine(src, lineExp);
+            }
+
+            // Reason
+            String reason = (s.getReason() == null || s.getReason().isBlank()) ? "-" : s.getReason();
+            String lineReason = "&8  " + raw(src, "sanctions.label.reason") + " &f" + reason;
+            sendRawLine(src, lineReason);
+
             sendMsg(src, "sanctions.list.entry.separator");
         }
+    }
+
+    private boolean isSimpleType(SanctionType t) {
+        return t == SanctionType.WARN || t == SanctionType.KICK;
     }
 
     private int getPageSize() {
@@ -226,7 +273,7 @@ public class SanctionListCommand extends FeatureCommand {
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
 
-        // For first arg: suggest online names or page numbers (we'll stick to names for simplicity)
+        // For first arg: suggest online names or page numbers (stick to names)
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
             List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
                     .map(Player::getUsername)
@@ -258,9 +305,12 @@ public class SanctionListCommand extends FeatureCommand {
     private void sendMsg(CommandSource src, String key) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());
     }
-
     private void sendMsg(CommandSource src, String key, Map<String, String> ph) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(ph).forAudience(src).build());
+    }
+
+    private void sendRawLine(CommandSource src, String raw) {
+        src.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(raw));
     }
 
     private String fmt(Instant t) { return t == null ? "-" : TS.format(t); }
@@ -275,7 +325,7 @@ public class SanctionListCommand extends FeatureCommand {
         };
     }
 
-    /** Render a localization key to a legacy-ampersand string (so it can be injected as a placeholder). */
+    /** Render a localization key to a legacy-ampersand string (so it can be injected as a fragment). */
     private String raw(CommandSource src, String key) {
         return LegacyComponentSerializer.legacyAmpersand().serialize(
                 feature.getLocalizationHandler().getMessage(key).forAudience(src).build()

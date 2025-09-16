@@ -39,7 +39,6 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         return cfg;
     }
 
-
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap m = new MessageMap();
@@ -78,18 +77,15 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         m.add("sanctions.unbanned_ip", "&8&l[&c&lSanctions&8&l]&r &aIP-Unban uitgevoerd &8• &7IP: &f{ip}");
         m.add("sanctions.unmuted",     "&8&l[&c&lSanctions&8&l]&r &aUnmute uitgevoerd &8• &7Speler: &f{target}");
 
-        // Player-facing (CHAT) — single-line, compact
+        // Player-facing (CHAT)
         m.add("sanctions.notify.unmuted",
                 "&8&l[&c&lSanctions&8&l]&r &aJe mute is opgeheven.");
-
         m.add("sanctions.notify.warn",
                 "&8&l[&c&lSanctions&8&l]&r &6Je bent gewaarschuwd. &7Reden: &f{reason}");
-
         m.add("sanctions.notify.kick",
-                "&8&l[&c&lSanctions&8&l]&r &cJe bent gekickt.\n" +
-                        "&7Reden: &f{reason}");
+                "&8&l[&c&lSanctions&8&l]&r &cJe bent gekickt.\n&7Reden: &f{reason}");
 
-        // Disconnect messages (SCREEN) — multi-line for clarity
+        // Disconnect messages (SCREEN)
         m.add("sanctions.disconnect.banned.temp",
                 """
                         &8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.
@@ -97,14 +93,12 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
                         &7Resterende tijd: &f{duration}
                         &7Reden: &f{reason}
                         &7Appeal: &f{appeal}""");
-
         m.add("sanctions.disconnect.banned.perm",
                 """
                         &8&l[&c&lSanctions&8&l]&r &cToegang geweigerd.
                         &7Status: &f&lPermanente ban
                         &7Reden: &f{reason}
                         &7Appeal: &f{appeal}""");
-
         m.add("sanctions.disconnect.muted.temp",
                 """
                         &8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.
@@ -112,7 +106,6 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
                         &7Resterende tijd: &f{duration}
                         &7Reden: &f{reason}
                         &7Appeal: &f{appeal}""");
-
         m.add("sanctions.disconnect.muted.perm",
                 """
                         &8&l[&c&lSanctions&8&l]&r &cJe hebt een chat verbod gekregen.
@@ -120,52 +113,47 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
                         &7Reden: &f{reason}
                         &7Appeal: &f{appeal}""");
 
-        // Staff announcements (CHAT) — single-line, compact & labeled
+        // Staff announcements
         m.add("sanctions.announce.unban",
                 "&8&l[&c&lSanctions&8&l]&r &aUnban &8• &7Speler: &f{target} &8| &7Door: &f{actor}");
-
         m.add("sanctions.announce.unmute",
                 "&8&l[&c&lSanctions&8&l]&r &aUnmute &8• &7Speler: &f{target} &8| &7Door: &f{actor}");
-
         m.add("sanctions.announce.ban.temp",
                 "&8&l[&c&lSanctions&8&l]&r &cBan &8• &7Speler: &f{target} &8| &7Duur: &f{duration} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
-
         m.add("sanctions.announce.ban.perm",
                 "&8&l[&c&lSanctions&8&l]&r &cBan (Permanent) &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
-
         m.add("sanctions.announce.mute.temp",
                 "&8&l[&c&lSanctions&8&l]&r &eMute &8• &7Speler: &f{target} &8| &7Duur: &f{duration} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
-
         m.add("sanctions.announce.mute.perm",
                 "&8&l[&c&lSanctions&8&l]&r &eMute (Permanent) &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
-
         m.add("sanctions.announce.warn",
                 "&8&l[&c&lSanctions&8&l]&r &6Waarschuwing &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
-
         m.add("sanctions.announce.kick",
                 "&8&l[&c&lSanctions&8&l]&r &cKick &8• &7Speler: &f{target} &8| &7Reden: &f{reason} &8| &7Door: &f{actor}");
 
-        // Chat blocked (CHAT)
+        // Chat blocked
         m.add("sanctions.chat_blocked",
                 "&8&l[&c&lSanctions&8&l]&r &cJe bent gemute en kunt niet chatten. &7Resterende tijd: &f{remaining}");
 
-        // Sanction list (unchanged)
+        // List headers / paging / recent
         m.add("sanctions.list.header",
                 "&8&l[&c&lSanctions&8&l]&r &eSancties voor &f{player}&e — &f{mode} &7(&f{count}&7)");
         m.add("sanctions.list.empty",
                 "&8&l[&c&lSanctions&8&l]&r &7Geen sancties gevonden voor &f{player}&7 (&f{mode}&7).");
-        m.add("sanctions.list.entry.line1",
-                "&8• &7Type: &f{type} &8| &7Status: {status} &8| &7Door: &f{actor}");
-        m.add("sanctions.list.entry.line2",
-                "&8  &7Op: &f{created} &8| &7Duur: &f{duration}");
-        m.add("sanctions.list.entry.line2b",
-                "&8  &7Verloopt: &f{expires}");
-        m.add("sanctions.list.entry.line3",
-                "&8  &7Reden: &f{reason}");
         m.add("sanctions.list.entry.separator", "");
         m.add("sanctions.list.recent.header","&8&l[&c&lSanctions&8&l]&r &eRecente sancties &7(&f{count}&7)");
         m.add("sanctions.list.recent.empty","&8&l[&c&lSanctions&8&l]&r &7Er zijn nog geen sancties.");
         m.add("sanctions.list.page","&7Pagina &f{page}&7/&f{pages}&7 &8• &7Per pagina: &f{size}");
+
+        // Labels for dynamic lines
+        m.add("sanctions.label.type", "&7Type:");
+        m.add("sanctions.label.status", "&7Status:");
+        m.add("sanctions.label.by", "&7Door:");
+        m.add("sanctions.label.on", "&7Op:");
+        m.add("sanctions.label.duration", "&7Duur:");
+        m.add("sanctions.label.expires", "&7Verloopt:");
+        m.add("sanctions.label.reason", "&7Reden:");
+        m.add("sanctions.label.player", "&7Speler:");
 
         // Status / mode labels
         m.add("sanctions.status.active", "&aActief");
@@ -177,12 +165,13 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         m.add("sanctions.duration.permanent", "permanent");
         m.add("sanctions.duration.remaining_fmt", "{total} &7(resterend: &f{remaining}&7)");
 
-        // Type labels (used in list)
+        // Type labels
         m.add("sanctions.type.ban", "Ban");
         m.add("sanctions.type.ban_ip", "IP-Ban");
         m.add("sanctions.type.mute", "Mute");
         m.add("sanctions.type.warn", "Warn");
         m.add("sanctions.type.kick", "Kick");
+
         return m;
     }
 
