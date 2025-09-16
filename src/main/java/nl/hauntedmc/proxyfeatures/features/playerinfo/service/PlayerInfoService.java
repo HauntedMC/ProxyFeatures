@@ -56,7 +56,9 @@ public class PlayerInfoService {
 
     public Optional<PlayerConnectionInfoEntity> getConnectionInfo(PlayerEntity player) {
         return feature.getOrmContext().runInTransaction(session ->
-                session.createQuery("SELECT c FROM PlayerConnectionInfoEntity c WHERE c.playerId = :pid", PlayerConnectionInfoEntity.class)
+                session.createQuery(
+                                "SELECT c FROM PlayerConnectionInfoEntity c WHERE c.playerId = :pid",
+                                PlayerConnectionInfoEntity.class)
                         .setParameter("pid", player.getId())
                         .setMaxResults(1)
                         .uniqueResultOptional()
@@ -68,8 +70,10 @@ public class PlayerInfoService {
         return feature.getOrmContext().runInTransaction(session ->
                 session.createQuery(
                                 "SELECT s FROM SanctionEntity s " +
-                                        "WHERE s.targetPlayer = :player AND s.active = true AND (s.expiresAt IS NULL OR s.expiresAt > :now) " +
-                                        "ORDER BY s.createdAt DESC", SanctionEntity.class)
+                                        "WHERE s.targetPlayer = :player AND s.active = true " +
+                                        "AND (s.expiresAt IS NULL OR s.expiresAt > :now) " +
+                                        "ORDER BY s.createdAt DESC",
+                                SanctionEntity.class)
                         .setParameter("player", player)
                         .setParameter("now", now)
                         .getResultList()
@@ -97,5 +101,23 @@ public class PlayerInfoService {
     public String fmt(Instant instant) {
         if (instant == null) return "—";
         return formatter.format(instant);
+    }
+
+    /**
+     * Find other usernames whose last known IP equals the provided IP.
+     * Returns A→Z usernames; excludes the player with excludePlayerId.
+     */
+    public List<String> findUsernamesByLastIp(String ip, Long excludePlayerId) {
+        if (ip == null || ip.isBlank()) return List.of();
+        return feature.getOrmContext().runInTransaction(session ->
+                session.createQuery(
+                                "SELECT c.player.username FROM PlayerConnectionInfoEntity c " +
+                                        "WHERE c.ipAddress = :ip AND c.player.id <> :ex " +
+                                        "ORDER BY c.player.username ASC",
+                                String.class)
+                        .setParameter("ip", ip)
+                        .setParameter("ex", excludePlayerId)
+                        .getResultList()
+        );
     }
 }

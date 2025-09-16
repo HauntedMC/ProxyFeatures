@@ -4,8 +4,10 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
+import nl.hauntedmc.proxyfeatures.common.util.Paginator;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendStatus;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;
@@ -38,53 +40,20 @@ public class FriendCommand extends FeatureCommand {
             return;
         }
 
-        if (args.length == 0) {
-            PlayerRef me = getRef(player);
-            if (!svc.getOrCreateSettings(me).isEnabled()) {
-                sendMsg(player, "friend.mode_disabled");
-                return;
+        // Support `/fr` (page 1) and `/fr <page>` for the online list view.
+        if (args.length == 0 || isPositiveInt(args[0])) {
+            int page = 1;
+            if (args.length >= 1 && isPositiveInt(args[0])) {
+                page = Integer.parseInt(args[0]);
             }
-
-            // Use cached snapshots + live proxy lookups (skip vanished)
-            var friendSnaps = svc.acceptedFriendSnapshots(me);
-            var onlineFriends = friendSnaps.stream()
-                    .map(snap -> feature.getPlugin().getProxy()
-                            .getPlayer(java.util.UUID.fromString(snap.uuid()))
-                            .filter(this::notVanished)
-                            .orElse(null))
-                    .filter(Objects::nonNull)
-                    .toList();
-
-            if (onlineFriends.isEmpty()) {
-                sendMsg(player, "friend.no_friends_online");
-            } else {
-                sendMsg(player, "friend.online_header");
-                onlineFriends.forEach(f -> {
-                    String srv = f.getCurrentServer()
-                            .map(conn -> conn.getServer().getServerInfo().getName())
-                            .orElse("?");
-                    player.sendMessage(feature.getLocalizationHandler()
-                            .getMessage("friend.online_entry")
-                            .withPlaceholders(Map.of(
-                                    "player", f.getUsername(),
-                                    "server", srv))
-                            .build());
-                });
-            }
-
-            // Cheap, cached projection
-            int pending = svc.incomingRequestUsernames(me).size();
-            if (pending > 0) {
-                sendMsg(player, "friend.pending_requests",
-                        Map.of("count", String.valueOf(pending)));
-            }
+            showOnlineList(player, page);
             return;
         }
 
         String sub = args[0].toLowerCase(Locale.ROOT);
 
         switch (sub) {
-            case "list" -> list(player);
+            case "list" -> list(player, args);
             case "add" -> add(player, args);
             case "remove" -> remove(player, args);
             case "accept" -> accept(player, args);
@@ -93,7 +62,7 @@ public class FriendCommand extends FeatureCommand {
             case "acceptall" -> acceptAll(player);
             case "denyall" -> denyAll(player);
             case "server" -> connect(player, args);
-            case "requests" -> requests(player);
+            case "requests" -> requests(player, args);
             case "block" -> block(player, args);
             case "unblock" -> unblock(player, args);
             case "disable" -> disable(player);
@@ -107,49 +76,166 @@ public class FriendCommand extends FeatureCommand {
         return inv.source().hasPermission("proxyfeatures.feature.friend.command.friends");
     }
 
-    private void list(Player p) {
+    /** Base `/fr` (and `/fr <page>`) – online friends only, paginated. */
+    private void showOnlineList(Player p, int requestedPage) {
+        PlayerRef me = getRef(p);
+        if (!svc.getOrCreateSettings(me).isEnabled()) {
+            sendMsg(p, "friend.mode_disabled");
+            return;
+        }
+
+        // Build online list (non-vanished), sort A–Z
+        var friendSnaps = svc.acceptedFriendSnapshots(me);
+        List<Component> entries = new ArrayList<>();
+
+        List<String> onlineNames = new ArrayList<>();
+        Map<String, String> onlineSuffix = new HashMap<>();
+
+        for (var snap : friendSnaps) {
+            UUID fid = UUID.fromString(snap.uuid());
+            feature.getPlugin().getProxy().getPlayer(fid)
+                    .filter(this::notVanished)
+                    .ifPresent(pl -> {
+                        String name = pl.getUsername();
+                        onlineNames.add(name);
+                        String suffix = pl.getCurrentServer()
+                                .map(ServerConnection::getServer)
+                                .map(rs -> " &7(&f" + rs.getServerInfo().getName() + "&7)")
+                                .orElse("");
+                        onlineSuffix.put(name, suffix);
+                    });
+        }
+
+        onlineNames.sort(Comparator.comparing(s -> s.toLowerCase(Locale.ROOT)));
+
+        for (String name : onlineNames) {
+            entries.add(feature.getLocalizationHandler()
+                    .getMessage("friend.online_entry")
+                    .withPlaceholders(Map.of(
+                            "player", name,
+                            "server", onlineSuffix.getOrDefault(name, "?")))
+                    .forAudience(p)
+                    .build());
+        }
+
+        if (entries.isEmpty()) {
+            sendMsg(p, "friend.no_friends_online");
+        } else {
+            sendMsg(p, "friend.online_header");
+
+            int pageSize = getListPageSize();
+            var page = Paginator.paginate(entries, requestedPage, pageSize);
+
+            for (Component c : page.items()) {
+                p.sendMessage(c);
+            }
+
+            // Footer for consistency with /fr list
+            p.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("friend.list.page")
+                    .withPlaceholders(Map.of(
+                            "page", String.valueOf(page.page()),
+                            "pages", String.valueOf(page.totalPages()),
+                            "size", String.valueOf(page.pageSize())))
+                    .build());
+        }
+
+        // Pending requests hint (unchanged)
+        int pending = svc.incomingRequestUsernames(me).size();
+        if (pending > 0) {
+            sendMsg(p, "friend.pending_requests",
+                    Map.of("count", String.valueOf(pending)));
+        }
+    }
+
+    /** `/fr list [page]` – online first then offline, both A–Z, paginated. */
+    private void list(Player p, String[] args) {
         PlayerRef me = getRef(p);
 
         var friends = svc.acceptedFriendSnapshots(me);
+        int total = friends.size();
 
-        long online = friends.stream().filter(f ->
-                feature.getPlugin().getProxy()
-                        .getPlayer(java.util.UUID.fromString(f.uuid()))
-                        .filter(this::notVanished)
-                        .isPresent()).count();
-
-        p.sendMessage(feature.getLocalizationHandler()
-                .getMessage("friend.list.header")
-                .withPlaceholders(Map.of(
-                        "online", String.valueOf(online),
-                        "total", String.valueOf(friends.size())))
-                .build());
+        // Build online/offline groups with display info
+        List<String> onlineNames = new ArrayList<>();
+        Map<String, String> onlineSuffix = new HashMap<>();
+        List<String> offlineNames = new ArrayList<>();
 
         for (var snap : friends) {
-            java.util.UUID fid = java.util.UUID.fromString(snap.uuid());
-            Optional<Player> onlineP = feature.getPlugin().getProxy()
-                    .getPlayer(fid)
-                    .filter(this::notVanished);
+            UUID fid = UUID.fromString(snap.uuid());
+            feature.getPlugin().getProxy().getPlayer(fid)
+                    .filter(this::notVanished)
+                    .ifPresentOrElse(pl -> {
+                        String name = pl.getUsername();
+                        onlineNames.add(name);
+                        String suffix = pl.getCurrentServer()
+                                .map(ServerConnection::getServer)
+                                .map(rs -> " &7(&f" + rs.getServerInfo().getName() + "&7)")
+                                .orElse("");
+                        onlineSuffix.put(name, suffix);
+                    }, () -> offlineNames.add(snap.username()));
+        }
 
-            boolean onl = onlineP.isPresent();
-            String status = onl ? "&a● " : "&c● ";
-            String name = onlineP.map(Player::getUsername).orElse(snap.username());
+        // Sort each subgroup alphabetically (case-insensitive)
+        Comparator<String> byName = Comparator.comparing(s -> s.toLowerCase(Locale.ROOT));
+        onlineNames.sort(byName);
+        offlineNames.sort(byName);
 
-            String suffix = "";
-            if (onl) {
-                suffix = onlineP.flatMap(Player::getCurrentServer)
-                        .map(ServerConnection::getServer)
-                        .map(rs -> " &7(&f" + rs.getServerInfo().getName() + "&7)")
-                        .orElse("");
-            }
-
-            p.sendMessage(feature.getLocalizationHandler()
+        // Compose final ordered list of formatted lines (Components)
+        List<Component> lines = new ArrayList<>(total);
+        for (String name : onlineNames) {
+            String suffix = onlineSuffix.getOrDefault(name, "");
+            String status = "&a● ";
+            lines.add(feature.getLocalizationHandler()
                     .getMessage("friend.list.entry")
                     .withPlaceholders(Map.of(
                             "status", status,
                             "player", name + suffix))
+                    .forAudience(p)
                     .build());
         }
+        for (String name : offlineNames) {
+            String status = "&c● ";
+            lines.add(feature.getLocalizationHandler()
+                    .getMessage("friend.list.entry")
+                    .withPlaceholders(Map.of(
+                            "status", status,
+                            "player", name))
+                    .forAudience(p)
+                    .build());
+        }
+
+        long onlineCount = onlineNames.size();
+        p.sendMessage(feature.getLocalizationHandler()
+                .getMessage("friend.list.header")
+                .withPlaceholders(Map.of(
+                        "online", String.valueOf(onlineCount),
+                        "total", String.valueOf(total)))
+                .build());
+
+        // Pagination
+        int pageSize = getListPageSize();
+        int requestedPage = 1;
+        if (args.length >= 2) {
+            try {
+                requestedPage = Integer.parseInt(args[1]);
+            } catch (NumberFormatException ignored) { }
+        }
+
+        var page = Paginator.paginate(lines, requestedPage, pageSize);
+
+        // Output page items
+        for (Component line : page.items()) {
+            p.sendMessage(line);
+        }
+
+        // Footer with page info
+        p.sendMessage(feature.getLocalizationHandler()
+                .getMessage("friend.list.page")
+                .withPlaceholders(Map.of(
+                        "page", String.valueOf(page.page()),
+                        "pages", String.valueOf(page.totalPages()),
+                        "size", String.valueOf(page.pageSize())))
+                .build());
     }
 
     private void add(Player p, String[] args) {
@@ -417,10 +503,10 @@ public class FriendCommand extends FeatureCommand {
                 }), () -> sendMsg(p, "friend.not_online"));
     }
 
-    private void requests(Player p) {
+    /** `/fr requests [page]` – incoming then outgoing, paginated. */
+    private void requests(Player p, String[] args) {
         PlayerRef me = getRef(p);
 
-        // Project to plain usernames (cached)
         List<String> incoming = svc.incomingRequestUsernames(me);
         List<String> outgoing = svc.outgoingRequestUsernames(me);
 
@@ -428,23 +514,45 @@ public class FriendCommand extends FeatureCommand {
             sendMsg(p, "friend.no_requests");
             return;
         }
+
+        // Build combined list (incoming first, then outgoing)
+        List<Component> lines = new ArrayList<>(incoming.size() + outgoing.size());
+        for (String u : incoming) {
+            lines.add(feature.getLocalizationHandler()
+                    .getMessage("friend.requests.incoming_entry")
+                    .withPlaceholders(Map.of("player", u))
+                    .forAudience(p)
+                    .build());
+        }
+        for (String u : outgoing) {
+            lines.add(feature.getLocalizationHandler()
+                    .getMessage("friend.requests.outgoing_entry")
+                    .withPlaceholders(Map.of("player", u))
+                    .forAudience(p)
+                    .build());
+        }
+
         sendMsg(p, "friend.requests_header");
 
-        incoming.forEach(u -> p.sendMessage(
-                feature.getLocalizationHandler()
-                        .getMessage("friend.requests.incoming_entry")
-                        .withPlaceholders(Map.of("player", u))
-                        .forAudience(p)
-                        .build()
-        ));
+        int pageSize = getListPageSize();
+        int requestedPage = 1;
+        if (args.length >= 2) {
+            try { requestedPage = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
+        }
+        var page = Paginator.paginate(lines, requestedPage, pageSize);
 
-        outgoing.forEach(u -> p.sendMessage(
-                feature.getLocalizationHandler()
-                        .getMessage("friend.requests.outgoing_entry")
-                        .withPlaceholders(Map.of("player", u))
-                        .forAudience(p)
-                        .build()
-        ));
+        for (Component c : page.items()) {
+            p.sendMessage(c);
+        }
+
+        // Footer reusing the same page message
+        p.sendMessage(feature.getLocalizationHandler()
+                .getMessage("friend.list.page")
+                .withPlaceholders(Map.of(
+                        "page", String.valueOf(page.page()),
+                        "pages", String.valueOf(page.totalPages()),
+                        "size", String.valueOf(page.pageSize())))
+                .build());
     }
 
     private void block(Player p, String[] args) {
@@ -530,6 +638,32 @@ public class FriendCommand extends FeatureCommand {
         return vanishApi.map(api -> !api.isVanished(pl.getUniqueId())).orElse(true);
     }
 
+    private int getListPageSize() {
+        try {
+            Object raw = feature.getConfigHandler().getSetting("list_page_size");
+            int v;
+            if (raw instanceof Number n) v = n.intValue();
+            else if (raw instanceof String s) v = Integer.parseInt(s);
+            else v = 10;
+            return Math.max(1, v);
+        } catch (Exception e) {
+            return 10;
+        }
+    }
+
+    private boolean isPositiveInt(String s) {
+        if (s == null || s.isEmpty()) return false;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        try {
+            return Integer.parseInt(s) >= 1;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation inv) {
         CommandSource src = inv.source();
@@ -543,19 +677,28 @@ public class FriendCommand extends FeatureCommand {
                 "acceptall", "denyall", "server", "requests", "block", "unblock",
                 "disable", "enable", "cancel");
 
-        // 0 or 1st argument: subcommand suggestions
+        // 0 or 1st argument: subcommand suggestions, or offer page numbers if user typed digits
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
             return CompletableFuture.completedFuture(subs);
         }
         if (a.length == 1) {
-            String partial = a[0].toLowerCase(Locale.ROOT);
+            String token = a[0].toLowerCase(Locale.ROOT);
+            // If numeric, suggest a few page options for the base view
+            if (isPositiveInt(token)) {
+                int size = getListPageSize();
+                int total = svc.acceptedFriendSnapshots(getRef(p)).size(); // online subset size unknown here, use total for rough pages
+                int pages = Math.max(1, (int) Math.ceil(total / (double) size));
+                List<String> out = new ArrayList<>();
+                for (int i = 1; i <= Math.min(20, pages); i++) out.add(String.valueOf(i));
+                return CompletableFuture.completedFuture(out);
+            }
             List<String> out = subs.stream()
-                    .filter(s -> s.startsWith(partial))
+                    .filter(s -> s.startsWith(token))
                     .collect(Collectors.toList());
             return CompletableFuture.completedFuture(out);
         }
 
-        // From here: a.length >= 2 -> name suggestions per subcommand
+        // From here: a.length >= 2 -> name/page suggestions per subcommand
         String sub = a[0].toLowerCase(Locale.ROOT);
         String partial = a[1].toLowerCase(Locale.ROOT);
 
@@ -564,6 +707,28 @@ public class FriendCommand extends FeatureCommand {
         // Helpers
         java.util.function.Predicate<String> startsWith = name ->
                 name != null && name.toLowerCase(Locale.ROOT).startsWith(partial);
+
+        if (sub.equals("list")) {
+            int size = getListPageSize();
+            int total = svc.acceptedFriendSnapshots(me).size();
+            int pages = Math.max(1, (int) Math.ceil(total / (double) size));
+            List<String> pageOpts = new ArrayList<>(pages);
+            for (int i = 1; i <= pages && i <= 20; i++) pageOpts.add(String.valueOf(i));
+            return CompletableFuture.completedFuture(
+                    pageOpts.stream().filter(startsWith).toList()
+            );
+        }
+
+        if (sub.equals("requests")) {
+            int size = getListPageSize();
+            int total = svc.incomingRequestUsernames(me).size() + svc.outgoingRequestUsernames(me).size();
+            int pages = Math.max(1, (int) Math.ceil(total / (double) size));
+            List<String> pageOpts = new ArrayList<>(pages);
+            for (int i = 1; i <= pages && i <= 20; i++) pageOpts.add(String.valueOf(i));
+            return CompletableFuture.completedFuture(
+                    pageOpts.stream().filter(startsWith).toList()
+            );
+        }
 
         // Online & non-vanished players (usernames), excluding self
         List<Player> onlineNonVanished = feature.getPlugin().getProxy().getAllPlayers().stream()
@@ -636,8 +801,6 @@ public class FriendCommand extends FeatureCommand {
                 break;
 
             // Subcommands without a name argument
-            case "list":
-            case "requests":
             case "acceptall":
             case "denyall":
             case "disable":

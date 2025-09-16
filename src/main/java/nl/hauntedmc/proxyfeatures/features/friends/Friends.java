@@ -29,6 +29,7 @@ public class Friends extends VelocityBaseFeature<Meta> {
     public ConfigMap getDefaultConfig() {
         ConfigMap cfg = new ConfigMap();
         cfg.put("enabled", false);
+        cfg.put("list_page_size", 10);
         return cfg;
     }
 
@@ -89,6 +90,7 @@ public class Friends extends VelocityBaseFeature<Meta> {
         // List
         m.add("friend.list.header", P + "&eVriendenlijst &7(&a{online}&7/&f{total}&7)");
         m.add("friend.list.entry", "  &8» {status}&f{player}");
+        m.add("friend.list.page", P + "&7Pagina &f{page}&7/&f{pages} &8• &7Per pagina: &f{size}");
 
         // Connect
         m.add("friend.connected", P + "&eVerbinden met de server van &f{player}&e...");
@@ -143,4 +145,5 @@ public class Friends extends VelocityBaseFeature<Meta> {
     public FriendsCache getCache() {
         return cache;
     }
+
 }

@@ -60,7 +60,7 @@ public class PlayerInfoCommand extends FeatureCommand {
             String uuid = online.get().getUniqueId().toString();
             playerEntityOpt = feature.getService().findPlayerEntityByUuid(uuid);
             if (playerEntityOpt.isEmpty()) {
-                // create a transient record? We'll just fail gracefully to not alter DB here.
+                // Fall back to name lookup; don't mutate DB here.
                 playerEntityOpt = feature.getService().findPlayerEntityByName(online.get().getUsername());
             }
         } else {
@@ -70,7 +70,8 @@ public class PlayerInfoCommand extends FeatureCommand {
                 try {
                     UUID uuid = UUID.fromString(query);
                     playerEntityOpt = feature.getService().findPlayerEntityByUuid(uuid.toString());
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         }
 
@@ -102,9 +103,18 @@ public class PlayerInfoCommand extends FeatureCommand {
                 .forAudience(source)
                 .build());
 
+        // Field labels (resolved via messages)
+        String lblName = raw(source, "playerinfo.field.name");
+        String lblUuid = raw(source, "playerinfo.field.uuid");
+        String lblOnline = raw(source, "playerinfo.field.online");
+        String lblFirstLogin = raw(source, "playerinfo.field.first_login");
+        String lblLastLogin = raw(source, "playerinfo.field.last_login");
+        String lblLastDisconnect = raw(source, "playerinfo.field.last_disconnect");
+        String lblAlts = raw(source, "playerinfo.field.alts");
+
         // Entries
-        sendEntry(source, "Naam", playerEntity.getUsername());
-        sendEntry(source, "UUID", playerEntity.getUuid());
+        sendEntry(source, lblName, playerEntity.getUsername());
+        sendEntry(source, lblUuid, playerEntity.getUuid());
 
         if (onlineStatus.online()) {
             Component onlineYes = feature.getLocalizationHandler()
@@ -112,22 +122,30 @@ public class PlayerInfoCommand extends FeatureCommand {
                     .withPlaceholders(Map.of("server", onlineStatus.serverName()))
                     .forAudience(source)
                     .build();
-            sendEntry(source, "Online", onlineYes);
+            sendEntry(source, lblOnline, onlineYes);
         } else {
             Component onlineNo = feature.getLocalizationHandler()
                     .getMessage("playerinfo.online_no")
                     .forAudience(source)
                     .build();
-            sendEntry(source, "Online", onlineNo);
+            sendEntry(source, lblOnline, onlineNo);
         }
 
-        String firstLogin   = connOpt.map(c -> svc.fmt(c.getFirstConnectionAt())).orElse("—");
-        String lastLogin    = connOpt.map(c -> svc.fmt(c.getLastConnectionAt())).orElse("—");
+        String firstLogin = connOpt.map(c -> svc.fmt(c.getFirstConnectionAt())).orElse("—");
+        String lastLogin = connOpt.map(c -> svc.fmt(c.getLastConnectionAt())).orElse("—");
         String lastDisconnect = connOpt.map(c -> svc.fmt(c.getLastDisconnectAt())).orElse("—");
 
-        sendEntry(source, "Eerste login", firstLogin);
-        sendEntry(source, "Laatste login", lastLogin);
-        sendEntry(source, "Laatste disconnect", lastDisconnect);
+        sendEntry(source, lblFirstLogin, firstLogin);
+        sendEntry(source, lblLastLogin, lastLogin);
+        sendEntry(source, lblLastDisconnect, lastDisconnect);
+
+        // Possible alts by last known IP (exclude self, A–Z)
+        String lastIp = connOpt.map(PlayerConnectionInfoEntity::getIpAddress).orElse(null);
+        List<String> altNames = svc.findUsernamesByLastIp(lastIp, playerEntity.getId());
+        String altsValue = altNames.isEmpty()
+                ? raw(source, "playerinfo.alts_none")
+                : String.join(", ", altNames);
+        sendEntry(source, lblAlts, altsValue);
 
         // Active punishments
         source.sendMessage(feature.getLocalizationHandler()
@@ -141,8 +159,9 @@ public class PlayerInfoCommand extends FeatureCommand {
                     .forAudience(source)
                     .build());
         } else {
+            String permanentLabel = raw(source, "playerinfo.permanent");
             for (SanctionEntity s : activeSanctions) {
-                String expires = (s.getExpiresAt() == null) ? "permanent" : svc.fmt(s.getExpiresAt());
+                String expires = (s.getExpiresAt() == null) ? permanentLabel : svc.fmt(s.getExpiresAt());
                 String created = svc.fmt(s.getCreatedAt());
 
                 source.sendMessage(feature.getLocalizationHandler()
@@ -174,6 +193,15 @@ public class PlayerInfoCommand extends FeatureCommand {
                 .withPlaceholders(Map.of("field", field, "value", rawMessage))
                 .forAudience(audience)
                 .build());
+    }
+
+    /**
+     * Resolve a message key to a legacy-serialized string for placeholders.
+     */
+    private String raw(CommandSource audience, String key) {
+        return LegacyComponentSerializer.legacyAmpersand().serialize(
+                feature.getLocalizationHandler().getMessage(key).forAudience(audience).build()
+        );
     }
 
     @Override

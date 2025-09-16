@@ -43,6 +43,17 @@ public class PlayerInfo extends VelocityBaseFeature<Meta> {
         messages.add("playerinfo.online_yes", "&aJa &7(op &f{server}&7)");
         messages.add("playerinfo.online_no", "&cNee");
 
+        messages.add("playerinfo.field.name", "Naam");
+        messages.add("playerinfo.field.uuid", "UUID");
+        messages.add("playerinfo.field.online", "Online");
+        messages.add("playerinfo.field.first_login", "Eerste login");
+        messages.add("playerinfo.field.last_login", "Laatste login");
+        messages.add("playerinfo.field.last_disconnect", "Laatste disconnect");
+        messages.add("playerinfo.field.alts", "Mogelijke alts");
+
+        messages.add("playerinfo.alts_none", "Geen");
+        messages.add("playerinfo.permanent", "permanent");
+
         messages.add("playerinfo.punishments_header", "  &fActieve straffen:");
         messages.add("playerinfo.punishments_none", "    - &7Geen");
         messages.add("playerinfo.punishment_item",
