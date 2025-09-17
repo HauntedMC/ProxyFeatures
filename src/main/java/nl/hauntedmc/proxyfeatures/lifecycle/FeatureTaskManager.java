@@ -62,7 +62,7 @@ public class FeatureTaskManager {
     }
 
     /** Runs a repeating task with an initial delay. */
-    public ScheduledTask scheduleDelayedRepeatingTask(Runnable task, Duration delay, Duration period) {
+    public ScheduledTask scheduleRepeatingTask(Runnable task, Duration delay, Duration period) {
         Objects.requireNonNull(task, "task");
         Duration d = clampDelay(delay);
         Duration p = clampPeriod(period);

@@ -45,7 +45,7 @@ public class Friends extends VelocityBaseFeature<Meta> {
         // Overview / online
         m.add("friend.no_friends_online", P + "&7Er zijn momenteel geen vrienden online.");
         m.add("friend.online_header", P + "&eVrienden online:");
-        m.add("friend.online_entry", "  &8» &f{player} &8(&7{server}&8)");
+        m.add("friend.online_entry", "  &8» &f{player} {server}");
 
         // Requests
         m.add("friend.requests_header", P + "&eOpenstaande verzoeken:");

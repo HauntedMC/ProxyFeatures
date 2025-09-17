@@ -137,6 +137,7 @@ public class FriendCommand extends FeatureCommand {
                             "page", String.valueOf(page.page()),
                             "pages", String.valueOf(page.totalPages()),
                             "size", String.valueOf(page.pageSize())))
+                    .forAudience(p)
                     .build());
         }
 
@@ -210,6 +211,7 @@ public class FriendCommand extends FeatureCommand {
                 .withPlaceholders(Map.of(
                         "online", String.valueOf(onlineCount),
                         "total", String.valueOf(total)))
+                .forAudience(p)
                 .build());
 
         // Pagination
@@ -235,6 +237,7 @@ public class FriendCommand extends FeatureCommand {
                         "page", String.valueOf(page.page()),
                         "pages", String.valueOf(page.totalPages()),
                         "size", String.valueOf(page.pageSize())))
+                .forAudience(p)
                 .build());
     }
 
@@ -552,6 +555,7 @@ public class FriendCommand extends FeatureCommand {
                         "page", String.valueOf(page.page()),
                         "pages", String.valueOf(page.totalPages()),
                         "size", String.valueOf(page.pageSize())))
+                .forAudience(p)
                 .build());
     }
 
