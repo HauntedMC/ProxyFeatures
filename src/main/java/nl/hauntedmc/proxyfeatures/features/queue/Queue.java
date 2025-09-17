@@ -48,7 +48,7 @@ public class Queue extends VelocityBaseFeature<Meta> {
         m.add("queue.advance.now_connecting", "&aEr is plek vrijgekomen! Je wordt nu verbonden met &f{server}&a...");
         m.add("queue.grace.active", "&eJe plek is &f{seconds}s&e gereserveerd als je verbinding verbreekt.");
         m.add("queue.grace.lost", "&cJe reservatie voor &f{server}&c is verlopen.");
-        m.add("queue.cmd.usage", "&eGebruik: /queue | /queue top <server> | /queue skip <player>");
+        m.add("queue.cmd.usage", "&eGebruik: /queue | /queue leave | /queue top <server> | /queue skip <player>");
         m.add("queue.cmd.top.header", "&aTop van de wachtrij voor &f{server}&a:");
         m.add("queue.cmd.top.entry", "  &7#{idx}: &f{name} &8(perm {priority})");
         m.add("queue.cmd.top.empty", "&7Geen spelers in de wachtrij.");
@@ -56,6 +56,7 @@ public class Queue extends VelocityBaseFeature<Meta> {
         m.add("queue.cmd.no_permission", "&cJe hebt geen toestemming hiervoor.");
         m.add("queue.cmd.target_not_enabled", "&cWachtrij voor &f{server}&c is uitgeschakeld.");
         m.add("queue.cmd.skip.done", "&a{player} verplaatst naar de kop van de wachtrij voor &f{server}&a.");
+        m.add("queue.cmd.leave.done", "&aJe hebt de wachtrij voor &f{server}&a verlaten.");
         m.add("queue.cmd_notPlayer", "&cAlleen spelers kunnen dit commando uitvoeren.");
         m.add("queue.generic.server", "Server");
         return m;

@@ -1,3 +1,4 @@
+// src/main/java/nl/hauntedmc/proxyfeatures/features/queue/command/QueueCommand.java
 package nl.hauntedmc.proxyfeatures.features.queue.command;
 
 import com.velocitypowered.api.command.CommandSource;
@@ -12,9 +13,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * /queue           -> positie in je huidige wachtrij
- * /queue top <srv> -> toon kop van de wachtrij (staff)
- * /queue skip <p>  -> zet speler vooraan in zijn/haar wachtrij (staff)
+ * /queue            -> positie in je huidige wachtrij
+ * /queue leave      -> verlaat je huidige wachtrij
+ * /queue top <srv>  -> toon kop van de wachtrij (staff)
+ * /queue skip <p>   -> zet speler vooraan in zijn/haar wachtrij (staff)
  */
 public class QueueCommand extends FeatureCommand {
     private final Queue feature;
@@ -83,9 +85,10 @@ public class QueueCommand extends FeatureCommand {
             return;
         }
 
-        // Admin subcommands
-        String sub = args.get(0).toLowerCase(Locale.ROOT);
+        // Admin/Player subcommands
+        String sub = args.getFirst().toLowerCase(Locale.ROOT);
         switch (sub) {
+            case "leave" -> handleLeave(invocation);
             case "top" -> handleTop(invocation);
             case "skip" -> handleSkip(invocation);
             default -> source.sendMessage(feature.getLocalizationHandler()
@@ -93,6 +96,45 @@ public class QueueCommand extends FeatureCommand {
                     .forAudience(source)
                     .build());
         }
+    }
+
+    private void handleLeave(Invocation invocation) {
+        CommandSource source = invocation.source();
+        if (!(source instanceof Player p)) {
+            source.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("queue.cmd_notPlayer")
+                    .forAudience(source)
+                    .build());
+            return;
+        }
+        Optional<String> qServer = manager.findQueueOf(p.getUniqueId());
+        if (qServer.isEmpty()) {
+            source.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("queue.status.none")
+                    .forAudience(source)
+                    .build());
+            return;
+        }
+        String server = qServer.get();
+        var opt = manager.getQueue(server);
+        if (opt.isEmpty()) {
+            // Shouldn't happen if findQueueOf returned this, but handle gracefully
+            source.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("queue.status.not_enabled")
+                    .withPlaceholders(Map.of("server", server))
+                    .forAudience(source)
+                    .build());
+            return;
+        }
+
+        // Clear both queue entry and any grace reservation
+        opt.get().clearReservation(p.getUniqueId());
+
+        source.sendMessage(feature.getLocalizationHandler()
+                .getMessage("queue.cmd.leave.done")
+                .withPlaceholders(Map.of("server", server))
+                .forAudience(source)
+                .build());
     }
 
     private void handleTop(Invocation invocation) {
@@ -195,11 +237,12 @@ public class QueueCommand extends FeatureCommand {
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length == 0) {
-            return CompletableFuture.completedFuture(List.of("top", "skip"));
+            return CompletableFuture.completedFuture(List.of("leave", "top", "skip"));
         }
         if (args.length == 1) {
             String first = args[0].toLowerCase(Locale.ROOT);
             List<String> out = new ArrayList<>();
+            if ("leave".startsWith(first)) out.add("leave");
             if ("top".startsWith(first)) out.add("top");
             if ("skip".startsWith(first)) out.add("skip");
             return CompletableFuture.completedFuture(out);
