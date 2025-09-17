@@ -25,7 +25,6 @@ public class Queue extends VelocityBaseFeature<Meta> {
     public ConfigMap getDefaultConfig() {
         ConfigMap cfg = new ConfigMap();
         cfg.put("enabled", false);
-        cfg.put("auto-activate", true);
         cfg.put("servers-whitelist", List.of("survival", "skyblock", "kitpvp", "creative", "minigames"));
         cfg.put("poll-interval-seconds", 2);
         cfg.put("update-interval-seconds", 15);
@@ -36,7 +35,7 @@ public class Queue extends VelocityBaseFeature<Meta> {
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap m = new MessageMap();
-        m.add("queue.join.denied.full", "&eHelaas, de &e{server} server is vol. Je staat op plek &f#{position}&e in de wachtrij.");
+        m.add("queue.join.denied.full", "&eDe &e{server} server is vol. Je staat op plek &f#{position}&e in de wachtrij.");
         m.add("queue.join.bypass", "&aBypass actief: je gaat direct door naar &f{server}&a.");
         m.add("queue.join.already_in_queue", "&eJe staat al in de wachtrij voor &f{server}&e (positie &f#{position}&e).");
         m.add("queue.join.moved_between_queues", "&eJe bent verplaatst naar de wachtrij voor &f{server}&e (positie &f#{position}&e).");
@@ -45,9 +44,9 @@ public class Queue extends VelocityBaseFeature<Meta> {
         m.add("queue.status.line", "  &7Positie: &f#{position}");
         m.add("queue.status.none", "&eJe staat momenteel niet in een wachtrij.");
         m.add("queue.status.not_enabled", "&cWachtrij is niet ingeschakeld voor &f{server}&c.");
-        m.add("queue.actionbar.status", "&eWachtrij voor &f{server}&e: je staat op plek &f#{position}");
+        m.add("queue.actionbar.status", "&7Je staat in de wachtrij voor &6{server} &f(&7Plek &f#{position}&f)");
         m.add("queue.actionbar.leave", "&7Om de wachtrij te verlaten typ &f/queue leave");
-        m.add("queue.actionbar.rank", "&eKoop een rank op &fstore.hauntedmc.nl &eom prioriteit te krijgen");
+        m.add("queue.actionbar.rank", "&7Koop een rank op &astore.hauntedmc.nl &7om prioriteit te krijgen");
         m.add("queue.advance.now_connecting", "&aEr is plek vrijgekomen! Je wordt nu verbonden met &f{server}&a...");
         m.add("queue.grace.active", "&eJe plek is &f{seconds}s&e gereserveerd als je verbinding verbreekt.");
         m.add("queue.cmd.usage", "&eGebruik: /queue | /queue leave | /queue info <server>");

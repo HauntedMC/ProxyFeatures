@@ -29,12 +29,13 @@ public class QueueManager {
     private final Map<String, ServerStatus> statusCache = new ConcurrentHashMap<>();
 
     // One-shot bypass tickets for players being advanced by the queue.
-    // Key: player UUID, Value: lower-cased server name.
     private final Map<UUID, String> advanceTickets = new ConcurrentHashMap<>();
+
+    // Tracks which actionbar message to show next for each queued player (0..2).
+    private final Map<UUID, Integer> actionbarCycle = new ConcurrentHashMap<>();
 
     private final PriorityResolver priorityResolver;
 
-    // Task handles so we can cancel on shutdown
     private ScheduledTask pollTask;
     private ScheduledTask updateTask;
 
@@ -70,9 +71,9 @@ public class QueueManager {
 
         updateTask = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
             try {
-                sendGentleUpdates();
+                sendActionBarUpdates();
             } catch (Throwable t) {
-                logger.error("Queue update tick failed", t);
+                logger.error("Queue actionbar tick failed", t);
             }
         }, updateEvery, updateEvery);
     }
@@ -83,6 +84,7 @@ public class QueueManager {
         queues.clear();
         statusCache.clear();
         advanceTickets.clear();
+        actionbarCycle.clear();
     }
 
     // ------------------------------------------------------------
@@ -135,7 +137,6 @@ public class QueueManager {
 
             Player player = proxy.getPlayer(next.playerId()).orElse(null);
             if (player == null) {
-                // Offline: grace expiry will remove later if needed
                 continue;
             }
 
@@ -148,7 +149,7 @@ public class QueueManager {
                     .forAudience(player)
                     .build());
 
-            player.createConnectionRequest(target).connect().thenAccept(res -> {
+            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> player.createConnectionRequest(target).connect().thenAccept(res -> {
                 if (!res.isSuccessful()) {
                     res.getReasonComponent().ifPresent(component -> {
                         String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
@@ -158,13 +159,13 @@ public class QueueManager {
                                 .forAudience(player)
                                 .build());
                     });
-                    //queue.requeueFront(next);
+                    // We intentionally do NOT requeue automatically to avoid duplicates / loops.
                 } else {
-                    // Success: clear any reservation & drop the ticket if still present.
                     queue.clearReservation(next.playerId());
                     consumeAdvanceTicket(player.getUniqueId(), serverName);
+                    actionbarCycle.remove(player.getUniqueId());
                 }
-            });
+            }), Duration.ofSeconds(3));
         }
     }
 
@@ -172,21 +173,47 @@ public class QueueManager {
         queues.values().forEach(ServerQueue::expireGraces);
     }
 
-    private void sendGentleUpdates() {
+    /**
+     * Rotate actionbar messages for all queued players.
+     * We send (in order): status with position, hint to leave, store/rank hint.
+     * The rotation index is tracked per player and advanced on each tick.
+     */
+    private void sendActionBarUpdates() {
+        Set<UUID> active = new HashSet<>();
+
         for (ServerQueue q : queues.values()) {
             q.forEachIndexed((idx, entry) -> {
-                Player p = proxy.getPlayer(entry.playerId()).orElse(null);
+                UUID id = entry.playerId();
+                active.add(id);
+
+                Player p = proxy.getPlayer(id).orElse(null);
                 if (p == null) return;
-                p.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("queue.status.line")
-                        .withPlaceholders(Map.of(
-                                "server", q.serverName(),
-                                "position", String.valueOf(idx + 1)
-                        ))
-                        .forAudience(p)
-                        .build());
+
+                int next = (actionbarCycle.getOrDefault(id, -1) + 1) % 6;
+                actionbarCycle.put(id, next);
+
+                switch (next) {
+                    case 0, 1 -> p.sendActionBar(feature.getLocalizationHandler().getMessage("queue.actionbar.status")
+                            .withPlaceholders(Map.of(
+                                    "server", q.serverName(),
+                                    "position", String.valueOf(idx + 1)
+                            ))
+                            .forAudience(p)
+                            .build());
+                    case 2, 3 -> p.sendActionBar(feature.getLocalizationHandler()
+                            .getMessage("queue.actionbar.leave")
+                            .forAudience(p)
+                            .build());
+                    case 4, 5 -> p.sendActionBar(feature.getLocalizationHandler()
+                            .getMessage("queue.actionbar.rank")
+                            .forAudience(p)
+                            .build());
+                }
             });
         }
+
+        // Cleanup cycle state for players no longer queued
+        actionbarCycle.keySet().retainAll(active);
     }
 
     // ------------------------------------------------------------
@@ -212,17 +239,12 @@ public class QueueManager {
         return player.hasPermission("queue.bypass");
     }
 
-    /**
-     * Decide whether to allow direct connect or place into the queue.
-     * When auto-activate is true, queuing only happens if the target is currently full.
-     */
     public EnqueueDecision handlePreConnect(Player player, String targetServer) {
         String server = targetServer.toLowerCase(Locale.ROOT);
         if (!isServerQueued(server)) {
-            return EnqueueDecision.ALLOW; // not managed by queue
+            return EnqueueDecision.ALLOW;
         }
 
-        // If this player is being advanced by the queue for this server, allow once.
         if (consumeAdvanceTicket(player.getUniqueId(), server)) {
             return EnqueueDecision.ALLOW;
         }
@@ -231,15 +253,13 @@ public class QueueManager {
             return EnqueueDecision.ALLOW_BYPASS;
         }
 
-        boolean auto = Boolean.TRUE.equals(feature.getConfigHandler().getSetting("auto-activate"));
         ServerStatus st = getStatus(server);
         boolean isFull = st.isOnline() && st.onlinePlayers >= st.maxPlayers;
 
-        if (auto && !isFull) {
+        if (!isFull) {
             return EnqueueDecision.ALLOW;
         }
 
-        // Enqueue
         int priority = resolvePriority(player);
         ServerQueue queue = queues.get(server);
 
@@ -266,12 +286,12 @@ public class QueueManager {
             return EnqueueDecision.DENY_QUEUED;
         }
 
-        QueueEntry entry = queue.enqueue(player.getUniqueId(), priority);
-        int pos = queue.positionOf(entry.playerId()).orElse(0);
-
+        // New entry; tell them they're queued (no position in chat anymore).
+        queue.enqueue(player.getUniqueId(), priority);
+        int position = queue.positionOf(player.getUniqueId()).orElse(0) + 1;
         player.sendMessage(feature.getLocalizationHandler()
                 .getMessage("queue.join.denied.full")
-                .withPlaceholders(Map.of("server", server, "position", String.valueOf(pos + 1)))
+                .withPlaceholders(Map.of("server", server, "position", String.valueOf(position)))
                 .forAudience(player)
                 .build());
 
@@ -282,6 +302,9 @@ public class QueueManager {
                 .forAudience(player)
                 .build());
 
+        // Initialize actionbar rotation index (optional; first tick will advance anyway)
+        actionbarCycle.putIfAbsent(player.getUniqueId(), -1);
+
         return EnqueueDecision.DENY_QUEUED;
     }
 
@@ -290,8 +313,8 @@ public class QueueManager {
                 playerId,
                 Duration.ofSeconds(((Number) feature.getConfigHandler().getSetting("grace-seconds")).intValue())
         ));
-        // Clean up any stale ticket
         advanceTickets.remove(playerId);
+        actionbarCycle.remove(playerId);
     }
 
     public void onPostConnect(Player player, String newServer) {
@@ -301,6 +324,7 @@ public class QueueManager {
             }
         });
         advanceTickets.remove(player.getUniqueId());
+        actionbarCycle.remove(player.getUniqueId());
     }
 
     public Optional<String> findQueueOf(UUID playerId) {
@@ -309,7 +333,6 @@ public class QueueManager {
         }
         return Optional.empty();
     }
-
 
     // -------- advance ticket helpers --------
     private void grantAdvanceTicket(UUID playerId, String server) {

@@ -1,4 +1,3 @@
-// src/main/java/nl/hauntedmc/proxyfeatures/features/queue/command/QueueCommand.java
 package nl.hauntedmc.proxyfeatures.features.queue.command;
 
 import com.velocitypowered.api.command.CommandSource;
