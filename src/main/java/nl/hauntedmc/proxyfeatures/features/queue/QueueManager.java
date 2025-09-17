@@ -236,7 +236,7 @@ public class QueueManager {
     }
 
     public boolean hasBypass(Player player) {
-        return player.hasPermission("queue.bypass");
+        return player.hasPermission("proxyfeatures.feature.queue.bypass");
     }
 
     public EnqueueDecision handlePreConnect(Player player, String targetServer) {

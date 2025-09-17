@@ -11,7 +11,7 @@ public class PriorityResolver {
     public int resolve(Player player) {
         int best = 0;
         int highest = 3;
-        final String prefix = "queue.priority.";
+        final String prefix = "proxyfeatures.feature.queue.priority.";
         for (int lvl = 1; lvl <= highest; lvl++) {
             if (player.hasPermission(prefix + lvl)) {
                 best = lvl;
