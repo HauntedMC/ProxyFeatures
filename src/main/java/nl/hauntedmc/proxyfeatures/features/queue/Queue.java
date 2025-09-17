@@ -29,33 +29,33 @@ public class Queue extends VelocityBaseFeature<Meta> {
         cfg.put("servers-whitelist", List.of("survival", "skyblock", "kitpvp", "creative", "minigames"));
         cfg.put("poll-interval-seconds", 2);
         cfg.put("update-interval-seconds", 15);
-        cfg.put("grace-seconds", 120);
+        cfg.put("grace-seconds", 60);
         return cfg;
     }
 
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap m = new MessageMap();
-        m.add("queue.join.denied.full", "&e{server} is vol. Je bent in de wachtrij geplaatst.");
-        m.add("queue.join.denied.full_withpos", "&e{server} is vol. Je staat op &f#{position}&e in de wachtrij.");
+        m.add("queue.join.denied.full", "&eHelaas, de &e{server} server is vol. Je staat op plek &f#{position}&e in de wachtrij.");
         m.add("queue.join.bypass", "&aBypass actief: je gaat direct door naar &f{server}&a.");
         m.add("queue.join.already_in_queue", "&eJe staat al in de wachtrij voor &f{server}&e (positie &f#{position}&e).");
         m.add("queue.join.moved_between_queues", "&eJe bent verplaatst naar de wachtrij voor &f{server}&e (positie &f#{position}&e).");
+        m.add("queue.join.connection_failure", "&cJe kon helaas niet worden verbonden met &7{server}&c: &f{reason}");
         m.add("queue.status.header", "&eWachtrij status voor &f{server}&e:");
         m.add("queue.status.line", "  &7Positie: &f#{position}");
         m.add("queue.status.none", "&eJe staat momenteel niet in een wachtrij.");
         m.add("queue.status.not_enabled", "&cWachtrij is niet ingeschakeld voor &f{server}&c.");
+        m.add("queue.actionbar.status", "&eWachtrij voor &f{server}&e: je staat op plek &f#{position}");
+        m.add("queue.actionbar.leave", "&7Om de wachtrij te verlaten typ &f/queue leave");
+        m.add("queue.actionbar.rank", "&eKoop een rank op &fstore.hauntedmc.nl &eom prioriteit te krijgen");
         m.add("queue.advance.now_connecting", "&aEr is plek vrijgekomen! Je wordt nu verbonden met &f{server}&a...");
         m.add("queue.grace.active", "&eJe plek is &f{seconds}s&e gereserveerd als je verbinding verbreekt.");
-        m.add("queue.grace.lost", "&cJe reservatie voor &f{server}&c is verlopen.");
         m.add("queue.cmd.usage", "&eGebruik: /queue | /queue leave | /queue info <server>");
         m.add("queue.cmd.info.header", "&aInfo over de wachtrij voor &f{server}&a:");
         m.add("queue.cmd.info.entry", "  &7#{idx}: &f{name} &8(perm {priority})");
         m.add("queue.cmd.info.empty", "&7Geen spelers in de wachtrij.");
-        m.add("queue.cmd.player_not_found", "&cSpeler {player} niet gevonden.");
         m.add("queue.cmd.no_permission", "&cJe hebt geen toestemming hiervoor.");
         m.add("queue.cmd.target_not_enabled", "&cWachtrij voor &f{server}&c is uitgeschakeld.");
-        m.add("queue.cmd.skip.done", "&a{player} verplaatst naar de kop van de wachtrij voor &f{server}&a.");
         m.add("queue.cmd.leave.done", "&aJe hebt de wachtrij voor &f{server}&a verlaten.");
         m.add("queue.cmd_notPlayer", "&cAlleen spelers kunnen dit commando uitvoeren.");
         m.add("queue.generic.server", "Server");

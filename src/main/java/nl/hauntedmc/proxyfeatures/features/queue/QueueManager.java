@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.scheduler.ScheduledTask;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.proxyfeatures.features.queue.model.EnqueueDecision;
 import nl.hauntedmc.proxyfeatures.features.queue.model.QueueEntry;
 import nl.hauntedmc.proxyfeatures.features.queue.model.ServerQueue;
@@ -149,9 +150,15 @@ public class QueueManager {
 
             player.createConnectionRequest(target).connect().thenAccept(res -> {
                 if (!res.isSuccessful()) {
-                    // Failed (race, server filled, or temp issue). Try again soon, keeping order.
-                    // IMPORTANT: make requeue idempotent (ServerQueue removes duplicates).
-                    queue.requeueFront(next);
+                    res.getReasonComponent().ifPresent(component -> {
+                        String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
+                        player.sendMessage(feature.getLocalizationHandler()
+                                .getMessage("queue.join.connection_failure")
+                                .withPlaceholders(Map.of("server", serverName, "reason", reason))
+                                .forAudience(player)
+                                .build());
+                    });
+                    //queue.requeueFront(next);
                 } else {
                     // Success: clear any reservation & drop the ticket if still present.
                     queue.clearReservation(next.playerId());
@@ -261,9 +268,9 @@ public class QueueManager {
 
         QueueEntry entry = queue.enqueue(player.getUniqueId(), priority);
         int pos = queue.positionOf(entry.playerId()).orElse(0);
-        String key = pos == 0 ? "queue.join.denied.full" : "queue.join.denied.full_withpos";
+
         player.sendMessage(feature.getLocalizationHandler()
-                .getMessage(key)
+                .getMessage("queue.join.denied.full")
                 .withPlaceholders(Map.of("server", server, "position", String.valueOf(pos + 1)))
                 .forAudience(player)
                 .build());
