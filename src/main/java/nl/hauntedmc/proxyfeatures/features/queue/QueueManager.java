@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import nl.hauntedmc.proxyfeatures.features.queue.model.EnqueueDecision;
 import nl.hauntedmc.proxyfeatures.features.queue.model.QueueEntry;
 import nl.hauntedmc.proxyfeatures.features.queue.model.ServerQueue;
@@ -26,7 +27,15 @@ public class QueueManager {
     private final Map<String, ServerQueue> queues = new ConcurrentHashMap<>();
     private final Map<String, ServerStatus> statusCache = new ConcurrentHashMap<>();
 
+    // One-shot bypass tickets for players being advanced by the queue.
+    // Key: player UUID, Value: lower-cased server name.
+    private final Map<UUID, String> advanceTickets = new ConcurrentHashMap<>();
+
     private final PriorityResolver priorityResolver;
+
+    // Task handles so we can cancel on shutdown
+    private ScheduledTask pollTask;
+    private ScheduledTask updateTask;
 
     public QueueManager(Queue feature, Logger logger) {
         this.feature = feature;
@@ -50,8 +59,7 @@ public class QueueManager {
     // Scheduling
     // ------------------------------------------------------------
     public void startSchedulers(Duration pollEvery, Duration updateEvery) {
-        // Poll targets & drain queues
-        feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
+        pollTask = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
             try {
                 tick();
             } catch (Throwable t) {
@@ -59,8 +67,7 @@ public class QueueManager {
             }
         }, pollEvery, pollEvery);
 
-        // Quiet position updates
-        feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
+        updateTask = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
             try {
                 sendGentleUpdates();
             } catch (Throwable t) {
@@ -70,8 +77,11 @@ public class QueueManager {
     }
 
     public void shutdown() {
+        if (pollTask != null) feature.getLifecycleManager().getTaskManager().cancelTask(pollTask);
+        if (updateTask != null) feature.getLifecycleManager().getTaskManager().cancelTask(updateTask);
         queues.clear();
         statusCache.clear();
+        advanceTickets.clear();
     }
 
     // ------------------------------------------------------------
@@ -105,8 +115,6 @@ public class QueueManager {
 
             int capacity = Math.max(0, st.maxPlayers - st.onlinePlayers);
             if (capacity == 0) continue;
-
-            // Drain up to available capacity (always at least 1 to make progress)
             drain(server, capacity);
         }
 
@@ -130,18 +138,24 @@ public class QueueManager {
                 continue;
             }
 
+            // Grant a one-shot bypass so ServerPreConnectEvent won't deny this internal connect.
+            grantAdvanceTicket(player.getUniqueId(), serverName);
+
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.advance.now_connecting")
                     .withPlaceholders(Map.of("server", serverName))
                     .forAudience(player)
                     .build());
 
-            player.createConnectionRequest(target).connect().thenAccept(result -> {
-                if (!result.isSuccessful()) {
+            player.createConnectionRequest(target).connect().thenAccept(res -> {
+                if (!res.isSuccessful()) {
                     // Failed (race, server filled, or temp issue). Try again soon, keeping order.
+                    // IMPORTANT: make requeue idempotent (ServerQueue removes duplicates).
                     queue.requeueFront(next);
                 } else {
+                    // Success: clear any reservation & drop the ticket if still present.
                     queue.clearReservation(next.playerId());
+                    consumeAdvanceTicket(player.getUniqueId(), serverName);
                 }
             });
         }
@@ -191,7 +205,6 @@ public class QueueManager {
         return player.hasPermission("queue.bypass");
     }
 
-
     /**
      * Decide whether to allow direct connect or place into the queue.
      * When auto-activate is true, queuing only happens if the target is currently full.
@@ -200,6 +213,11 @@ public class QueueManager {
         String server = targetServer.toLowerCase(Locale.ROOT);
         if (!isServerQueued(server)) {
             return EnqueueDecision.ALLOW; // not managed by queue
+        }
+
+        // If this player is being advanced by the queue for this server, allow once.
+        if (consumeAdvanceTicket(player.getUniqueId(), server)) {
+            return EnqueueDecision.ALLOW;
         }
 
         if (hasBypass(player)) {
@@ -211,7 +229,6 @@ public class QueueManager {
         boolean isFull = st.isOnline() && st.onlinePlayers >= st.maxPlayers;
 
         if (auto && !isFull) {
-            // Queue present, but target not full -> allow silently
             return EnqueueDecision.ALLOW;
         }
 
@@ -219,7 +236,6 @@ public class QueueManager {
         int priority = resolvePriority(player);
         ServerQueue queue = queues.get(server);
 
-        // If already queued somewhere, keep/move them appropriately
         Optional<String> existing = findQueueOf(player.getUniqueId());
         if (existing.isPresent()) {
             String from = existing.get();
@@ -232,7 +248,6 @@ public class QueueManager {
                         .build());
             } else {
                 queues.get(from).remove(player.getUniqueId());
-                // Move & inform
                 queue.enqueue(player.getUniqueId(), priority);
                 int posAfterMove = queue.positionOf(player.getUniqueId()).orElse(0);
                 player.sendMessage(feature.getLocalizationHandler()
@@ -245,7 +260,6 @@ public class QueueManager {
         }
 
         QueueEntry entry = queue.enqueue(player.getUniqueId(), priority);
-
         int pos = queue.positionOf(entry.playerId()).orElse(0);
         String key = pos == 0 ? "queue.join.denied.full" : "queue.join.denied.full_withpos";
         player.sendMessage(feature.getLocalizationHandler()
@@ -265,20 +279,21 @@ public class QueueManager {
     }
 
     public void onDisconnect(UUID playerId) {
-        // Start grace window if they were in a queue
         findQueueOf(playerId).ifPresent(server -> queues.get(server).startGrace(
                 playerId,
                 Duration.ofSeconds(((Number) feature.getConfigHandler().getSetting("grace-seconds")).intValue())
         ));
+        // Clean up any stale ticket
+        advanceTickets.remove(playerId);
     }
 
     public void onPostConnect(Player player, String newServer) {
-        // If they were queued for this server, remove their entry now that they're connected
         findQueueOf(player.getUniqueId()).ifPresent(server -> {
             if (server.equalsIgnoreCase(newServer)) {
                 queues.get(server).remove(player.getUniqueId());
             }
         });
+        advanceTickets.remove(player.getUniqueId());
     }
 
     public Optional<String> findQueueOf(UUID playerId) {
@@ -288,11 +303,18 @@ public class QueueManager {
         return Optional.empty();
     }
 
-    // Admin ops
-    public boolean skipToFront(String server, UUID playerId) {
-        ServerQueue q = queues.get(server.toLowerCase(Locale.ROOT));
-        if (q == null) return false;
-        return q.moveToFront(playerId);
+
+    // -------- advance ticket helpers --------
+    private void grantAdvanceTicket(UUID playerId, String server) {
+        advanceTickets.put(playerId, server.toLowerCase(Locale.ROOT));
     }
 
+    public boolean consumeAdvanceTicket(UUID playerId, String server) {
+        String s = advanceTickets.get(playerId);
+        if (s != null && s.equalsIgnoreCase(server)) {
+            advanceTickets.remove(playerId);
+            return true;
+        }
+        return false;
+    }
 }

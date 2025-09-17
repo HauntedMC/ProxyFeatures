@@ -5,16 +5,16 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.hub.Hub;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
-import java.util.Optional;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class HubCommand extends FeatureCommand {
 
+    private static final String LOBBY_NAME = "lobby";
     private final Hub feature;
 
     public HubCommand(Hub feature) {
@@ -37,19 +37,18 @@ public class HubCommand extends FeatureCommand {
             return;
         }
 
-        // Attempt to retrieve the lobby server by name "lobby".
-        Optional<RegisteredServer> lobbyOptional = feature.getPlugin().getProxy().getServer("lobby");
+        Optional<RegisteredServer> lobbyOptional = feature.getPlugin().getProxy().getServer(LOBBY_NAME);
         if (lobbyOptional.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("hub.not_available")
-                    .withPlaceholders(Map.of("server", "lobby"))
+                    .withPlaceholders(Map.of("server", LOBBY_NAME))
                     .forAudience(player)
                     .build());
             return;
         }
 
         RegisteredServer lobby = lobbyOptional.get();
-        // Check if the player is already connected to the lobby.
+
         if (lobby.getPlayersConnected().contains(player)) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("hub.already_connected")
@@ -58,32 +57,35 @@ public class HubCommand extends FeatureCommand {
             return;
         }
 
-        // Initiate connection asynchronously with proper feedback.
-        player.createConnectionRequest(lobby).connect().thenAccept(result -> {
-            if (result.isSuccessful()) {
+        lobby.ping().whenComplete((ping, err) -> {
+            if (err != null || ping == null) {
                 player.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("hub.connection_success")
-                        .withPlaceholders(Map.of("server", "lobby"))
+                        .getMessage("hub.offline")
+                        .withPlaceholders(Map.of("server", LOBBY_NAME))
                         .forAudience(player)
                         .build());
-            } else {
-                String reason;
-                if (result.getReasonComponent().isPresent()) {
-                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(
-                            result.getReasonComponent().get());
-                } else {
-                    Component unknown = feature.getLocalizationHandler()
-                            .getMessage("hub.unknown_failure_reason")
-                            .forAudience(player)
-                            .build();
-                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(unknown);
-                }
-                player.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("hub.connection_failure")
-                        .withPlaceholders(Map.of("server", "lobby", "reason", reason))
-                        .forAudience(player)
-                        .build());
+                return;
             }
+
+            player.createConnectionRequest(lobby).connect().thenAccept(result -> {
+                if (result.isSuccessful()) {
+                    player.sendMessage(feature.getLocalizationHandler()
+                            .getMessage("hub.connection_success")
+                            .withPlaceholders(Map.of("server", LOBBY_NAME))
+                            .forAudience(player)
+                            .build());
+                } else {
+                    // Only send a failure message if a reason is provided.
+                    result.getReasonComponent().ifPresent(component -> {
+                        String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
+                        player.sendMessage(feature.getLocalizationHandler()
+                                .getMessage("hub.connection_failure")
+                                .withPlaceholders(Map.of("server", LOBBY_NAME, "reason", reason))
+                                .forAudience(player)
+                                .build());
+                    });
+                }
+            });
         });
     }
 

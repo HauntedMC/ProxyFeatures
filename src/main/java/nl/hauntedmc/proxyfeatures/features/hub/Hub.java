@@ -24,10 +24,10 @@ public class Hub extends VelocityBaseFeature<Meta> {
     public MessageMap getDefaultMessages() {
         MessageMap messageMap = new MessageMap();
         messageMap.add("hub.not_available", "&cOp dit moment is de Lobby server niet beschikbaar.");
+        messageMap.add("hub.offline", "&c&7{server} &cis momenteel offline. Probeer het later opnieuw.");
         messageMap.add("hub.already_connected", "&cJe bent al verbonden met deze server.");
         messageMap.add("hub.connection_success", "&aJe wordt verbonden met &7{server}&a.");
         messageMap.add("hub.connection_failure", "&cJe kon helaas niet worden verbonden met &7{server}&c: &f{reason}");
-        messageMap.add("hub.unknown_failure_reason", "&cEr is een onbekende fout opgetreden.");
         return messageMap;
     }
 
@@ -37,8 +37,5 @@ public class Hub extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public void disable() {
-
-    }
-
+    public void disable() { }
 }

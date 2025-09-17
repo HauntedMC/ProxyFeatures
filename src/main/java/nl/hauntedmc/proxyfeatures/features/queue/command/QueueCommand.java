@@ -15,8 +15,7 @@ import java.util.stream.Collectors;
 /**
  * /queue            -> positie in je huidige wachtrij
  * /queue leave      -> verlaat je huidige wachtrij
- * /queue top <srv>  -> toon kop van de wachtrij (staff)
- * /queue skip <p>   -> zet speler vooraan in zijn/haar wachtrij (staff)
+ * /queue info <srv>  -> toon kop van de wachtrij (staff)
  */
 public class QueueCommand extends FeatureCommand {
     private final Queue feature;
@@ -89,8 +88,7 @@ public class QueueCommand extends FeatureCommand {
         String sub = args.getFirst().toLowerCase(Locale.ROOT);
         switch (sub) {
             case "leave" -> handleLeave(invocation);
-            case "top" -> handleTop(invocation);
-            case "skip" -> handleSkip(invocation);
+            case "info" -> handleInfo(invocation);
             default -> source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.cmd.usage")
                     .forAudience(source)
@@ -137,10 +135,10 @@ public class QueueCommand extends FeatureCommand {
                 .build());
     }
 
-    private void handleTop(Invocation invocation) {
+    private void handleInfo(Invocation invocation) {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
-        if (!source.hasPermission("proxyfeatures.feature.queue.command.top")) {
+        if (!source.hasPermission("proxyfeatures.feature.queue.command.info")) {
             source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.cmd.no_permission")
                     .forAudience(source).build());
@@ -163,7 +161,7 @@ public class QueueCommand extends FeatureCommand {
         }
         var q = opt.get();
         source.sendMessage(feature.getLocalizationHandler()
-                .getMessage("queue.cmd.top.header")
+                .getMessage("queue.cmd.info.header")
                 .withPlaceholders(Map.of("server", server))
                 .forAudience(source).build());
         final int[] shown = {0};
@@ -171,7 +169,7 @@ public class QueueCommand extends FeatureCommand {
             if (shown[0] >= 10) return; // toon top 10
             String name = managerNameOf(e.playerId());
             source.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("queue.cmd.top.entry")
+                    .getMessage("queue.cmd.info.entry")
                     .withPlaceholders(Map.of(
                             "idx", String.valueOf(i + 1),
                             "name", name,
@@ -181,51 +179,8 @@ public class QueueCommand extends FeatureCommand {
         });
         if (shown[0] == 0) {
             source.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("queue.cmd.top.empty")
+                    .getMessage("queue.cmd.info.empty")
                     .forAudience(source).build());
-        }
-    }
-
-    private void handleSkip(Invocation invocation) {
-        CommandSource source = invocation.source();
-        String[] args = invocation.arguments();
-        if (!source.hasPermission("proxyfeatures.feature.queue.command.skip")) {
-            source.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("queue.cmd.no_permission")
-                    .forAudience(source).build());
-            return;
-        }
-        if (args.length < 2) {
-            source.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("queue.cmd.usage")
-                    .forAudience(source).build());
-            return;
-        }
-        String targetName = args[1];
-        Optional<Player> optP = feature.getPlugin().getProxy().getPlayer(targetName);
-        if (optP.isEmpty()) {
-            source.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("queue.cmd.player_not_found")
-                    .withPlaceholders(Map.of("player", targetName))
-                    .forAudience(source).build());
-            return;
-        }
-        Player target = optP.get();
-        Optional<String> srv = manager.findQueueOf(target.getUniqueId());
-        if (srv.isEmpty()) {
-            source.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("queue.status.none")
-                    .forAudience(source).build());
-            return;
-        }
-        boolean ok = manager.skipToFront(srv.get(), target.getUniqueId());
-        if (ok) {
-            source.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("queue.cmd.skip.done")
-                    .withPlaceholders(Map.of(
-                            "player", target.getUsername(),
-                            "server", srv.get()
-                    )).forAudience(source).build());
         }
     }
 
@@ -237,30 +192,21 @@ public class QueueCommand extends FeatureCommand {
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length == 0) {
-            return CompletableFuture.completedFuture(List.of("leave", "top", "skip"));
+            return CompletableFuture.completedFuture(List.of("leave", "info"));
         }
         if (args.length == 1) {
             String first = args[0].toLowerCase(Locale.ROOT);
             List<String> out = new ArrayList<>();
             if ("leave".startsWith(first)) out.add("leave");
-            if ("top".startsWith(first)) out.add("top");
-            if ("skip".startsWith(first)) out.add("skip");
+            if ("info".startsWith(first)) out.add("info");
             return CompletableFuture.completedFuture(out);
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("top")) {
+        if (args.length == 2 && args[0].equalsIgnoreCase("info")) {
             List<String> servers = feature.getPlugin().getProxy().getAllServers().stream()
                     .map(s -> s.getServerInfo().getName())
                     .filter(manager::isServerQueued)
                     .collect(Collectors.toList());
             return CompletableFuture.completedFuture(servers);
-        }
-        if (args.length == 2 && args[0].equalsIgnoreCase("skip")) {
-            String partial = args[1].toLowerCase(Locale.ROOT);
-            List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
-                    .map(Player::getUsername)
-                    .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
-                    .collect(Collectors.toList());
-            return CompletableFuture.completedFuture(names);
         }
         return CompletableFuture.completedFuture(List.of());
     }

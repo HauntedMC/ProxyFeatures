@@ -3,14 +3,13 @@ package nl.hauntedmc.proxyfeatures.features.slashserver.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.SlashServer;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class SlashServerCommand extends FeatureCommand {
@@ -50,7 +49,7 @@ public class SlashServerCommand extends FeatureCommand {
         }
 
         RegisteredServer targetServer = optionalServer.get();
-        // Check if the player is already connected to this server
+
         if (targetServer.getPlayersConnected().contains(player)) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("slash.already_connected")
@@ -59,28 +58,35 @@ public class SlashServerCommand extends FeatureCommand {
             return;
         }
 
-        // Initiate server connection asynchronously and send feedback using localization keys
-        player.createConnectionRequest(targetServer).connect().thenAccept(result -> {
-            if (result.isSuccessful()) {
+        targetServer.ping().whenComplete((ping, err) -> {
+            if (err != null || ping == null) {
                 player.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("slash.connection_success")
+                        .getMessage("slash.offline")
                         .withPlaceholders(Map.of("server", serverName))
                         .forAudience(player)
                         .build());
-            } else {
-                String reason;
-                if (result.getReasonComponent().isPresent()) {
-                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(result.getReasonComponent().get());
-                } else {
-                    Component unknownReason = feature.getLocalizationHandler().getMessage("slash.unknown_failure_reason").build();
-                    reason = LegacyComponentSerializer.legacyAmpersand().serialize(unknownReason);
-                }
-                player.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("slash.connection_failure")
-                        .withPlaceholders(Map.of("server", serverName, "reason", reason))
-                        .forAudience(player)
-                        .build());
+                return;
             }
+
+            player.createConnectionRequest(targetServer).connect().thenAccept(result -> {
+                if (result.isSuccessful()) {
+                    player.sendMessage(feature.getLocalizationHandler()
+                            .getMessage("slash.connection_success")
+                            .withPlaceholders(Map.of("server", serverName))
+                            .forAudience(player)
+                            .build());
+                } else {
+                    // Only send a failure message if the proxy provided a reason.
+                    result.getReasonComponent().ifPresent(component -> {
+                        String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
+                        player.sendMessage(feature.getLocalizationHandler()
+                                .getMessage("slash.connection_failure")
+                                .withPlaceholders(Map.of("server", serverName, "reason", reason))
+                                .forAudience(player)
+                                .build());
+                    });
+                }
+            });
         });
     }
 
