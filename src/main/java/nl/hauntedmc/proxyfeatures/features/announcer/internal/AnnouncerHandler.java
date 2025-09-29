@@ -20,7 +20,7 @@ public class AnnouncerHandler {
         this.feature = feature;
         this.taskManager = feature.getLifecycleManager().getTaskManager();
         this.announcerRegistry = new AnnouncerRegistry(feature);
-        this.messageInterval = (int) feature.getConfigHandler().getSetting("message_interval");
+        this.messageInterval = feature.getConfigHandler().getSetting("message_interval", Integer.class, 200);
     }
 
     public void startAnnouncementCycle() {
@@ -30,12 +30,11 @@ public class AnnouncerHandler {
         taskManager.scheduleRepeatingTask(() -> {
             String messageKey = announcerRegistry.get(currentMessageIndex);
             feature.getPlugin().getProxy().getAllPlayers().forEach(player -> {
-                Component message = feature.getLocalizationHandler().getMessage(messageKey).forAudience(player).ofType(MessageType.MiniMessage).build();
+                Component message = feature.getLocalizationHandler()
+                        .getMessage(messageKey).forAudience(player).ofType(MessageType.MiniMessage).build();
                 player.sendMessage(message);
             });
             currentMessageIndex = (currentMessageIndex + 1) % announcerRegistry.getTotalMessages();
         }, Duration.ofSeconds(messageInterval));
     }
-
-
 }

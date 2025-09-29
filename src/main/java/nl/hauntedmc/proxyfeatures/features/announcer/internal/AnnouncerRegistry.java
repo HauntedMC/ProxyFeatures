@@ -1,10 +1,10 @@
 package nl.hauntedmc.proxyfeatures.features.announcer.internal;
 
+import nl.hauntedmc.proxyfeatures.config.ConfigNode;
 import nl.hauntedmc.proxyfeatures.features.announcer.Announcer;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class AnnouncerRegistry {
 
@@ -17,19 +17,18 @@ public class AnnouncerRegistry {
     }
 
     private void loadMessagesFromConfig() {
-        Object raw = feature.getConfigHandler().getSetting("messages");
-        if (raw instanceof List<?> messageList) {
-            for (Object obj : messageList) {
-                if (obj instanceof Map<?, ?> map) {
-                    String key = map.get("message_key").toString();
-                    messageKeys.add("announcer."+key);
+        ConfigNode msgsNode = feature.getConfigHandler().node("messages");
+        try {
+            List<String> ids = msgsNode.listOf(String.class);
+            if (ids != null) {
+                for (String id : ids) {
+                    if (id != null && !id.isBlank()) {
+                        messageKeys.add("announcer." + id.trim());
+                    }
                 }
             }
+        } catch (IllegalArgumentException ignore) {
         }
-    }
-
-    public List<String> getMessageKeys() {
-        return messageKeys;
     }
 
     public String get(int index) {

@@ -7,10 +7,7 @@ import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.announcer.internal.AnnouncerHandler;
 import nl.hauntedmc.proxyfeatures.features.announcer.meta.Meta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Announcer extends VelocityBaseFeature<Meta> {
 
@@ -24,12 +21,7 @@ public class Announcer extends VelocityBaseFeature<Meta> {
         defaults.put("enabled", false);
         defaults.put("message_interval", 200);
 
-        List<Map<String, Object>> messages = new ArrayList<>();
-        Map<String, Object> msg1 = new HashMap<>();
-        msg1.put("message_key", "text1");
-        messages.add(msg1);
-
-        defaults.put("messages", messages);
+        defaults.put("messages", List.of("text1"));
         return defaults;
     }
 
@@ -49,5 +41,4 @@ public class Announcer extends VelocityBaseFeature<Meta> {
     @Override
     public void disable() {
     }
-
 }
