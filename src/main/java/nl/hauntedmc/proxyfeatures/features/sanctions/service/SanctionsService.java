@@ -80,12 +80,18 @@ public class SanctionsService {
         return feature.getOrm().runInTransaction(session -> {
             // Deactivate any pre-existing active sanctions of same type & target/IP in the same transaction
             if (target != null) {
-                session.createQuery("UPDATE SanctionEntity SET active = false WHERE active = true AND type = :t AND targetPlayer = :tp")
+                session.createMutationQuery(
+                                "UPDATE SanctionEntity s " +
+                                        "SET s.active = false " +
+                                        "WHERE s.active = true AND s.type = :t AND s.targetPlayer = :tp")
                         .setParameter("t", type)
                         .setParameter("tp", target)
                         .executeUpdate();
             } else if (ip != null) {
-                session.createQuery("UPDATE SanctionEntity SET active = false WHERE active = true AND type = :t AND targetIp = :ip")
+                session.createMutationQuery(
+                                "UPDATE SanctionEntity s " +
+                                        "SET s.active = false " +
+                                        "WHERE s.active = true AND s.type = :t AND s.targetIp = :ip")
                         .setParameter("t", type)
                         .setParameter("ip", ip)
                         .executeUpdate();

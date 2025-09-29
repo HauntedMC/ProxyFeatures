@@ -321,14 +321,15 @@ public class FriendsService {
     }
 
     public boolean removeFriendship(PlayerRef a, PlayerRef b) {
-        Integer affected = feature.getOrm().runInTransaction(s -> s.createQuery(
-                        "DELETE FROM FriendRelationEntity fr " +
-                                "WHERE ((fr.player.id = :a AND fr.friend.id = :b) OR (fr.player.id = :b AND fr.friend.id = :a)) " +
-                                "AND fr.status = :st")
-                .setParameter("a", a.id())
-                .setParameter("b", b.id())
-                .setParameter("st", FriendStatus.ACCEPTED)
-                .executeUpdate());
+        Integer affected = feature.getOrm().runInTransaction(s ->
+                s.createMutationQuery(
+                                "DELETE FROM FriendRelationEntity fr " +
+                                        "WHERE ((fr.player.id = :a AND fr.friend.id = :b) OR (fr.player.id = :b AND fr.friend.id = :a)) " +
+                                        "AND fr.status = :st")
+                        .setParameter("a", a.id())
+                        .setParameter("b", b.id())
+                        .setParameter("st", FriendStatus.ACCEPTED)
+                        .executeUpdate());
         int count = affected == null ? 0 : affected;
         if (count > 0) {
             cache.invalidateRelation(a.id(), b.id());
@@ -343,7 +344,7 @@ public class FriendsService {
         feature.getOrm().runInTransaction(s -> {
             upsertRelationInTx(s, blocker.id(), target.id(), FriendStatus.BLOCKED);
 
-            s.createQuery(
+            s.createMutationQuery(
                             "DELETE FROM FriendRelationEntity fr " +
                                     "WHERE fr.player.id = :t AND fr.friend.id = :b " +
                                     "AND fr.status <> :st")
@@ -361,7 +362,7 @@ public class FriendsService {
 
     public boolean unblock(PlayerRef blocker, PlayerRef target) {
         Integer deleted = feature.getOrm().runInTransaction(s ->
-                s.createQuery(
+                s.createMutationQuery(
                                 "DELETE FROM FriendRelationEntity fr " +
                                         "WHERE fr.player.id = :b AND fr.friend.id = :t AND fr.status = :st")
                         .setParameter("b", blocker.id())
@@ -381,7 +382,7 @@ public class FriendsService {
 
     public boolean cancelPending(PlayerRef from, PlayerRef to) {
         Integer deleted = feature.getOrm().runInTransaction(s ->
-                s.createQuery(
+                s.createMutationQuery(
                                 "DELETE FROM FriendRelationEntity fr " +
                                         "WHERE fr.player.id = :f AND fr.friend.id = :t AND fr.status = :st")
                         .setParameter("f", from.id())
@@ -401,7 +402,7 @@ public class FriendsService {
 
     public boolean denyIncoming(PlayerRef to, PlayerRef from) {
         Integer deleted = feature.getOrm().runInTransaction(s ->
-                s.createQuery(
+                s.createMutationQuery(
                                 "DELETE FROM FriendRelationEntity fr " +
                                         "WHERE fr.player.id = :f AND fr.friend.id = :t AND fr.status = :st")
                         .setParameter("f", from.id())
@@ -515,7 +516,7 @@ public class FriendsService {
         if (affected.isEmpty()) return 0;
 
         Integer denied = feature.getOrm().runInTransaction(s ->
-                s.createQuery(
+                s.createMutationQuery(
                                 "DELETE FROM FriendRelationEntity fr " +
                                         "WHERE fr.friend.id = :me AND fr.status = :st")
                         .setParameter("me", me.id())

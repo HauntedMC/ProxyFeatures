@@ -7,26 +7,7 @@ public final class Paginator {
 
     private Paginator() {}
 
-    public static final class Page<T> {
-        private final List<T> items;
-        private final int page;
-        private final int totalPages;
-        private final int totalItems;
-        private final int pageSize;
-
-        public Page(List<T> items, int page, int totalPages, int totalItems, int pageSize) {
-            this.items = items;
-            this.page = page;
-            this.totalPages = totalPages;
-            this.totalItems = totalItems;
-            this.pageSize = pageSize;
-        }
-
-        public List<T> items() { return items; }
-        public int page() { return page; }
-        public int totalPages() { return totalPages; }
-        public int totalItems() { return totalItems; }
-        public int pageSize() { return pageSize; }
+    public record Page<T>(List<T> items, int page, int totalPages, int totalItems, int pageSize) {
     }
 
     /** 1-based paging; clamps page into [1..totalPages]. */
