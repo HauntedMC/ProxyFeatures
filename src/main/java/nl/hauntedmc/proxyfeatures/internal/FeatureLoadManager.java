@@ -4,20 +4,38 @@ import nl.hauntedmc.commonlib.featureapi.event.FeatureDisabledEvent;
 import nl.hauntedmc.commonlib.featureapi.event.FeatureEventManager;
 import nl.hauntedmc.commonlib.featureapi.event.FeatureLoadedEvent;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
-import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.internal.action.disable.FeatureDisableResponse;
+import nl.hauntedmc.proxyfeatures.internal.action.disable.FeatureDisableResult;
+import nl.hauntedmc.proxyfeatures.internal.action.enable.FeatureEnableResponse;
+import nl.hauntedmc.proxyfeatures.internal.action.enable.FeatureEnableResult;
+import nl.hauntedmc.proxyfeatures.internal.action.reload.FeatureReloadResponse;
+import nl.hauntedmc.proxyfeatures.internal.action.reload.FeatureReloadResult;
+import nl.hauntedmc.proxyfeatures.internal.action.softreload.FeatureSoftReloadResponse;
+import nl.hauntedmc.proxyfeatures.internal.action.softreload.FeatureSoftReloadResult;
+import nl.hauntedmc.proxyfeatures.internal.dependency.DependencyCheckResult;
+import nl.hauntedmc.proxyfeatures.internal.dependency.FeatureDependencyManager;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
-public class FeatureLoadManager {
+/**
+ * Velocity-side FeatureLoadManager with the same semantics as the Bukkit/Server version:
+ * - Detailed responses for enable/disable/reload/softreload
+ * - Dependency diagnosis (plugin + feature dependencies)
+ * - Safe topological init
+ * - Cascading disable/reload of dependents
+ * - Emits FeatureLoaded/FeatureDisabled events
+ */
+public final class FeatureLoadManager {
 
     private final ProxyFeatures plugin;
     private final MainConfigHandler mainConfigHandler;
     private final FeatureRegistry featureRegistry;
     private final FeatureDependencyManager dependencyManager;
-    private final LocalizationHandler localizationHandler;
+    private final nl.hauntedmc.proxyfeatures.localization.LocalizationHandler localizationHandler;
 
     public FeatureLoadManager(ProxyFeatures plugin) {
         this.plugin = plugin;
@@ -99,22 +117,138 @@ public class FeatureLoadManager {
         return true;
     }
 
-
     /**
-     * Enables and loads a feature dynamically.
+     * Enable a feature with diagnostics and proper result reporting.
      */
-    public boolean enableFeature(String featureName) {
+    public FeatureEnableResponse enableFeature(String featureName) {
         if (!featureRegistry.getAvailableFeatures().containsKey(featureName)) {
             plugin.getLogger().warn("Feature not found: {}", featureName);
-            return false;
+            return new FeatureEnableResponse(FeatureEnableResult.NOT_FOUND, Set.of(), Set.of());
         }
+        if (featureRegistry.isFeatureLoaded(featureName)) {
+            plugin.getLogger().warn("Feature already loaded: {}", featureName);
+            return new FeatureEnableResponse(FeatureEnableResult.ALREADY_LOADED, Set.of(), Set.of());
+        }
+
+        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
+        if (feature == null) {
+            return new FeatureEnableResponse(FeatureEnableResult.FAILED, Set.of(), Set.of());
+        }
+
+        DependencyCheckResult diag = diagnoseDependencies(feature);
+        if (!diag.ok()) {
+            if (!diag.missingPluginDependencies().isEmpty()) {
+                return new FeatureEnableResponse(FeatureEnableResult.MISSING_PLUGIN_DEPENDENCY, diag.missingPluginDependencies(), diag.missingFeatureDependencies());
+            }
+            return new FeatureEnableResponse(FeatureEnableResult.MISSING_FEATURE_DEPENDENCY, diag.missingPluginDependencies(), diag.missingFeatureDependencies());
+        }
+
+        boolean previousEnabled = mainConfigHandler.isFeatureEnabled(featureName);
         mainConfigHandler.setFeatureEnabled(featureName, true);
-        return loadFeature(featureName);
+
+        boolean loaded = loadFeature(featureName);
+        if (!loaded) {
+            mainConfigHandler.setFeatureEnabled(featureName, previousEnabled);
+            return new FeatureEnableResponse(FeatureEnableResult.FAILED, Set.of(), Set.of());
+        }
+        return new FeatureEnableResponse(FeatureEnableResult.SUCCESS, Set.of(), Set.of());
     }
 
+    /**
+     * Disable a feature, cascading to dependents first. Returns which dependents were also disabled.
+     */
+    public FeatureDisableResponse disableFeature(String featureName) {
+        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+        if (feature == null) {
+            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
+            return new FeatureDisableResponse(FeatureDisableResult.NOT_LOADED, featureName, Set.of());
+        }
+
+        // Determine and disable dependents first (to avoid dangling refs)
+        Set<String> dependents = new LinkedHashSet<>(dependencyManager.getDependentFeatures(featureName));
+        for (String dep : dependents) {
+            FeatureDisableResponse depResp = disableFeature(dep);
+            if (!depResp.success()) {
+                plugin.getLogger().warn("Failed to disable dependent feature: {}", dep);
+            }
+        }
+
+        try {
+            feature.cleanup();
+            mainConfigHandler.setFeatureEnabled(featureName, false);
+            featureRegistry.deregisterLoadedFeature(featureName);
+            plugin.getLogger().info("Feature disabled: {}", featureName);
+            FeatureEventManager.triggerEvent(new FeatureDisabledEvent(featureName));
+            return new FeatureDisableResponse(FeatureDisableResult.SUCCESS, featureName, dependents);
+        } catch (Throwable t) {
+            plugin.getLogger().error("Disable failed: {}", featureName, t);
+            return new FeatureDisableResponse(FeatureDisableResult.FAILED, featureName, dependents);
+        }
+    }
 
     /**
-     * Loads and initializes a feature.
+     * Soft reload: re-read config + localization for a loaded feature.
+     */
+    public FeatureSoftReloadResponse softReloadFeature(String featureName) {
+        if (!featureRegistry.isFeatureLoaded(featureName)) {
+            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
+            return new FeatureSoftReloadResponse(FeatureSoftReloadResult.NOT_LOADED, featureName);
+        }
+        try {
+            VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+            feature.getConfigHandler().reloadConfig();
+            feature.getLocalizationHandler().reloadLocalization();
+            plugin.getLogger().info("Feature {} soft reloaded.", featureName);
+            return new FeatureSoftReloadResponse(FeatureSoftReloadResult.SUCCESS, featureName);
+        } catch (Throwable t) {
+            plugin.getLogger().error("Soft reload failed for: {}", featureName, t);
+            return new FeatureSoftReloadResponse(FeatureSoftReloadResult.FAILED, featureName);
+        }
+    }
+
+    /**
+     * Full reload: reload plugin + feature configs, re-init the feature, and then best-effort reload dependents.
+     */
+    public FeatureReloadResponse reloadFeature(String featureName) {
+        if (!featureRegistry.isFeatureLoaded(featureName)) {
+            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
+            return new FeatureReloadResponse(FeatureReloadResult.NOT_LOADED, featureName, Set.of());
+        }
+
+        Set<String> reloadedDependents = new LinkedHashSet<>();
+        try {
+            mainConfigHandler.reloadConfig();
+            localizationHandler.reloadLocalization();
+
+            VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+            feature.cleanup();
+            featureRegistry.deregisterLoadedFeature(featureName);
+
+            boolean hasReloaded = loadFeature(featureName);
+            if (!hasReloaded) {
+                plugin.getLogger().error("Reload failed for: {} (feature did not load back)", featureName);
+                return new FeatureReloadResponse(FeatureReloadResult.FAILED, featureName, reloadedDependents);
+            }
+
+            plugin.getLogger().info("Feature {} reloaded.", featureName);
+
+            // Reload dependents automatically (best-effort)
+            for (String dependent : dependencyManager.getDependentFeatures(featureName)) {
+                plugin.getLogger().info("Reloading dependent feature: {}", dependent);
+                FeatureReloadResponse depResp = reloadFeature(dependent);
+                if (depResp.success()) reloadedDependents.add(dependent);
+            }
+
+            return new FeatureReloadResponse(FeatureReloadResult.SUCCESS, featureName, reloadedDependents);
+        } catch (Throwable t) {
+            plugin.getLogger().error("Reload failed for: {}", featureName, t);
+            return new FeatureReloadResponse(FeatureReloadResult.FAILED, featureName, reloadedDependents);
+        }
+    }
+
+    /**
+     * Internal: load & initialize a feature if enabled and deps are met.
+     * Returns true if the feature ended up loaded.
      */
     public boolean loadFeature(String featureName) {
         if (featureRegistry.isFeatureLoaded(featureName)) {
@@ -145,90 +279,56 @@ public class FeatureLoadManager {
         return false;
     }
 
-    /**
-     * Disables and unloads a feature dynamically.
-     */
-    public boolean disableFeature(String featureName) {
-        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
-        if (feature == null) {
-            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
-            return false;
-        }
-        feature.cleanup();
-        mainConfigHandler.setFeatureEnabled(featureName, false);
-        plugin.getLogger().info("Feature disabled: {}", featureName);
-        featureRegistry.deregisterLoadedFeature(featureName);
-        FeatureEventManager.triggerEvent(new FeatureDisabledEvent(featureName));
-
-        // Disable dependent features
-        for (String dependent : dependencyManager.getDependentFeatures(featureName)) {
-            disableFeature(dependent);
-        }
-
-        return true;
-    }
-
-    public boolean softReloadFeature(String featureName) {
-        if (!featureRegistry.isFeatureLoaded(featureName)) {
-            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
-            return false;
-        }
-        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
-        feature.getConfigHandler().reloadConfig();
-        feature.getLocalizationHandler().reloadLocalization();
-        plugin.getLogger().info("Feature {} soft reloaded.", featureName);
-        return true;
-    }
-
-    /**
-     * Reloads a feature dynamically, ensuring dependent features reload afterward.
-     */
-    public boolean reloadFeature(String featureName) {
-        if (!featureRegistry.isFeatureLoaded(featureName)) {
-            plugin.getLogger().warn("Feature not currently loaded: {}", featureName);
-            return false;
-        }
-
-        mainConfigHandler.reloadConfig();
-        localizationHandler.reloadLocalization();
-        VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
-        feature.cleanup();
-        featureRegistry.deregisterLoadedFeature(featureName);
-
-        boolean hasReloaded = loadFeature(featureName);
-
-        if (hasReloaded) {
-            plugin.getLogger().info("Feature {} reloaded.", featureName);
-
-            // Reload dependent features automatically
-            for (String dependent : dependencyManager.getDependentFeatures(featureName)) {
-                plugin.getLogger().info("Reloading dependent feature: {}", dependent);
-                reloadFeature(dependent);
-            }
-        }
-
-        return hasReloaded;
-    }
-
-    /**
-     * Returns the feature registry for tracking features.
-     */
     public FeatureRegistry getFeatureRegistry() {
         return featureRegistry;
     }
 
-    /**
-     * Unload all currently loaded features.
-     */
     public void unloadAllFeatures() {
         plugin.getLogger().info("Unloading all loaded features...");
-
         List<VelocityBaseFeature<?>> loadedFeatures = featureRegistry.getLoadedFeatures();
-
         for (VelocityBaseFeature<?> feature : loadedFeatures) {
-            feature.cleanup();
+            try {
+                feature.cleanup();
+            } catch (Throwable t) {
+                plugin.getLogger().error("Error during cleanup of feature {}", feature.getFeatureName(), t);
+            }
+        }
+        plugin.getLogger().info("All features have been unloaded.");
+    }
+
+    /**
+     * Diagnose missing plugin + feature dependencies for a feature.
+     * For plugin deps we look for an Optional plugin container in Velocity's PluginManager.
+     * Velocity doesn't expose "enabled" state, so presence is considered sufficient.
+     */
+    private DependencyCheckResult diagnoseDependencies(VelocityBaseFeature<?> feature) {
+        Set<String> missingPlugins = new LinkedHashSet<>();
+        Set<String> missingFeatures = new LinkedHashSet<>();
+
+        try {
+            Method m = feature.getClass().getMethod("getPluginDependencies");
+            Object o = m.invoke(feature);
+            if (o instanceof Collection<?> col) {
+                for (Object item : col) {
+                    String name = String.valueOf(item);
+                    var optional = plugin.getPluginManager().getPlugin(name);
+                    if (optional.isEmpty()) {
+                        missingPlugins.add(name);
+                    }
+                }
+            }
+        } catch (NoSuchMethodException ignored) {
+        } catch (Throwable t) {
+            plugin.getLogger().warn("Failed to read plugin dependencies for {}", feature.getFeatureName(), t);
         }
 
-        plugin.getLogger().info("All features have been unloaded.");
+        // Feature dependencies
+        for (String dep : feature.getDependencies()) {
+            if (!featureRegistry.isFeatureLoaded(dep)) {
+                missingFeatures.add(dep);
+            }
+        }
+
+        return new DependencyCheckResult(missingPlugins, missingFeatures);
     }
 }

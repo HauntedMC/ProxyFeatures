@@ -1,9 +1,10 @@
-package nl.hauntedmc.proxyfeatures.internal;
+package nl.hauntedmc.proxyfeatures.internal.dependency;
 
 import com.velocitypowered.api.plugin.PluginContainer;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
+import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
 
 import java.io.Serializable;
 import java.util.HashSet;

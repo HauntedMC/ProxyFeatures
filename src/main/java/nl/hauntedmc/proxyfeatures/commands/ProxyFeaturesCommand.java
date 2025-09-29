@@ -7,12 +7,23 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import nl.hauntedmc.proxyfeatures.internal.action.enable.FeatureEnableResponse;
+import nl.hauntedmc.proxyfeatures.internal.action.disable.FeatureDisableResponse;
+import nl.hauntedmc.proxyfeatures.internal.action.reload.FeatureReloadResponse;
+import nl.hauntedmc.proxyfeatures.internal.action.softreload.FeatureSoftReloadResponse;
 
-public class ProxyFeaturesCommand implements SimpleCommand {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public final class ProxyFeaturesCommand implements SimpleCommand {
 
     private final ProxyFeatures plugin;
 
@@ -22,142 +33,135 @@ public class ProxyFeaturesCommand implements SimpleCommand {
 
     @Override
     public void execute(final Invocation invocation) {
-        CommandSource sender = invocation.source();
-        String[] args = invocation.arguments();
+        final CommandSource sender = invocation.source();
+        final String[] args = invocation.arguments();
 
         if (args.length == 0) {
-            sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.usage").forAudience(sender).build());
+            send("general.usage", sender, Map.of());
             return;
         }
 
-        switch (args[0].toLowerCase()) {
-            case "status":
-                if (!sender.hasPermission("proxyfeatures.command.status")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
-                    return;
-                }
+        switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "status" -> {
+                if (!has(sender, "proxyfeatures.command.status")) return;
                 sendPluginStatus(sender);
-                break;
-
-            case "list":
-                if (!sender.hasPermission("proxyfeatures.command.list")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
-                    return;
-                }
-                listLoadedFeatures(sender);
-                break;
-
-            case "softreload":
-                if (!sender.hasPermission("proxyfeatures.command.reload")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
-                    return;
-                }
-                if (args.length < 2) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.usage").forAudience(sender).build());
-                    return;
-                }
-                if (plugin.getFeatureLoadManager().softReloadFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
-                } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.softreload.fail").forAudience(sender).build());
-                }
-                return;
-
-            case "reload":
-                if (!sender.hasPermission("proxyfeatures.command.reload")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
-                    return;
-                }
-                if (args.length < 2) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.usage").forAudience(sender).build());
-                    return;
-                }
-                if (plugin.getFeatureLoadManager().reloadFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
-                } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reload.fail").forAudience(sender).build());
-                }
-                break;
-
-            case "enable":
-                if (!sender.hasPermission("proxyfeatures.command.enable")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
-                    return;
-                }
-                if (args.length < 2) return;
-                if (plugin.getFeatureLoadManager().enableFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
-                } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.enable.fail").forAudience(sender).build());
-                }
-                break;
-
-            case "disable":
-                if (!sender.hasPermission("proxyfeatures.command.disable")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
-                    return;
-                }
-                if (args.length < 2) return;
-                if (plugin.getFeatureLoadManager().disableFeature(args[1])) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.success").forAudience(sender).withPlaceholders(Map.of("feature", args[1])).build());
-                } else {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.disable.fail").forAudience(sender).build());
-                }
-                break;
-
-            case "reloadlocal":
-                if (!sender.hasPermission("proxyfeatures.command.reloadlocal")) {
-                    sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.no_permission").forAudience(sender).build());
-                    return;
-                }
-                plugin.getLocalizationHandler().reloadLocalization();
-                sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.reloadlocal.success").forAudience(sender).build());
-                break;
-
-            default:
-                sender.sendMessage(plugin.getLocalizationHandler().getMessage("general.unknown_command").forAudience(sender).build());
-                break;
-        }
-    }
-
-    @Override
-    public boolean hasPermission(final Invocation invocation) {
-        return invocation.source().hasPermission("proxyfeatures.use");
-    }
-
-    @Override
-    public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
-        String[] args = invocation.arguments();
-        List<String> completions = new ArrayList<>();
-        if (args.length == 1) {
-            completions.add("list");
-            completions.add("disable");
-            completions.add("enable");
-            completions.add("reload");
-            completions.add("reloadlocal");
-            completions.add("softreload");
-            completions.add("status");
-        } else if (args.length == 2) {
-            switch (args[0].toLowerCase()) {
-                case "reload":
-                case "softreload":
-                case "disable":
-                    completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
-                            .map(VelocityBaseFeature::getFeatureName)
-                            .toList());
-                    break;
-
-                case "enable":
-                    completions.addAll(plugin.getFeatureLoadManager().getFeatureRegistry().getAvailableFeatures().keySet().stream()
-                            .filter(feature -> plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
-                                    .noneMatch(loadedFeature -> loadedFeature.getFeatureName().equalsIgnoreCase(feature)))
-                            .toList());
-                    break;
             }
+            case "list" -> {
+                if (!has(sender, "proxyfeatures.command.list")) return;
+                listLoadedFeatures(sender);
+            }
+            case "softreload" -> {
+                if (!has(sender, "proxyfeatures.command.reload")) return;
+                if (args.length < 2) { send("command.softreload.usage", sender, Map.of()); return; }
+                handleSoftReload(sender, args[1]);
+            }
+            case "reload" -> {
+                if (!has(sender, "proxyfeatures.command.reload")) return;
+                if (args.length < 2) { send("command.reload.usage", sender, Map.of()); return; }
+                handleReload(sender, args[1]);
+            }
+            case "enable" -> {
+                if (!has(sender, "proxyfeatures.command.enable")) return;
+                if (args.length < 2) return; // mimic Bukkit behaviour (no explicit usage)
+                handleEnable(sender, args[1]);
+            }
+            case "disable" -> {
+                if (!has(sender, "proxyfeatures.command.disable")) return;
+                if (args.length < 2) return; // mimic Bukkit behaviour (no explicit usage)
+                handleDisable(sender, args[1]);
+            }
+            case "reloadlocal" -> {
+                if (!has(sender, "proxyfeatures.command.reloadlocal")) return;
+                try {
+                    plugin.getLocalizationHandler().reloadLocalization();
+                    send("command.reloadlocal.success", sender, Map.of());
+                } catch (Throwable t) {
+                    plugin.getLogger().warn("Localization reload failed: {}", t.getMessage());
+                    send("command.reloadlocal.fail", sender, Map.of());
+                }
+            }
+            default -> send("general.unknown_command", sender, Map.of());
         }
-        return CompletableFuture.completedFuture(completions);
     }
 
+    private void handleEnable(CommandSource sender, String feature) {
+        FeatureEnableResponse resp = plugin.getFeatureLoadManager().enableFeature(feature);
+        switch (resp.result()) {
+            case SUCCESS -> send("command.enable.success", sender, Map.of("feature", feature));
+            case NOT_FOUND -> send("command.enable.not_found", sender, Map.of("feature", feature));
+            case ALREADY_LOADED -> send("command.enable.already_loaded", sender, Map.of("feature", feature));
+            case MISSING_PLUGIN_DEPENDENCY -> {
+                String plugins = String.join(", ", resp.missingPlugins());
+                send("command.enable.missing_plugin_dependency", sender, Map.of("feature", feature, "plugins", plugins));
+            }
+            case MISSING_FEATURE_DEPENDENCY -> {
+                String deps = String.join(", ", resp.missingFeatures());
+                send("command.enable.missing_feature_dependency", sender, Map.of("feature", feature, "features", deps));
+            }
+            default -> send("command.enable.failed", sender, Map.of("feature", feature));
+        }
+    }
+
+    private void handleDisable(CommandSource sender, String feature) {
+        FeatureDisableResponse resp = plugin.getFeatureLoadManager().disableFeature(feature);
+        switch (resp.result()) {
+            case SUCCESS -> {
+                if (!resp.alsoDisabledDependents().isEmpty()) {
+                    send("command.disable.success_with_dependents", sender, Map.of(
+                            "feature", feature,
+                            "dependents", String.join(", ", resp.alsoDisabledDependents())
+                    ));
+                } else {
+                    send("command.disable.success", sender, Map.of("feature", feature));
+                }
+            }
+            case NOT_LOADED -> send("command.disable.not_loaded", sender, Map.of("feature", feature));
+            default -> send("command.disable.failed", sender, Map.of("feature", feature));
+        }
+    }
+
+    private void handleSoftReload(CommandSource sender, String feature) {
+        FeatureSoftReloadResponse resp = plugin.getFeatureLoadManager().softReloadFeature(feature);
+        switch (resp.result()) {
+            case SUCCESS -> send("command.softreload.success", sender, Map.of("feature", feature));
+            case NOT_LOADED -> send("command.softreload.not_loaded", sender, Map.of("feature", feature));
+            default -> send("command.softreload.failed", sender, Map.of("feature", feature));
+        }
+    }
+
+    private void handleReload(CommandSource sender, String feature) {
+        FeatureReloadResponse resp = plugin.getFeatureLoadManager().reloadFeature(feature);
+        switch (resp.result()) {
+            case SUCCESS -> {
+                if (!resp.reloadedDependents().isEmpty()) {
+                    send("command.reload.success_with_dependents", sender, Map.of(
+                            "feature", feature,
+                            "dependents", String.join(", ", resp.reloadedDependents())
+                    ));
+                } else {
+                    send("command.reload.success", sender, Map.of("feature", feature));
+                }
+            }
+            case NOT_LOADED -> send("command.reload.not_loaded", sender, Map.of("feature", feature));
+            default -> send("command.reload.failed", sender, Map.of("feature", feature));
+        }
+    }
+
+    private boolean has(CommandSource sender, String perm) {
+        if (!sender.hasPermission(perm)) {
+            send("general.no_permission", sender, Map.of());
+            return false;
+        }
+        return true;
+    }
+
+    private void send(String key, CommandSource audience, Map<String, String> placeholders) {
+        audience.sendMessage(plugin.getLocalizationHandler()
+                .getMessage(key)
+                .forAudience(audience)
+                .withPlaceholders(placeholders)
+                .build());
+    }
 
     private void sendPluginStatus(CommandSource sender) {
         List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
@@ -169,13 +173,12 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         int activeConnCount = 0;
 
         for (VelocityBaseFeature<?> feature : loadedFeatures) {
-            registeredCommandCount += feature.getLifecycleManager().getCommandManager().getRegisteredCommandCount();
-            loadedCommands.addAll(feature.getLifecycleManager().getCommandManager()
-                    .getRegisteredCommands()
-                    .values()
-                    .stream()
-                    .map(FeatureCommand::getName)
-                    .toList());
+            // Command names: prefer keys to avoid needing a FeatureCommand type import
+            Map<String, ?> cmds = feature.getLifecycleManager().getCommandManager().getRegisteredCommands();
+            registeredCommandCount += (cmds != null ? cmds.size() : 0);
+            if (cmds != null) {
+                loadedCommands.addAll(cmds.keySet());
+            }
             activeTaskCount += feature.getLifecycleManager().getTaskManager().getActiveTaskCount();
             registeredListenerCount += feature.getLifecycleManager().getListenerManager().getRegisteredListenerCount();
             activeConnCount += feature.getLifecycleManager().getDataManager().getActiveConnCount();
@@ -194,18 +197,76 @@ public class ProxyFeaturesCommand implements SimpleCommand {
         List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
 
         if (loadedFeatures.isEmpty()) {
-            sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.empty").forAudience(sender).build());
+            send("command.list.empty", sender, Map.of());
             return;
         }
 
-        sender.sendMessage(plugin.getLocalizationHandler().getMessage("command.list.header").forAudience(sender).build());
+        send("command.list.header", sender, Map.of());
         for (VelocityBaseFeature<?> feature : loadedFeatures) {
-            sender.sendMessage(plugin.getLocalizationHandler().getMessage(
-                    "command.list.entry").forAudience(sender).withPlaceholders(
-                    Map.of("feature", feature.getFeatureName(), "version", feature.getFeatureVersion())).build()
-            );
+            send("command.list.entry", sender, Map.of(
+                    "feature", feature.getFeatureName(),
+                    "version", feature.getFeatureVersion()
+            ));
         }
     }
+
+    @Override
+    public boolean hasPermission(final Invocation invocation) {
+        // Global gate; per-subcommand checks still enforced
+        return invocation.source().hasPermission("proxyfeatures.use");
+    }
+
+    @Override
+    public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
+        final Locale L = Locale.ROOT;
+        final String[] args = invocation.arguments();
+
+        if (args.length == 0) {
+            return CompletableFuture.completedFuture(List.of());
+        }
+
+        if (args.length == 1) {
+            String prefix = args[0].toLowerCase(L);
+            List<String> subs = Stream.of("list", "disable", "enable", "reload", "reloadlocal", "softreload", "status")
+                    .filter(s -> s.toLowerCase(L).startsWith(prefix))
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .toList();
+            return CompletableFuture.completedFuture(subs);
+        }
+
+        if (args.length == 2) {
+            String sub = args[0].toLowerCase(L);
+            String featurePrefix = args[1].toLowerCase(L);
+
+            List<String> result = switch (sub) {
+                case "reload", "softreload", "disable" -> plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                        .map(VelocityBaseFeature::getFeatureName)
+                        .filter(Objects::nonNull)
+                        .filter(name -> name.toLowerCase(L).startsWith(featurePrefix))
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .toList();
+
+                case "enable" -> {
+                    Set<String> loadedLower = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                            .map(VelocityBaseFeature::getFeatureName)
+                            .filter(Objects::nonNull)
+                            .map(s -> s.toLowerCase(L))
+                            .collect(Collectors.toSet());
+
+                    yield plugin.getFeatureLoadManager().getFeatureRegistry().getAvailableFeatures().keySet().stream()
+                            .filter(Objects::nonNull)
+                            .filter(name -> !loadedLower.contains(name.toLowerCase(L)))
+                            .filter(name -> name.toLowerCase(L).startsWith(featurePrefix))
+                            .sorted(String.CASE_INSENSITIVE_ORDER)
+                            .toList();
+                }
+
+                default -> Collections.emptyList();
+            };
+
+            return CompletableFuture.completedFuture(result);
+        }
+
+        return CompletableFuture.completedFuture(Collections.emptyList());
+    }
 }
-
-
