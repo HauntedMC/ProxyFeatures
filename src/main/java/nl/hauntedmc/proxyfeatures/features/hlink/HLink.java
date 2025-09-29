@@ -22,6 +22,7 @@ public class HLink extends VelocityBaseFeature<Meta> {
     @Override
     public ConfigMap getDefaultConfig() {
         ConfigMap defaults = new ConfigMap();
+        defaults.put("enabled", false);
         defaults.put("api-key", "<key>");
         defaults.put("website-url", "https://hauntedmc.nl");
         defaults.put("full-friendly-urls-enabled", true);
