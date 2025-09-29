@@ -10,13 +10,13 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public class UnmuteCommand extends FeatureCommand {
+public class UnmuteCommand implements FeatureCommand {
 
     private final Sanctions feature;
 
     public UnmuteCommand(Sanctions feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -61,15 +61,15 @@ public class UnmuteCommand extends FeatureCommand {
         feature.getDiscordService().sendUnmute(target, actorName);
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.unmute");
     }
 
-    @Override public String getName() { return "unmute"; }
-    @Override public String[] getAliases() { return new String[0]; }
+     public String getName() { return "unmute"; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         String prefix = (a.length >= 1) ? a[0] : "";

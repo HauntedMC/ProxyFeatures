@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class SanctionListCommand extends FeatureCommand {
+public class SanctionListCommand implements FeatureCommand {
 
     private final Sanctions feature;
 
@@ -26,7 +26,7 @@ public class SanctionListCommand extends FeatureCommand {
 
     public SanctionListCommand(Sanctions feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -260,16 +260,16 @@ public class SanctionListCommand extends FeatureCommand {
         return Math.min(page, totalPages);
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.sanctionlist");
     }
 
-    @Override public String getName() { return "sanctionlist"; }
+     public String getName() { return "sanctionlist"; }
 
-    @Override public String[] getAliases() { return new String[0]; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
 

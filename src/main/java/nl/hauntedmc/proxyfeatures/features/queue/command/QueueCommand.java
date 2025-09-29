@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  * /queue leave      -> verlaat je huidige wachtrij
  * /queue info <srv>  -> toon kop van de wachtrij (staff)
  */
-public class QueueCommand extends FeatureCommand {
+public class QueueCommand implements FeatureCommand{
     private final Queue feature;
     private final QueueManager manager;
 
@@ -25,18 +25,18 @@ public class QueueCommand extends FeatureCommand {
         this.manager = manager;
     }
 
-    @Override
+    
     public String getName() { return "queue"; }
 
-    @Override
+    
     public String[] getAliases() { return new String[]{ "q" }; }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.queue.command");
     }
 
-    @Override
+    
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         List<String> args = List.of(invocation.arguments());
@@ -187,7 +187,7 @@ public class QueueCommand extends FeatureCommand {
         return feature.getPlugin().getProxy().getPlayer(id).map(Player::getUsername).orElse(id.toString());
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length == 0) {

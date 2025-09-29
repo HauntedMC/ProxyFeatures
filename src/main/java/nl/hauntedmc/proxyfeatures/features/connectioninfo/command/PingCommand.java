@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class PingCommand extends FeatureCommand {
+public class PingCommand implements FeatureCommand {
     private final ConnectionInfo feature;
     private final int greenThreshold;
     private final int yellowThreshold;
@@ -23,17 +23,14 @@ public class PingCommand extends FeatureCommand {
         yellowThreshold = (int) feature.getConfigHandler().getSetting("ping_threshold_yellow");
     }
 
-    @Override
     public String getName() {
         return "ping";
     }
 
-    @Override
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
     public boolean hasPermission(Invocation invocation) {
         if (invocation.arguments().length == 0) {
             return invocation.source().hasPermission("proxyfeatures.feature.connectioninfo.command.ping");
@@ -42,7 +39,6 @@ public class PingCommand extends FeatureCommand {
         return invocation.source().hasPermission("proxyfeatures.feature.connectioninfo.command.ping.other");
     }
 
-    @Override
     public void execute(Invocation invocation) {
         CommandSource src = invocation.source();
         String[] args = invocation.arguments();
@@ -101,8 +97,6 @@ public class PingCommand extends FeatureCommand {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(ph).forAudience(src).build());
     }
 
-
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
 

@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class HLinkCommand extends FeatureCommand {
+public class HLinkCommand implements FeatureCommand {
 
     private final HLink feature;
     private final HLinkHandler handler;
@@ -22,22 +22,22 @@ public class HLinkCommand extends FeatureCommand {
         this.handler = feature.getHLinkHandler();
     }
 
-    @Override
+    
     public String getName() {
         return "hlink";
     }
 
-    @Override
+    
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.hlink.command.sync");
     }
 
-    @Override
+    
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         List<String> args = List.of(invocation.arguments());
@@ -79,7 +79,7 @@ public class HLinkCommand extends FeatureCommand {
         );
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         List<String> args = List.of(invocation.arguments());
 

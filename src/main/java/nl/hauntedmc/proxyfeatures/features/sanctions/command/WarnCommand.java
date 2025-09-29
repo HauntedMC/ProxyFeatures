@@ -10,12 +10,12 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class WarnCommand extends FeatureCommand {
+public class WarnCommand implements FeatureCommand{
 
     private final Sanctions feature;
     public WarnCommand(Sanctions feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -55,15 +55,15 @@ public class WarnCommand extends FeatureCommand {
         }
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.warn");
     }
 
-    @Override public String getName() { return "warn"; }
-    @Override public String[] getAliases() { return new String[0]; }
+     public String getName() { return "warn"; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
 

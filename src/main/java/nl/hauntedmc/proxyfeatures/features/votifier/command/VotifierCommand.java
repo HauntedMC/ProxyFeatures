@@ -10,13 +10,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class VotifierCommand extends FeatureCommand {
+public class VotifierCommand implements FeatureCommand{
 
     private final Votifier feature;
 
     public VotifierCommand(Votifier feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -50,16 +50,16 @@ public class VotifierCommand extends FeatureCommand {
         }
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.votifier.command");
     }
 
-    @Override public String getName() { return "votifier"; }
+     public String getName() { return "votifier"; }
 
-    @Override public String[] getAliases() { return new String[0]; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         if (a.length <= 1) {

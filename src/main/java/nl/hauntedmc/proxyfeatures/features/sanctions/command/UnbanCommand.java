@@ -9,13 +9,13 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public class UnbanCommand extends FeatureCommand {
+public class UnbanCommand implements FeatureCommand {
 
     private final Sanctions feature;
 
     public UnbanCommand(Sanctions feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -55,15 +55,15 @@ public class UnbanCommand extends FeatureCommand {
         feature.getDiscordService().sendUnban(target, actorName);
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.unban");
     }
 
-    @Override public String getName() { return "unban"; }
-    @Override public String[] getAliases() { return new String[0]; }
+     public String getName() { return "unban"; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         String prefix = (a.length >= 1) ? a[0] : "";

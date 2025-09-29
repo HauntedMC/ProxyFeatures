@@ -15,29 +15,29 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class PlayerInfoCommand extends FeatureCommand {
+public class PlayerInfoCommand implements FeatureCommand{
     private final PlayerInfo feature;
 
     public PlayerInfoCommand(PlayerInfo feature) {
         this.feature = feature;
     }
 
-    @Override
+    
     public String getName() {
         return "playerinfo";
     }
 
-    @Override
+    
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.playerinfo.command");
     }
 
-    @Override
+    
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
@@ -204,7 +204,7 @@ public class PlayerInfoCommand extends FeatureCommand {
         );
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
 

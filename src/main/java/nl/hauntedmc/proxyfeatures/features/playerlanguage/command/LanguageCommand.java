@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class LanguageCommand extends FeatureCommand {
+public class LanguageCommand implements FeatureCommand{
 
     private static final String PERM_SELF   = "proxyfeatures.feature.language.command";
     private static final String PERM_OTHERS = "proxyfeatures.feature.language.others";
@@ -21,7 +21,7 @@ public class LanguageCommand extends FeatureCommand {
         this.feature = feature;
     }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] args = inv.arguments();
@@ -117,16 +117,16 @@ public class LanguageCommand extends FeatureCommand {
                 .forAudience(src).build());
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         // Let everyone pass here; we check exact perms in execute to allow nuanced control.
         return inv.source().hasPermission(PERM_SELF) || inv.source().hasPermission(PERM_OTHERS);
     }
 
-    @Override public String getName() { return "language"; }
-    @Override public String[] getAliases() { return new String[]{"lang", "taal", "sprache"}; }
+     public String getName() { return "language"; }
+     public String[] getAliases() { return new String[]{"lang", "taal", "sprache"}; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         CommandSource src = invocation.source();
         boolean canOthers = src.hasPermission(PERM_OTHERS);

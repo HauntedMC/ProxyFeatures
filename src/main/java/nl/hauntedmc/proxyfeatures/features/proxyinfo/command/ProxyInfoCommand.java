@@ -14,7 +14,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public class ProxyInfoCommand extends FeatureCommand {
+public class ProxyInfoCommand implements FeatureCommand{
     private final ProxyInfo feature;
     private final ProxyServer proxy;
     private final OperatingSystemMXBean osBean;
@@ -25,23 +25,23 @@ public class ProxyInfoCommand extends FeatureCommand {
         this.osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
     }
 
-    @Override
+    
     public String getName() {
         return "proxyinfo";
     }
 
-    @Override
+    
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return invocation.source()
                 .hasPermission("proxyfeatures.feature.proxyinfo.command.proxyinfo");
     }
 
-    @Override
+    
     public void execute(Invocation invocation) {
         CommandSource src = invocation.source();
         if (invocation.arguments().length > 0) {
@@ -95,7 +95,7 @@ public class ProxyInfoCommand extends FeatureCommand {
         sendEntry(src, "System CPU Load",  String.format("%.2f%%", systemLoad));
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(Collections.emptyList());
     }

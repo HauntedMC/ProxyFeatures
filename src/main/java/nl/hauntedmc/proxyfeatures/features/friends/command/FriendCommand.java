@@ -18,7 +18,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class FriendCommand extends FeatureCommand {
+public class FriendCommand implements FeatureCommand {
 
     private final Friends feature;
     private final FriendsService svc;
@@ -30,7 +30,6 @@ public class FriendCommand extends FeatureCommand {
         this.vanishApi = APIRegistry.get(VanishAPI.class);
     }
 
-    @Override
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] args = inv.arguments();
@@ -71,7 +70,6 @@ public class FriendCommand extends FeatureCommand {
         }
     }
 
-    @Override
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.friend.command.friends");
     }
@@ -668,7 +666,6 @@ public class FriendCommand extends FeatureCommand {
         }
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation inv) {
         CommandSource src = inv.source();
         if (!(src instanceof Player p)) {
@@ -816,12 +813,10 @@ public class FriendCommand extends FeatureCommand {
         return CompletableFuture.completedFuture(result);
     }
 
-    @Override
     public String getName() {
         return "friends";
     }
 
-    @Override
     public String[] getAliases() {
         return new String[]{"fr", "friend"};
     }

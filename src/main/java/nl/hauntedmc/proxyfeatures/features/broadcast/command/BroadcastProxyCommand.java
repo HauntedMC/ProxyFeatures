@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BroadcastProxyCommand extends FeatureCommand {
+public class BroadcastProxyCommand implements FeatureCommand {
 
     private final Broadcast feature;
     private final ProxyServer proxy;
@@ -25,16 +25,14 @@ public class BroadcastProxyCommand extends FeatureCommand {
         this.proxy   = feature.getPlugin().getProxy();
     }
 
-    @Override public String getName()    { return "broadcastproxy"; }
-    @Override public String[] getAliases() { return new String[]{""}; }
+    public String getName()    { return "broadcastproxy"; }
+    public String[] getAliases() { return new String[]{""}; }
 
-    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission(
                 "proxyfeatures.feature.broadcast.command.broadcastproxy");
     }
 
-    @Override
     public void execute(Invocation invocation) {
         CommandSource src = invocation.source();
         String[] args     = invocation.arguments();
@@ -112,7 +110,6 @@ public class BroadcastProxyCommand extends FeatureCommand {
                 .build());
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
 

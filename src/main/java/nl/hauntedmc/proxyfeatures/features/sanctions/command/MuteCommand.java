@@ -12,12 +12,12 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class MuteCommand extends FeatureCommand {
+public class MuteCommand implements FeatureCommand {
 
     private final Sanctions feature;
     public MuteCommand(Sanctions feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -85,15 +85,15 @@ public class MuteCommand extends FeatureCommand {
         }
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.mute");
     }
 
-    @Override public String getName() { return "mute"; }
-    @Override public String[] getAliases() { return new String[0]; }
+     public String getName() { return "mute"; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         // Keep these short, staff can still type custom lengths

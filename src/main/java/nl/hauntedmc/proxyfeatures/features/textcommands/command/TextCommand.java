@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class TextCommand extends FeatureCommand {
+public class TextCommand implements FeatureCommand{
 
     private final String name;
     private final String messageKey;
@@ -25,7 +25,7 @@ public class TextCommand extends FeatureCommand {
         this.placeholders = placeholders;
     }
 
-    @Override
+    
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
@@ -44,22 +44,22 @@ public class TextCommand extends FeatureCommand {
         player.sendMessage(output);
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return true;
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(List.of(""));
     }
 
-    @Override
+    
     public String getName() {
         return this.name;
     }
 
-    @Override
+    
     public String[] getAliases() {
         return new String[]{""};
     }

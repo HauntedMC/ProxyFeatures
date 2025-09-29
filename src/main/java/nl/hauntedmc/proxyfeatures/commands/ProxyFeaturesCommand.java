@@ -31,7 +31,7 @@ public final class ProxyFeaturesCommand implements SimpleCommand {
         this.plugin = plugin;
     }
 
-    @Override
+    
     public void execute(final Invocation invocation) {
         final CommandSource sender = invocation.source();
         final String[] args = invocation.arguments();
@@ -210,13 +210,13 @@ public final class ProxyFeaturesCommand implements SimpleCommand {
         }
     }
 
-    @Override
+    
     public boolean hasPermission(final Invocation invocation) {
         // Global gate; per-subcommand checks still enforced
         return invocation.source().hasPermission("proxyfeatures.use");
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
         final Locale L = Locale.ROOT;
         final String[] args = invocation.arguments();

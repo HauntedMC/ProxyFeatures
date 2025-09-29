@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class ListCommand extends FeatureCommand {
+public class ListCommand implements FeatureCommand{
 
     private final PlayerList feature;
     private final List<String> blacklist;
@@ -24,7 +24,6 @@ public class ListCommand extends FeatureCommand {
         this.blacklist = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("blacklist"), String.class);
     }
 
-    @Override
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
@@ -63,12 +62,10 @@ public class ListCommand extends FeatureCommand {
         }
     }
 
-    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.playerlist.command.list");
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
 
@@ -91,12 +88,10 @@ public class ListCommand extends FeatureCommand {
         return CompletableFuture.completedFuture(suggestions);
     }
 
-    @Override
     public String getName() {
         return "list";
     }
 
-    @Override
     public String[] getAliases() {
         return new String[]{""};
     }

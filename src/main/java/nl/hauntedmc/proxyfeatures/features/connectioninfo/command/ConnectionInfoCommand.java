@@ -13,24 +13,21 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class ConnectionInfoCommand extends FeatureCommand {
+public class ConnectionInfoCommand implements FeatureCommand {
     private final ConnectionInfo feature;
 
     public ConnectionInfoCommand(ConnectionInfo feature) {
         this.feature = feature;
     }
 
-    @Override
     public String getName() {
         return "connectioninfo";
     }
 
-    @Override
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
     public boolean hasPermission(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length == 0) {
@@ -41,7 +38,6 @@ public class ConnectionInfoCommand extends FeatureCommand {
                 .hasPermission("proxyfeatures.feature.connectioninfo.command.connectioninfo.other");
     }
 
-    @Override
     public void execute(Invocation invocation) {
         CommandSource src = invocation.source();
         String[] args = invocation.arguments();
@@ -133,7 +129,6 @@ public class ConnectionInfoCommand extends FeatureCommand {
                 .build());
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length == 0 || args[0].isEmpty()) {

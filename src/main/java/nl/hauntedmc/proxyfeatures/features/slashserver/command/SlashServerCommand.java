@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class SlashServerCommand extends FeatureCommand {
+public class SlashServerCommand implements FeatureCommand{
 
     private final SlashServer feature;
     private final String serverName;
@@ -22,12 +22,10 @@ public class SlashServerCommand extends FeatureCommand {
         this.serverName = serverName;
     }
 
-    @Override
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
@@ -90,17 +88,17 @@ public class SlashServerCommand extends FeatureCommand {
         });
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.slashserver.use");
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(List.of());
     }
 
-    @Override
+    
     public String getName() {
         return serverName;
     }

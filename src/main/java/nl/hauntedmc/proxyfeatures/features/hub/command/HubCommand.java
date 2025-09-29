@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class HubCommand extends FeatureCommand {
+public class HubCommand implements FeatureCommand{
 
     private static final String LOBBY_NAME = "lobby";
     private final Hub feature;
@@ -21,12 +21,12 @@ public class HubCommand extends FeatureCommand {
         this.feature = feature;
     }
 
-    @Override
+    
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
+    
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
@@ -89,17 +89,15 @@ public class HubCommand extends FeatureCommand {
         });
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.hub.use");
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(List.of());
     }
 
-    @Override
     public String getName() {
         return "hub";
     }

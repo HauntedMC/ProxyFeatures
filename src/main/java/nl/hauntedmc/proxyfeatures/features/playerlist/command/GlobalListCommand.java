@@ -12,7 +12,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class GlobalListCommand extends FeatureCommand {
+public class GlobalListCommand implements FeatureCommand{
 
     private final PlayerList feature;
     private final List<String> blacklist;
@@ -23,7 +23,7 @@ public class GlobalListCommand extends FeatureCommand {
         
     }
 
-    @Override
+    
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
 
@@ -42,22 +42,22 @@ public class GlobalListCommand extends FeatureCommand {
         source.sendMessage(message);
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.playerlist.command.glist");
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(List.of());
     }
 
-    @Override
+    
     public String getName() {
         return "glist";
     }
 
-    @Override
+    
     public String[] getAliases() {
         return new String[]{""};
     }

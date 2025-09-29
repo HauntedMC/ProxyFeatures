@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class ReplyCommand extends FeatureCommand {
+public class ReplyCommand implements FeatureCommand {
 
     private final Messenger feature;
     private final ProxyServer proxy;
@@ -23,22 +23,22 @@ public class ReplyCommand extends FeatureCommand {
         this.handler = feature.getHandler();
     }
 
-    @Override
+
     public String getName() {
         return "reply";
     }
 
-    @Override
+
     public String[] getAliases() {
         return new String[]{"r"};
     }
 
-    @Override
+
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.messager.command.reply");
     }
 
-    @Override
+
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] args    = inv.arguments();
@@ -68,7 +68,6 @@ public class ReplyCommand extends FeatureCommand {
         );
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation inv) {
         return CompletableFuture.completedFuture(List.of());
     }

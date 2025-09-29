@@ -10,12 +10,12 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class KickCommand extends FeatureCommand {
+public class KickCommand implements FeatureCommand{
 
     private final Sanctions feature;
     public KickCommand(Sanctions feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -59,15 +59,15 @@ public class KickCommand extends FeatureCommand {
         }
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.kick");
     }
 
-    @Override public String getName() { return "kick"; }
-    @Override public String[] getAliases() { return new String[0]; }
+     public String getName() { return "kick"; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
 

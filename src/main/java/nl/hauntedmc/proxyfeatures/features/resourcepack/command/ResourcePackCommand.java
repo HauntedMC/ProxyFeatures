@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class ResourcePackCommand extends FeatureCommand {
+public class ResourcePackCommand implements FeatureCommand{
 
     private final ResourcePack feature;
     private final ProxyServer proxy;
@@ -22,22 +22,18 @@ public class ResourcePackCommand extends FeatureCommand {
         this.proxy = feature.getPlugin().getProxy();
     }
 
-    @Override
     public String getName() {
         return "resourcepack";
     }
 
-    @Override
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.resourcepack.command");
     }
 
-    @Override
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         List<String> args = List.of(invocation.arguments());
@@ -134,7 +130,6 @@ public class ResourcePackCommand extends FeatureCommand {
         }
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         List<String> args = List.of(invocation.arguments());
         if (args.size() == 1) {

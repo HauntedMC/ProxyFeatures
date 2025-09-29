@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class MessagingCommand extends FeatureCommand {
+public class MessagingCommand implements FeatureCommand {
     private final Messenger feature;
     private final ProxyServer proxy;
     private final MessagingHandler handler;
@@ -24,13 +24,12 @@ public class MessagingCommand extends FeatureCommand {
         this.handler = feature.getHandler();
     }
 
-    @Override public String getName()    { return "msg"; }
-    @Override public String[] getAliases(){ return new String[]{""};     }
-    @Override public boolean hasPermission(Invocation inv) {
+    public String getName()    { return "msg"; }
+    public String[] getAliases(){ return new String[]{""};     }
+    public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.messager.command");
     }
 
-    @Override
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] args    = inv.arguments();
@@ -168,7 +167,6 @@ public class MessagingCommand extends FeatureCommand {
         );
     }
 
-    @Override
     public CompletableFuture<List<String>> suggestAsync(Invocation inv) {
         String[] args = inv.arguments();
         List<String> subs = List.of("spy","block","unblock","toggle","reply");

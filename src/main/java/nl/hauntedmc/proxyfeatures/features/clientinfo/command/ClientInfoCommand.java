@@ -13,29 +13,25 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class ClientInfoCommand extends FeatureCommand {
+public class ClientInfoCommand implements FeatureCommand {
     private final ClientInfo feature;
 
     public ClientInfoCommand(ClientInfo feature) {
         this.feature = feature;
     }
 
-    @Override
     public String getName() {
         return "clientinfo";
     }
 
-    @Override
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    @Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.clientinfo.command");
     }
 
-    @Override
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         List<String> args = List.of(invocation.arguments());
@@ -132,7 +128,7 @@ public class ClientInfoCommand extends FeatureCommand {
         );
     }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
 

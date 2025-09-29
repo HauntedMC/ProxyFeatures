@@ -13,12 +13,12 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class BanIpCommand extends FeatureCommand {
+public class BanIpCommand implements FeatureCommand{
 
     private final Sanctions feature;
     public BanIpCommand(Sanctions feature) { this.feature = feature; }
 
-    @Override
+    
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -72,15 +72,15 @@ public class BanIpCommand extends FeatureCommand {
         }
     }
 
-    @Override
+    
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.banip");
     }
 
-    @Override public String getName() { return "banip"; }
-    @Override public String[] getAliases() { return new String[0]; }
+     public String getName() { return "banip"; }
+     public String[] getAliases() { return new String[0]; }
 
-    @Override
+    
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         List<String> durations = List.of("7d","30d","p");
