@@ -20,7 +20,7 @@ public class MessagingSettingsService {
      */
     public PlayerMessageSettingsEntity loadSettings(UUID uuid, String username) {
         return feature.getOrmContext().runInTransaction(session -> {
-            // 1) find or create PlayerEntity
+            // find or create PlayerEntity
             PlayerEntity playerEnt = session.createQuery(
                             "FROM PlayerEntity p WHERE p.uuid = :uuid",
                             PlayerEntity.class)
@@ -34,7 +34,7 @@ public class MessagingSettingsService {
                         return pe;
                     });
 
-            // 2) find or create MessageSettings
+            // find or create MessageSettings
             PlayerMessageSettingsEntity settings = session.createQuery(
                             "FROM PlayerMessageSettingsEntity s WHERE s.playerId = :pid",
                             PlayerMessageSettingsEntity.class)

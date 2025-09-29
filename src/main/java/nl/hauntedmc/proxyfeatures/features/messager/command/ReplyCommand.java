@@ -49,7 +49,7 @@ public class ReplyCommand extends FeatureCommand {
             return;
         }
         if (!src.hasPermission("proxyfeatures.feature.messager.command.reply")) {
-            src.sendMessage(loc.getMessage("global.no_permission").forAudience(src).build());
+            src.sendMessage(loc.getMessage("general.no_permission").forAudience(src).build());
             return;
         }
         if (args.length < 1) {

@@ -58,7 +58,7 @@ public class MessagingCommand extends FeatureCommand {
             return;
         }
         if (!src.hasPermission("proxyfeatures.feature.messager.command.spy")) {
-            src.sendMessage(loc.getMessage("global.no_permission").forAudience(src).build());
+            src.sendMessage(loc.getMessage("general.no_permission").forAudience(src).build());
             return;
         }
         handler.toggleSpy(p.getUniqueId());
@@ -73,7 +73,7 @@ public class MessagingCommand extends FeatureCommand {
             return;
         }
         if (!src.hasPermission("proxyfeatures.feature.messager.command.toggle")) {
-            src.sendMessage(loc.getMessage("global.no_permission").forAudience(src).build());
+            src.sendMessage(loc.getMessage("general.no_permission").forAudience(src).build());
             return;
         }
         handler.toggleMessaging(p.getUniqueId());
@@ -90,7 +90,7 @@ public class MessagingCommand extends FeatureCommand {
             return;
         }
         if (!src.hasPermission("proxyfeatures.feature.messager.command.block")) {
-            src.sendMessage(loc.getMessage("global.no_permission").forAudience(src).build());
+            src.sendMessage(loc.getMessage("general.no_permission").forAudience(src).build());
             return;
         }
         proxy.getPlayer(args[1]).ifPresentOrElse(target -> {
@@ -135,7 +135,7 @@ public class MessagingCommand extends FeatureCommand {
             return;
         }
         if (!src.hasPermission("proxyfeatures.feature.messager.command.reply")) {
-            src.sendMessage(loc.getMessage("global.no_permission").forAudience(src).build());
+            src.sendMessage(loc.getMessage("general.no_permission").forAudience(src).build());
             return;
         }
         if (args.length < 2) {
@@ -158,7 +158,7 @@ public class MessagingCommand extends FeatureCommand {
             return;
         }
         if (!src.hasPermission("proxyfeatures.feature.messager.command.msg")) {
-            src.sendMessage(loc.getMessage("global.no_permission").forAudience(src).build());
+            src.sendMessage(loc.getMessage("general.no_permission").forAudience(src).build());
             return;
         }
         String targetName = args[0];

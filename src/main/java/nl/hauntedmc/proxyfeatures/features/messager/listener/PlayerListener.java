@@ -6,6 +6,8 @@ import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.proxyfeatures.features.messager.Messenger;
 import nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingHandler;
 
+import java.util.UUID;
+
 public class PlayerListener {
     private final MessagingHandler handler;
 
@@ -16,13 +18,22 @@ public class PlayerListener {
     @Subscribe
     public void onServerConnected(ServerPostConnectEvent event) {
         Player player = event.getPlayer();
-        // Load this player's persisted settings into memory
+        UUID id = player.getUniqueId();
+
+        // Load this player's persisted settings into memory (also enforces spy permission)
         handler.loadPlayerSettings(player);
 
-        // Auto-enable spy mode if the player has the spy permission and isn't already spying
-        if (player.hasPermission("proxyfeatures.feature.messager.command.spy")
-                && !handler.isSpy(player.getUniqueId())) {
-            handler.toggleSpy(player.getUniqueId());
+        final String SPY_PERM = "proxyfeatures.feature.messager.command.spy";
+
+        // If player has permission and isn't already spying -> enable and persist
+        if (player.hasPermission(SPY_PERM) && !handler.isSpy(id)) {
+            handler.setSpy(id, true); // persist + in-memory
+        }
+
+        // If player lacks permission but somehow is spying -> disable and persist (belt & suspenders)
+        if (!player.hasPermission(SPY_PERM) && handler.isSpy(id)) {
+            handler.setSpy(id, false); // persist + in-memory
         }
     }
 }
+

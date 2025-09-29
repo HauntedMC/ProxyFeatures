@@ -19,7 +19,6 @@ public class Messenger extends VelocityBaseFeature<Meta> {
 
     private MessagingHandler handler;
     private ORMContext ormContext;
-    private MessagingSettingsService settingsService;
 
     public Messenger(ProxyFeatures plugin) {
         super(plugin, new Meta());
@@ -60,17 +59,15 @@ public class Messenger extends VelocityBaseFeature<Meta> {
 
     @Override
     public void initialize() {
-        // register your entities & ORM
         getLifecycleManager().getDataManager().initDataProvider(getFeatureName());
         getLifecycleManager().getDataManager()
                 .registerConnection("ormConnection", DatabaseType.MYSQL, "player_data_rw");
+
         this.ormContext = getLifecycleManager().getDataManager()
                 .createORMContext("ormConnection",
                         PlayerMessageSettingsEntity.class,
                         PlayerEntity.class
                 ).orElseThrow();
-
-        this.settingsService = new MessagingSettingsService(this);
 
         this.handler = new MessagingHandler(this);
         getLifecycleManager().getCommandManager().registerFeatureCommand(new MessagingCommand(this));
@@ -92,7 +89,4 @@ public class Messenger extends VelocityBaseFeature<Meta> {
         return ormContext;
     }
 
-    public MessagingSettingsService getSettingsService() {
-        return settingsService;
-    }
 }

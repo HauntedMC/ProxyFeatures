@@ -12,7 +12,7 @@ public class MessagingHandler {
     private final Messenger feature;
     private final MessagingSettingsService settings;
     private final Set<UUID> toggledOff = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private final Set<UUID> spies      = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<UUID> spies = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final Map<UUID, Set<UUID>> blockMap = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> lastMessageFrom = new ConcurrentHashMap<>();
 
@@ -41,11 +41,11 @@ public class MessagingHandler {
 
             // messaging toggle
             if (!s.isMsgToggle()) toggledOff.add(id);
-            else                 toggledOff.remove(id);
+            else toggledOff.remove(id);
 
             // spy mode
             if (s.isMsgSpy()) spies.add(id);
-            else              spies.remove(id);
+            else spies.remove(id);
 
             // blocked players
             Set<UUID> blocked = s.getBlockedPlayers().stream()
@@ -93,14 +93,14 @@ public class MessagingHandler {
         var loc = feature.getLocalizationHandler();
         var from = loc.getMessage("message.format.from")
                 .withPlaceholders(Map.of(
-                        "sender_server", s.getCurrentServer().map(x->x.getServerInfo().getName()).orElse("unknown"),
+                        "sender_server", s.getCurrentServer().map(x -> x.getServerInfo().getName()).orElse("unknown"),
                         "sender", s.getUsername(),
                         "message", msg))
                 .forAudience(r)
                 .build();
-        var to   = loc.getMessage("message.format.to")
+        var to = loc.getMessage("message.format.to")
                 .withPlaceholders(Map.of(
-                        "receiver_server", r.getCurrentServer().map(x->x.getServerInfo().getName()).orElse("unknown"),
+                        "receiver_server", r.getCurrentServer().map(x -> x.getServerInfo().getName()).orElse("unknown"),
                         "receiver", r.getUsername(),
                         "message", msg))
                 .forAudience(s)
@@ -118,7 +118,7 @@ public class MessagingHandler {
                                 "sender", s.getUsername(),
                                 "receiver", r.getUsername(),
                                 "message", msg))
-                                .forAudience(p)
+                        .forAudience(p)
                         .build()));
     }
 
@@ -132,6 +132,14 @@ public class MessagingHandler {
 
         settings.getPlayerEntity(who)
                 .ifPresent(pe -> settings.setToggle(pe, !nowOff));
+    }
+
+    public void setSpy(UUID who, boolean enabled) {
+        if (enabled) spies.add(who);
+        else spies.remove(who);
+
+        settings.getPlayerEntity(who)
+                .ifPresent(pe -> settings.setSpy(pe, enabled));
     }
 
     public boolean isMessagingEnabled(UUID who) {
@@ -156,7 +164,7 @@ public class MessagingHandler {
     }
 
     public void block(UUID who, UUID target) {
-        blockMap.computeIfAbsent(who, k->new HashSet<>()).add(target);
+        blockMap.computeIfAbsent(who, k -> new HashSet<>()).add(target);
         settings.getPlayerEntity(who)
                 .ifPresent(pe -> settings.block(pe,
                         settings.getPlayerEntity(target)
