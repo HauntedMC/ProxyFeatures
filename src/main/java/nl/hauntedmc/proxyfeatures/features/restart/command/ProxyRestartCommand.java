@@ -29,7 +29,7 @@ public class ProxyRestartCommand implements FeatureCommand{
 
     
     public String[] getAliases() {
-        return new String[] { "restart" };
+        return new String[] { "" };
     }
 
     
