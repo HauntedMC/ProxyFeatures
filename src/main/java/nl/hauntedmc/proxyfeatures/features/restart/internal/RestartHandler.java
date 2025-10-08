@@ -4,7 +4,6 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import nl.hauntedmc.commonlib.localization.MessageType;
 import nl.hauntedmc.proxyfeatures.features.restart.Restart;
 import nl.hauntedmc.proxyfeatures.lifecycle.FeatureTaskManager;
 

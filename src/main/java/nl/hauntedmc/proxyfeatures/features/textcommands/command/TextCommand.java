@@ -3,7 +3,6 @@ package nl.hauntedmc.proxyfeatures.features.textcommands.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.commonlib.localization.MessageType;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.textcommands.TextCommands;
 
