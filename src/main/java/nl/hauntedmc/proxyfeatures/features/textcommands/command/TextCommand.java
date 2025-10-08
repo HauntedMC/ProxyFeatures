@@ -38,7 +38,6 @@ public class TextCommand implements FeatureCommand{
                 .getMessage(this.messageKey)
                 .withPlaceholders(this.placeholders)
                 .forAudience(player)
-                .ofType(MessageType.MiniMessage)
                 .build();
 
         player.sendMessage(output);

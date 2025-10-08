@@ -123,13 +123,11 @@ public class RestartHandler {
                 Component title = feature.getLocalizationHandler()
                         .getMessage("restart.warn_title")
                         .forAudience(p)
-                        .ofType(MessageType.MiniMessage)
                         .build();
                 Component subtitle = feature.getLocalizationHandler()
                         .getMessage("restart.warn_subtitle")
                         .withPlaceholders(java.util.Map.of("seconds", Integer.toString(seconds)))
                         .forAudience(p)
-                        .ofType(MessageType.MiniMessage)
                         .build();
                 p.showTitle(Title.title(title, subtitle, titleTimes));
             }
@@ -149,12 +147,10 @@ public class RestartHandler {
                 Component title = feature.getLocalizationHandler()
                         .getMessage("restart.final_title")
                         .forAudience(p)
-                        .ofType(MessageType.MiniMessage)
                         .build();
                 Component subtitle = feature.getLocalizationHandler()
                         .getMessage("restart.final_subtitle")
                         .forAudience(p)
-                        .ofType(MessageType.MiniMessage)
                         .build();
                 p.showTitle(Title.title(title, subtitle, titleTimes));
             }
@@ -167,7 +163,6 @@ public class RestartHandler {
                 Component reason = feature.getLocalizationHandler()
                         .getMessage("restart.kick")
                         .forAudience(p)
-                        .ofType(MessageType.MiniMessage)
                         .build();
                 p.disconnect(reason);
             }

@@ -5,7 +5,6 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.commonlib.localization.Language;
 import nl.hauntedmc.commonlib.localization.MessageMap;
-import nl.hauntedmc.commonlib.localization.MessageType;
 import nl.hauntedmc.commonlib.util.ComponentUtils;
 import nl.hauntedmc.commonlib.util.PlaceholderUtils;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
@@ -78,17 +77,6 @@ public class LocalizationHandler {
 
     // --- Fluent Builder API ---
 
-    /**
-     * Entry point for retrieving messages. Use the returned builder to configure
-     * the audience, message type, placeholders, and then call build() to get the message.
-     * Example usage:
-     *     Component comp = localizationHandler
-     *                            .message("welcome.message")
-     *                            .audience(someAudience)
-     *                            .type(MessageType.MiniMessage)
-     *                            .placeholders(somePlaceholders)
-     *                            .build();
-     */
     public MessageBuilder getMessage(String key) {
         return new MessageBuilder(key);
     }
@@ -96,56 +84,36 @@ public class LocalizationHandler {
     public class MessageBuilder {
         private final String key;
         private Audience audience;
-        private MessageType messageType = MessageType.Legacy;
         private Map<String, String> placeholders;
 
         private MessageBuilder(String key) {
             this.key = key;
         }
 
-        /**
-         * Set the target audience (for example, a Player).
-         * If no audience is provided, a system (default) message is assumed.
-         */
         public MessageBuilder forAudience(Audience audience) {
             this.audience = audience;
             return this;
         }
 
-        /**
-         * Specify the deserialization method: Legacy or MiniMessage.
-         * Defaults to MessageType.Legacy.
-         */
-        public MessageBuilder ofType(MessageType messageType) {
-            this.messageType = messageType;
-            return this;
-        }
-
-        /**
-         * Set the placeholders to apply to the message.
-         */
         public MessageBuilder withPlaceholders(Map<String, String> placeholders) {
             this.placeholders = placeholders;
             return this;
         }
 
-        /**
-         * Build and return the configured message component.
-         */
         public Component build() {
             String rawMessage;
-            // If an audience is provided and is a Player, retrieve the translated message.
             if (audience instanceof Player) {
                 rawMessage = getTranslatedMessage(key, (Player) audience);
             } else {
                 rawMessage = defaultMessagesResource.getConfig().node((Object[]) key.split("\\."))
                         .getString("&cMessage not found: " + key);
             }
-            return parseAndDeserialize(rawMessage, messageType, placeholders);
+            return parseAndDeserialize(rawMessage, placeholders);
         }
     }
 
     // --- Private Helper Methods ---
+
     private boolean isNodeMissing(CommentedConfigurationNode node, String key) {
         return node.node((Object[]) key.split("\\.")).virtual();
     }
@@ -171,16 +139,64 @@ public class LocalizationHandler {
     }
 
     /**
-     * Applies placeholders and color parsing to the message and then deserializes
-     * it to an Adventure component using the proper method based on the MessageType.
+     * Applies placeholders, converts legacy to MiniMessage tags, then parses as MiniMessage Component.
      */
-    private Component parseAndDeserialize(String message, MessageType messageType, Map<String, String> placeholders) {
+    private Component parseAndDeserialize(String message, Map<String, String> placeholders) {
         if (placeholders != null) {
             message = PlaceholderUtils.parsePlaceholders(message, placeholders);
         }
-        message = ComponentUtils.serializeLegacyString(message);
-        return (messageType == MessageType.MiniMessage)
-                ? ComponentUtils.deserializeMMComponent(message)
-                : ComponentUtils.deserializeComponent(message);
+        String mmReady = legacyToMiniMessage(message);
+        return ComponentUtils.deserializeMMComponent(mmReady);
+    }
+
+    /**
+     * Convert legacy color/format codes (both & and §), including Spigot hex (&x&R&RG&G&B&B) and &#RRGGBB,
+     * into MiniMessage tags so strings can mix legacy and MiniMessage safely.
+     */
+    private static String legacyToMiniMessage(String input) {
+        if (input == null || input.isEmpty()) return input;
+
+        // Normalize § to &
+        input = input.replace('§', '&');
+
+        // Hex color formats:
+        // 1) "&#RRGGBB"  -> "<#RRGGBB>"
+        input = input.replaceAll("(?i)&#([0-9a-f]{6})", "<#$1>");
+
+        // 2) "&x&R&R&G&G&B&B" (Spigot-style) -> "<#RRGGBB>"
+        input = input.replaceAll(
+                "(?i)&x&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])",
+                "<#$1$2$3$4$5$6>"
+        );
+
+        // Standard color codes
+        input = input
+                .replaceAll("(?i)&0", "<black>")
+                .replaceAll("(?i)&1", "<dark_blue>")
+                .replaceAll("(?i)&2", "<dark_green>")
+                .replaceAll("(?i)&3", "<dark_aqua>")
+                .replaceAll("(?i)&4", "<dark_red>")
+                .replaceAll("(?i)&5", "<dark_purple>")
+                .replaceAll("(?i)&6", "<gold>")
+                .replaceAll("(?i)&7", "<gray>")
+                .replaceAll("(?i)&8", "<dark_gray>")
+                .replaceAll("(?i)&9", "<blue>")
+                .replaceAll("(?i)&a", "<green>")
+                .replaceAll("(?i)&b", "<aqua>")
+                .replaceAll("(?i)&c", "<red>")
+                .replaceAll("(?i)&d", "<light_purple>")
+                .replaceAll("(?i)&e", "<yellow>")
+                .replaceAll("(?i)&f", "<white>");
+
+        // Formatting codes
+        input = input
+                .replaceAll("(?i)&l", "<bold>")
+                .replaceAll("(?i)&n", "<underlined>")
+                .replaceAll("(?i)&m", "<strikethrough>")
+                .replaceAll("(?i)&o", "<italic>")
+                .replaceAll("(?i)&k", "<obfuscated>")
+                .replaceAll("(?i)&r", "<reset>");
+
+        return input;
     }
 }

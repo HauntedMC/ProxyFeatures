@@ -31,7 +31,7 @@ public class AnnouncerHandler {
             String messageKey = announcerRegistry.get(currentMessageIndex);
             feature.getPlugin().getProxy().getAllPlayers().forEach(player -> {
                 Component message = feature.getLocalizationHandler()
-                        .getMessage(messageKey).forAudience(player).ofType(MessageType.MiniMessage).build();
+                        .getMessage(messageKey).forAudience(player).build();
                 player.sendMessage(message);
             });
             currentMessageIndex = (currentMessageIndex + 1) % announcerRegistry.getTotalMessages();
