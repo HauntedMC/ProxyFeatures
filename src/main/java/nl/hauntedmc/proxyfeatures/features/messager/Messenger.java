@@ -40,7 +40,7 @@ public class Messenger extends VelocityBaseFeature<Meta> {
         m.add("message.disabled.receiver", "&8&l[&6&lMSG&8&l] &r&cDeze speler heeft berichten uit staan.");
         m.add("message.disabled.sender", "&8&l[&6&lMSG&8&l] &r&cJe moet hiervoor het sturen van berichten aanzetten met /msg toggle");
         m.add("message.format.from", "&8&l[&6&lMSG&8&l] &r&7[{sender_server}] &6{sender} &8➜ &6Jij: &d{message}");
-        m.add("message.format.to", "&8&l[&6&lMSG&8&l] &6Jij &8➜ &7[{receiver_server}] &6{receiver}: &d{message}");
+        m.add("message.format.to", "&8&l[&6&lMSG&8&l] &r&6Jij &8➜ &7[{receiver_server}] &6{receiver}: &d{message}");
         m.add("message.format.spy", "&7[&cSpy&7] &7{sender} &8➜ &7{receiver}: &8{message}");
         m.add("message.block.already", "&8&l[&6&lMSG&8&l] &r&cJe hebt {player} al geblokkeerd.");
         m.add("message.block.success", "&8&l[&6&lMSG&8&l] &r&aJe hebt {player} geblokkeerd.");
