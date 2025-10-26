@@ -10,9 +10,10 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
 import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.TextFormatter;
 import nl.hauntedmc.proxyfeatures.features.broadcast.Broadcast;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,14 +22,13 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * /broadcastproxy <chat|title> <message...>
- *  - chat: sends a chat broadcast (supports &-color codes)
- *  - title: sends a title; split main/subtitle with a single '|'
+ * - chat: sends a chat broadcast (supports &-color codes)
+ * - title: sends a title; split main/subtitle with a single '|'
  */
 public final class BroadcastProxyCommand implements BrigadierCommand {
 
     private final Broadcast feature;
     private final ProxyServer proxy;
-    private final LegacyComponentSerializer legacyAmp = LegacyComponentSerializer.legacyAmpersand();
 
     public BroadcastProxyCommand(Broadcast feature) {
         this.feature = feature;
@@ -107,7 +107,9 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
     /* ============================ Execution ============================ */
 
     private void broadcastChat(String msg, CommandSource src) {
-        Component comp = legacyAmp.deserialize(msg);
+        Component comp = ComponentFormatter.deserialize(msg)
+                .expect(TextFormatter.InputFormat.MIXED_INPUT)
+                .features(ComponentFormatter.ALL_DEFAULTS()).autoLinkUrls(true).toComponent();
         proxy.getAllPlayers().forEach(p -> p.sendMessage(comp));
         acknowledge(src);
     }
@@ -125,8 +127,12 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
             subPart = "";
         }
 
-        Component titleComp = legacyAmp.deserialize(titlePart);
-        Component subComp = legacyAmp.deserialize(subPart);
+        Component titleComp = ComponentFormatter.deserialize(titlePart)
+                .expect(TextFormatter.InputFormat.MIXED_INPUT)
+                .features(ComponentFormatter.ALL_DEFAULTS()).toComponent();
+        Component subComp = ComponentFormatter.deserialize(subPart)
+                .expect(TextFormatter.InputFormat.MIXED_INPUT)
+                .features(ComponentFormatter.ALL_DEFAULTS()).toComponent();
 
         int fadeIn = (int) feature.getConfigHandler().getSetting("title_fade_in");
         int stay = (int) feature.getConfigHandler().getSetting("title_stay");

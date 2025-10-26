@@ -3,7 +3,6 @@ package nl.hauntedmc.proxyfeatures.features.slashserver.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.SlashServer;
 
@@ -75,11 +74,10 @@ public class SlashServerCommand implements FeatureCommand {
                 } else {
                     // Only send a failure message if the proxy provided a reason.
                     result.getReasonComponent().ifPresent(component -> {
-                        String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
                         player.sendMessage(feature.getLocalizationHandler()
                                 .getMessage("slash.connection_failure")
                                 .with("server", serverName)
-                                .with("reason", reason)
+                                .with("reason", component)
                                 .forAudience(player)
                                 .build());
                     });

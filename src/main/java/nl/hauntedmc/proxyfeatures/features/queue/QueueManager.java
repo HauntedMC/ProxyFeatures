@@ -5,7 +5,6 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.scheduler.ScheduledTask;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.proxyfeatures.features.queue.model.EnqueueDecision;
 import nl.hauntedmc.proxyfeatures.features.queue.model.QueueEntry;
 import nl.hauntedmc.proxyfeatures.features.queue.model.ServerQueue;
@@ -151,8 +150,7 @@ public class QueueManager {
 
             feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> player.createConnectionRequest(target).connect().thenAccept(res -> {
                 if (!res.isSuccessful()) {
-                    res.getReasonComponent().ifPresent(component -> {
-                        String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
+                    res.getReasonComponent().ifPresent(reason -> {
                         player.sendMessage(feature.getLocalizationHandler()
                                 .getMessage("queue.join.connection_failure")
                                 .with("server", serverName)

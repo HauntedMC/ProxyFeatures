@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 /**
  * Framework root command defined as a Brigadier command.
  * Root: /proxyfeatures
- *
+ * <p>
  * Subcommands:
  * - status
  * - list

@@ -2,9 +2,10 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.TextFormatter;
 import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
@@ -321,7 +322,10 @@ public class SanctionListCommand implements FeatureCommand {
     }
 
     private void sendRawLine(CommandSource src, String raw) {
-        src.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(raw));
+        src.sendMessage(ComponentFormatter.deserialize(raw)
+                .expect(TextFormatter.InputFormat.MIXED_INPUT)
+                .features(ComponentFormatter.ALL_DEFAULTS())
+                .toComponent());
     }
 
     private String fmt(Instant t) {
@@ -342,17 +346,17 @@ public class SanctionListCommand implements FeatureCommand {
      * Render a localization key to a legacy-ampersand string (so it can be injected as a fragment).
      */
     private String raw(CommandSource src, String key) {
-        return LegacyComponentSerializer.legacyAmpersand().serialize(
+        return ComponentFormatter.serialize(
                 feature.getLocalizationHandler().getMessage(key).forAudience(src).build()
-        );
+        ).format(ComponentFormatter.Serializer.Format.MINIMESSAGE).build();
     }
 
     /**
      * Same as {@link #raw(CommandSource, String)} but with placeholders.
      */
     private String raw(CommandSource src, String key, Map<String, String> ph) {
-        return LegacyComponentSerializer.legacyAmpersand().serialize(
+        return ComponentFormatter.serialize(
                 feature.getLocalizationHandler().getMessage(key).withPlaceholders(MessagePlaceholders.of(ph)).forAudience(src).build()
-        );
+        ).format(ComponentFormatter.Serializer.Format.MINIMESSAGE).build();
     }
 }

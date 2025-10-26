@@ -3,10 +3,10 @@ package nl.hauntedmc.proxyfeatures.features.playerinfo.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.PlayerInfo;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.service.PlayerInfoService;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
@@ -188,12 +188,11 @@ public class PlayerInfoCommand implements FeatureCommand {
                 .build());
     }
 
-    private void sendEntry(CommandSource audience, String field, Component valueComponent) {
-        String rawMessage = LegacyComponentSerializer.legacyAmpersand().serialize(valueComponent);
+    private void sendEntry(CommandSource audience, String field, Component value) {
         audience.sendMessage(feature.getLocalizationHandler()
                 .getMessage("playerinfo.entry")
                 .with("field", field)
-                .with("value", rawMessage)
+                .with("value", value)
                 .forAudience(audience)
                 .build());
     }
@@ -202,9 +201,9 @@ public class PlayerInfoCommand implements FeatureCommand {
      * Resolve a message key to a legacy-serialized string for placeholders.
      */
     private String raw(CommandSource audience, String key) {
-        return LegacyComponentSerializer.legacyAmpersand().serialize(
+        return ComponentFormatter.serialize(
                 feature.getLocalizationHandler().getMessage(key).forAudience(audience).build()
-        );
+        ).format(ComponentFormatter.Serializer.Format.MINIMESSAGE).build();
     }
 
 

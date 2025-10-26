@@ -10,9 +10,6 @@ import java.util.Collections;
 
 /**
  * Feature-level config handler (Configurate).
- * - Legacy raw: getSetting(key)
- * - Typed: getSetting(key, Class<T>) and with default
- * - High-level: node() / node(key) / nodeAt(path) for painless nested parsing
  */
 public class FeatureConfigHandler extends MainConfigHandler {
 

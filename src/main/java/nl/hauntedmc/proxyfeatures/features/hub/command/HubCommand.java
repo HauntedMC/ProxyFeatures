@@ -3,7 +3,6 @@ package nl.hauntedmc.proxyfeatures.features.hub.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.hub.Hub;
 
@@ -75,8 +74,7 @@ public class HubCommand implements FeatureCommand {
                             .build());
                 } else {
                     // Only send a failure message if a reason is provided.
-                    result.getReasonComponent().ifPresent(component -> {
-                        String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
+                    result.getReasonComponent().ifPresent(reason -> {
                         player.sendMessage(feature.getLocalizationHandler()
                                 .getMessage("hub.connection_failure")
                                 .with("server", LOBBY_NAME)
