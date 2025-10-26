@@ -24,17 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * Framework root command defined as a Brigadier command.
- * Root: /proxyfeatures
- * <p>
- * Subcommands:
- * - status
- * - list
- * - enable <feature>
- * - disable <feature>
- * - reload <feature>
- * - softreload <feature>
- * - reloadlocal
+ * ProxyFeatures framework command (status, list, info, enable/disable, reload, softreload, reloadlocal).
  */
 public final class ProxyFeaturesCommand implements BrigadierCommand {
 
@@ -51,7 +41,6 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
 
     @Override
     public @NotNull LiteralCommandNode<CommandSource> buildTree() {
-        // Root node with global gate, shows usage when executed bare
         LiteralArgumentBuilder<CommandSource> root =
                 LiteralArgumentBuilder.<CommandSource>literal(name())
                         .requires(src -> src.hasPermission("proxyfeatures.use"))
@@ -73,13 +62,30 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
                 })
         );
 
-        // /proxyfeatures list
+        // /proxyfeatures list  (compact one-liner) + flag "--version"
         root.then(LiteralArgumentBuilder.<CommandSource>literal("list")
                 .requires(src -> src.hasPermission("proxyfeatures.command.list"))
+                .then(LiteralArgumentBuilder.<CommandSource>literal("--version")
+                        .executes(ctx -> {
+                            listLoadedFeaturesOneLine(ctx.getSource(), true);
+                            return 1;
+                        }))
                 .executes(ctx -> {
-                    listLoadedFeatures(ctx.getSource());
+                    listLoadedFeaturesOneLine(ctx.getSource(), false);
                     return 1;
                 })
+        );
+
+        // /proxyfeatures info <feature>
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("info")
+                .requires(src -> src.hasPermission("proxyfeatures.command.info"))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("feature", StringArgumentType.word())
+                        .suggests((ctx, b) -> suggestAnyFeature(b))
+                        .executes(ctx -> {
+                            String name = StringArgumentType.getString(ctx, "feature");
+                            handleInfo(ctx.getSource(), name);
+                            return 1;
+                        }))
         );
 
         // /proxyfeatures reloadlocal
@@ -104,9 +110,9 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
                 })
         );
 
-        // Argument suggestions used by multiple subs
-        SuggestionProvider<CommandSource> featureSuggestLoaded = (ctx, builder) -> suggestLoadedFeatures(builder);
-        SuggestionProvider<CommandSource> featureSuggestEnable = (ctx, builder) -> suggestEnableCandidates(builder);
+        // Shared suggestion providers
+        SuggestionProvider<CommandSource> featureSuggestLoaded = (ctx, b) -> suggestLoadedFeatures(b);
+        SuggestionProvider<CommandSource> featureSuggestEnable = (ctx, b) -> suggestEnableCandidates(b);
 
         // /proxyfeatures softreload <feature>
         root.then(LiteralArgumentBuilder.<CommandSource>literal("softreload")
@@ -160,6 +166,78 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
     }
 
     /* ============================ Handlers ============================ */
+
+    private void handleInfo(CommandSource sender, String featureName) {
+        if (featureName == null || featureName.isBlank()) {
+            sender.sendMessage(Component.text("Please provide a feature name.", NamedTextColor.RED));
+            return;
+        }
+
+        var reg = plugin.getFeatureLoadManager().getFeatureRegistry();
+
+        // Direct lookup (exact) among loaded
+        VelocityBaseFeature<?> loaded = reg.getLoadedFeature(featureName);
+
+        // Case-insensitive fallback among loaded
+        if (loaded == null) {
+            loaded = reg.getLoadedFeatures().stream()
+                    .filter(f -> featureName.equalsIgnoreCase(f.getFeatureName()))
+                    .findFirst().orElse(null);
+        }
+
+        if (loaded != null) {
+            String name = Objects.toString(loaded.getFeatureName(), featureName);
+            String version = Objects.toString(loaded.getFeatureVersion(), "?");
+            List<String> pluginDeps = Optional.ofNullable(loaded.getPluginDependencies()).orElseGet(List::of);
+            List<String> featureDeps = Optional.ofNullable(loaded.getDependencies()).orElseGet(List::of);
+
+            sendFeatureInfo(sender, name, true, version, pluginDeps, featureDeps);
+            return;
+        }
+
+        // Not loaded: check available map (case-insensitive)
+        Map<String, ?> available = reg.getAvailableFeatures();
+        String availableKey = null;
+        if (available.containsKey(featureName)) {
+            availableKey = featureName;
+        } else {
+            for (String k : available.keySet()) {
+                if (k != null && k.equalsIgnoreCase(featureName)) {
+                    availableKey = k;
+                    break;
+                }
+            }
+        }
+
+        if (availableKey != null) {
+            sendFeatureInfo(sender, availableKey, false, "?", List.of(), List.of());
+        } else {
+            sender.sendMessage(Component.text("Feature not found: ", NamedTextColor.RED)
+                    .append(Component.text(featureName, NamedTextColor.WHITE)));
+        }
+    }
+
+    private void sendFeatureInfo(CommandSource sender,
+                                 String name,
+                                 boolean enabled,
+                                 String version,
+                                 List<String> pluginDeps,
+                                 List<String> featureDeps) {
+
+        Component msg = Component.text("Feature: ", NamedTextColor.GOLD)
+                .append(Component.text(name, NamedTextColor.YELLOW))
+                .append(Component.text("\n  • Status: ", NamedTextColor.GRAY))
+                .append(Component.text(enabled ? "enabled" : "disabled",
+                        enabled ? NamedTextColor.GREEN : NamedTextColor.RED))
+                .append(Component.text("\n  • Version: ", NamedTextColor.GRAY))
+                .append(Component.text(version == null ? "?" : "v" + version, NamedTextColor.WHITE))
+                .append(Component.text("\n  • Plugin deps: ", NamedTextColor.GRAY))
+                .append(renderCsvColored(pluginDeps, NamedTextColor.AQUA, NamedTextColor.DARK_GRAY, true))
+                .append(Component.text("\n  • Feature deps: ", NamedTextColor.GRAY))
+                .append(renderCsvColored(featureDeps, NamedTextColor.GREEN, NamedTextColor.DARK_GRAY, true));
+
+        sender.sendMessage(msg);
+    }
 
     private void handleEnable(CommandSource sender, String feature) {
         FeatureEnableResponse resp = plugin.getFeatureLoadManager().enableFeature(feature);
@@ -291,58 +369,76 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
     }
 
     private void sendPluginStatus(CommandSource sender) {
-        List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
-        List<String> loadedCommands = new ArrayList<>();
-        int loadedFeatureCount = loadedFeatures.size();
-        int activeTaskCount = 0;
-        int registeredListenerCount = 0;
-        int registeredCommandCount = 0;
-        int activeConnCount = 0;
+        List<VelocityBaseFeature<?>> loaded = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+        List<String> cmds = new ArrayList<>();
+        int loadedCount = loaded.size();
+        int tasks = 0, listeners = 0, commands = 0, conns = 0;
 
-        for (VelocityBaseFeature<?> feature : loadedFeatures) {
-            var cmds = feature.getLifecycleManager().getCommandManager().getRegisteredCommands();
-            registeredCommandCount += (cmds != null ? cmds.size() : 0);
-            if (cmds != null) {
-                loadedCommands.addAll(cmds.keySet());
-            }
-            activeTaskCount += feature.getLifecycleManager().getTaskManager().getActiveTaskCount();
-            registeredListenerCount += feature.getLifecycleManager().getListenerManager().getRegisteredListenerCount();
-            activeConnCount += feature.getLifecycleManager().getDataManager().getActiveConnCount();
+        for (VelocityBaseFeature<?> f : loaded) {
+            var registered = f.getLifecycleManager().getCommandManager().getRegisteredCommands();
+            commands += (registered != null ? registered.size() : 0);
+            if (registered != null) cmds.addAll(registered.keySet());
+            tasks += f.getLifecycleManager().getTaskManager().getActiveTaskCount();
+            listeners += f.getLifecycleManager().getListenerManager().getRegisteredListenerCount();
+            conns += f.getLifecycleManager().getDataManager().getActiveConnCount();
         }
 
         sender.sendMessage(Component.text("ProxyFeatures Status:", NamedTextColor.YELLOW));
-        sender.sendMessage(Component.text("- Number of loaded features: " + loadedFeatureCount, NamedTextColor.WHITE));
-        sender.sendMessage(Component.text("- Number of active database connections: " + activeConnCount, NamedTextColor.WHITE));
-        sender.sendMessage(Component.text("- Number of active tasks: " + activeTaskCount, NamedTextColor.WHITE));
-        sender.sendMessage(Component.text("- Number of registered listeners: " + registeredListenerCount, NamedTextColor.WHITE));
-        sender.sendMessage(Component.text("- Number of registered commands: " + registeredCommandCount, NamedTextColor.WHITE));
-        sender.sendMessage(Component.text("- Registered commands: " + loadedCommands, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of loaded features: " + loadedCount, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of active database connections: " + conns, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of active tasks: " + tasks, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of registered listeners: " + listeners, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Number of registered commands: " + commands, NamedTextColor.WHITE));
+        sender.sendMessage(Component.text("- Registered commands: " + cmds, NamedTextColor.WHITE));
     }
 
-    private void listLoadedFeatures(CommandSource sender) {
-        List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
+    /* ============================ Lists & Rendering ============================ */
 
-        if (loadedFeatures.isEmpty()) {
-            sender.sendMessage(plugin.getLocalizationHandler()
-                    .getMessage("command.list.empty")
-                    .forAudience(sender)
-                    .build());
-            return;
+    private void listLoadedFeaturesOneLine(CommandSource sender, boolean withVersion) {
+        List<VelocityBaseFeature<?>> loaded = new ArrayList<>(plugin.getFeatureLoadManager()
+                .getFeatureRegistry().getLoadedFeatures());
+
+        // Alphabetize by feature name (case-insensitive, null-safe)
+        loaded.sort(Comparator.comparing(
+                f -> Optional.ofNullable(f.getFeatureName()).orElse(""),
+                String.CASE_INSENSITIVE_ORDER
+        ));
+
+        int n = loaded.size();
+        Component header = Component.text("Enabled Features (", NamedTextColor.YELLOW)
+                .append(Component.text(n, NamedTextColor.AQUA))
+                .append(Component.text("): ", NamedTextColor.YELLOW));
+
+        Component list = Component.empty();
+        for (int i = 0; i < loaded.size(); i++) {
+            VelocityBaseFeature<?> f = loaded.get(i);
+            String name = Objects.toString(f.getFeatureName(), "?");
+            String version = Objects.toString(f.getFeatureVersion(), "?");
+
+            if (i > 0) list = list.append(Component.text(", ", NamedTextColor.DARK_GRAY));
+
+            Component entry = Component.text(name, NamedTextColor.GREEN);
+            if (withVersion) {
+                entry = entry.append(Component.text(" (", NamedTextColor.DARK_GRAY))
+                        .append(Component.text("v" + version, NamedTextColor.WHITE))
+                        .append(Component.text(")", NamedTextColor.DARK_GRAY));
+            }
+            list = list.append(entry);
         }
 
-        sender.sendMessage(plugin.getLocalizationHandler()
-                .getMessage("command.list.header")
-                .forAudience(sender)
-                .build());
+        sender.sendMessage(header.append(list));
+    }
 
-        for (VelocityBaseFeature<?> feature : loadedFeatures) {
-            sender.sendMessage(plugin.getLocalizationHandler()
-                    .getMessage("command.list.entry")
-                    .forAudience(sender)
-                    .with("feature", feature.getFeatureName())
-                    .with("version", feature.getFeatureVersion())
-                    .build());
+    private Component renderCsvColored(List<String> items, NamedTextColor itemColor, NamedTextColor commaColor, boolean showNone) {
+        if (items == null || items.isEmpty()) {
+            return Component.text(showNone ? "none" : "", NamedTextColor.DARK_GRAY);
         }
+        Component out = Component.empty();
+        for (int i = 0; i < items.size(); i++) {
+            if (i > 0) out = out.append(Component.text(", ", commaColor));
+            out = out.append(Component.text(items.get(i), itemColor));
+        }
+        return out;
     }
 
     /* ============================ Suggestions ============================ */
@@ -383,9 +479,36 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         return builder.buildFuture();
     }
 
-    // Optional: description exposed to some registrars/clients
+    private CompletableFuture<Suggestions> suggestAnyFeature(SuggestionsBuilder builder) {
+        final Locale L = Locale.ROOT;
+        String prefix = builder.getRemaining().toLowerCase(L);
+
+        var reg = plugin.getFeatureLoadManager().getFeatureRegistry();
+
+        // Enabled
+        Set<String> suggested = new HashSet<>();
+        reg.getLoadedFeatures().forEach(f -> {
+            String name = f.getFeatureName();
+            if (name == null) return;
+            if (name.toLowerCase(L).startsWith(prefix)) {
+                builder.suggest(name); // plain suggestion (Velocity lacks Paper's tooltip serializer)
+                suggested.add(name.toLowerCase(L));
+            }
+        });
+
+        // Disabled
+        for (String name : reg.getAvailableFeatures().keySet()) {
+            if (name == null) continue;
+            String low = name.toLowerCase(L);
+            if (!low.startsWith(prefix)) continue;
+            if (suggested.contains(low)) continue;
+            builder.suggest(name);
+        }
+        return builder.buildFuture();
+    }
+
     @Override
     public String description() {
-        return "ProxyFeatures framework command (status, list, enable/disable, reload, softreload, reloadlocal).";
+        return "ProxyFeatures framework command (status, list, info, enable/disable, reload, softreload, reloadlocal).";
     }
 }

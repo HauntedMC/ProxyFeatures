@@ -91,16 +91,13 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
 
     private CompletableFuture<Suggestions> suggestChatExamples(SuggestionsBuilder b) {
         // Clean, modern suggestions that show typical admin use-cases.
-        b.suggest("&aServer &frestart &fover &c5 &fminuten");
-        b.suggest("&eNieuwe &aupdate&f: &b/perks &fvoor info");
-        b.suggest("&dEvent &fin &a/spawn &fbegint nu!");
+        b.suggest("&f&l[ANNOUNCEMENT] &r&d");
         return b.buildFuture();
     }
 
     private CompletableFuture<Suggestions> suggestTitleExamples(SuggestionsBuilder b) {
-        b.suggest("&6Welkom op HauntedMC | &7Veel plezier!");
-        b.suggest("&cRestart inkomend | &7Sla veilig uit en reconnect zo");
-        b.suggest("&aDubbele XP! | &7Alle minigames dit uur");
+        b.suggest("<title> | <subtitle>");
+        b.suggest("&f&l[ANNOUNCEMENT] | ");
         return b.buildFuture();
     }
 
