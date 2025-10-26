@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.lifecycle;
 
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import com.velocitypowered.api.scheduler.ScheduledTask;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 
 import java.time.Duration;
 import java.util.List;
@@ -32,7 +32,9 @@ public class FeatureTaskManager {
      * Public API — thin wrappers over generic helpers
      * ---------------------------------------------------------------------- */
 
-    /** Schedules a one-time task to run immediately. */
+    /**
+     * Schedules a one-time task to run immediately.
+     */
     public ScheduledTask scheduleTask(Runnable task) {
         Objects.requireNonNull(task, "task");
         return scheduleOnce(r -> plugin.getScheduler()
@@ -40,7 +42,9 @@ public class FeatureTaskManager {
                 .schedule(), task);
     }
 
-    /** Runs a one-time task with a delay. */
+    /**
+     * Runs a one-time task with a delay.
+     */
     public ScheduledTask scheduleDelayedTask(Runnable task, Duration delay) {
         Objects.requireNonNull(task, "task");
         Duration d = clampDelay(delay);
@@ -50,7 +54,9 @@ public class FeatureTaskManager {
                 .schedule(), task);
     }
 
-    /** Runs a repeating task with no initial delay (first run ASAP). */
+    /**
+     * Runs a repeating task with no initial delay (first run ASAP).
+     */
     public ScheduledTask scheduleRepeatingTask(Runnable task, Duration period) {
         Objects.requireNonNull(task, "task");
         Duration p = clampPeriod(period);
@@ -61,7 +67,9 @@ public class FeatureTaskManager {
                 .schedule(), task);
     }
 
-    /** Runs a repeating task with an initial delay. */
+    /**
+     * Runs a repeating task with an initial delay.
+     */
     public ScheduledTask scheduleRepeatingTask(Runnable task, Duration delay, Duration period) {
         Objects.requireNonNull(task, "task");
         Duration d = clampDelay(delay);
@@ -77,7 +85,9 @@ public class FeatureTaskManager {
      * Management
      * ---------------------------------------------------------------------- */
 
-    /** Cancels a specific task and removes it from tracking. */
+    /**
+     * Cancels a specific task and removes it from tracking.
+     */
     public void cancelTask(ScheduledTask task) {
         if (task != null) {
             task.cancel();
@@ -85,7 +95,9 @@ public class FeatureTaskManager {
         }
     }
 
-    /** Cancels all scheduled tasks. */
+    /**
+     * Cancels all scheduled tasks.
+     */
     public void cancelAllTasks() {
         for (ScheduledTask task : scheduledTasks) {
             task.cancel();
@@ -93,7 +105,9 @@ public class FeatureTaskManager {
         scheduledTasks.clear();
     }
 
-    /** Returns the number of active tasks. */
+    /**
+     * Returns the number of active tasks.
+     */
     public int getActiveTaskCount() {
         return scheduledTasks.size();
     }
@@ -133,13 +147,17 @@ public class FeatureTaskManager {
         return scheduled;
     }
 
-    /** Clamp delay to >= 0 (negative becomes ZERO). */
+    /**
+     * Clamp delay to >= 0 (negative becomes ZERO).
+     */
     private static Duration clampDelay(Duration d) {
         if (d == null || d.isNegative()) return Duration.ZERO;
         return d;
     }
 
-    /** Clamp period to at least 1 millisecond (Velocity requires a positive repeat period). */
+    /**
+     * Clamp period to at least 1 millisecond (Velocity requires a positive repeat period).
+     */
     private static Duration clampPeriod(Duration p) {
         if (p == null || p.isZero() || p.isNegative()) return Duration.ofMillis(1000);
         return p;

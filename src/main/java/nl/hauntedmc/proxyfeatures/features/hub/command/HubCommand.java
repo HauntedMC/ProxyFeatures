@@ -3,16 +3,15 @@ package nl.hauntedmc.proxyfeatures.features.hub.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.hub.Hub;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class HubCommand implements FeatureCommand{
+public class HubCommand implements FeatureCommand {
 
     private static final String LOBBY_NAME = "lobby";
     private final Hub feature;
@@ -21,12 +20,12 @@ public class HubCommand implements FeatureCommand{
         this.feature = feature;
     }
 
-    
+
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    
+
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
@@ -90,7 +89,7 @@ public class HubCommand implements FeatureCommand{
         });
     }
 
-    
+
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.hub.use");
     }

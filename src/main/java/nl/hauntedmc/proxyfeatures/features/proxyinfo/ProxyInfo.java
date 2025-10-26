@@ -1,9 +1,9 @@
 // src/main/java/nl/hauntedmc/proxyfeatures/features/proxyinfo/ProxyInfo.java
 package nl.hauntedmc.proxyfeatures.features.proxyinfo;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.proxyinfo.command.ProxyInfoCommand;
 import nl.hauntedmc.proxyfeatures.features.proxyinfo.meta.Meta;
@@ -28,9 +28,9 @@ public class ProxyInfo extends VelocityBaseFeature<Meta> {
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap messages = new MessageMap();
-        messages.add("proxyinfo.cmd_usage",   "&eUsage: /proxyinfo");
-        messages.add("proxyinfo.cmd_header",  "&eProxy Info:");
-        messages.add("proxyinfo.cmd_entry",   "  &f{setting}: &a{value}");
+        messages.add("proxyinfo.cmd_usage", "&eUsage: /proxyinfo");
+        messages.add("proxyinfo.cmd_header", "&eProxy Info:");
+        messages.add("proxyinfo.cmd_entry", "  &f{setting}: &a{value}");
         return messages;
     }
 
@@ -47,7 +47,9 @@ public class ProxyInfo extends VelocityBaseFeature<Meta> {
         // nothing special
     }
 
-    /** @return when this proxy instance started (for uptime calc) */
+    /**
+     * @return when this proxy instance started (for uptime calc)
+     */
     public Instant getStartTime() {
         return startTime;
     }

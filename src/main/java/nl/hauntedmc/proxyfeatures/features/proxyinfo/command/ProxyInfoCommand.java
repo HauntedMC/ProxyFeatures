@@ -11,10 +11,12 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class ProxyInfoCommand implements FeatureCommand{
+public class ProxyInfoCommand implements FeatureCommand {
     private final ProxyInfo feature;
     private final ProxyServer proxy;
     private final OperatingSystemMXBean osBean;
@@ -25,23 +27,23 @@ public class ProxyInfoCommand implements FeatureCommand{
         this.osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
     }
 
-    
+
     public String getName() {
         return "proxyinfo";
     }
 
-    
+
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    
+
     public boolean hasPermission(Invocation invocation) {
         return invocation.source()
                 .hasPermission("proxyfeatures.feature.proxyinfo.command.proxyinfo");
     }
 
-    
+
     public void execute(Invocation invocation) {
         CommandSource src = invocation.source();
         if (invocation.arguments().length > 0) {
@@ -77,7 +79,7 @@ public class ProxyInfoCommand implements FeatureCommand{
 
         // Server counts
         Collection<RegisteredServer> allServers = proxy.getAllServers();
-        sendEntry(src, "Total Servers",    String.valueOf(allServers.size()));
+        sendEntry(src, "Total Servers", String.valueOf(allServers.size()));
 
         // Connected clients
         sendEntry(src, "Connected Clients", String.valueOf(proxy.getAllPlayers().size()));
@@ -85,17 +87,17 @@ public class ProxyInfoCommand implements FeatureCommand{
         // Memory usage
         Runtime rt = Runtime.getRuntime();
         long usedMB = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
-        long maxMB  = rt.maxMemory()              / (1024 * 1024);
+        long maxMB = rt.maxMemory() / (1024 * 1024);
         sendEntry(src, "Memory Usage", String.format("%d MB / %d MB", usedMB, maxMB));
 
         // CPU load
         double processLoad = osBean.getProcessCpuLoad() * 100;
-        double systemLoad  = osBean.getCpuLoad()  * 100;
+        double systemLoad = osBean.getCpuLoad() * 100;
         sendEntry(src, "Process CPU Load", String.format("%.2f%%", processLoad));
-        sendEntry(src, "System CPU Load",  String.format("%.2f%%", systemLoad));
+        sendEntry(src, "System CPU Load", String.format("%.2f%%", systemLoad));
     }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(Collections.emptyList());
     }

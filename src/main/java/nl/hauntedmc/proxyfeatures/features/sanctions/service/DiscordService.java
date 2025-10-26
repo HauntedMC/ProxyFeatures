@@ -3,11 +3,11 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.service;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.api.util.http.DiscordUtils;
 import nl.hauntedmc.proxyfeatures.api.util.parse.JsonUtils;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 
 import java.time.Instant;
-import java.util.Map;
 
 public class DiscordService {
 
@@ -20,14 +20,14 @@ public class DiscordService {
     /* =========================  Public API  ========================= */
 
     public void sendBan(SanctionEntity s) {
-        Map<String,String> ph = feature.getService().placeholdersFor(s);
+        MessagePlaceholders ph = feature.getService().placeholdersFor(s);
         sendEmbed(
                 "Ban",
                 15158332, // red
                 field("Speler", ph.get("target")),
-                field("Duur",   ph.get("duration")),
-                field("Reden",  ph.get("reason")),
-                field("Door",   ph.get("actor"))
+                field("Duur", ph.get("duration")),
+                field("Reden", ph.get("reason")),
+                field("Door", ph.get("actor"))
         );
     }
 
@@ -36,19 +36,19 @@ public class DiscordService {
                 "Unban",
                 3066993, // green
                 field("Speler", safeName(target)),
-                field("Door",   actorName)
+                field("Door", actorName)
         );
     }
 
     public void sendMute(SanctionEntity s) {
-        Map<String,String> ph = feature.getService().placeholdersFor(s);
+        MessagePlaceholders ph = feature.getService().placeholdersFor(s);
         sendEmbed(
                 "Mute",
                 15158332, // red
                 field("Speler", ph.get("target")),
-                field("Duur",   ph.get("duration")),
-                field("Reden",  ph.get("reason")),
-                field("Door",   ph.get("actor"))
+                field("Duur", ph.get("duration")),
+                field("Reden", ph.get("reason")),
+                field("Door", ph.get("actor"))
         );
     }
 
@@ -57,7 +57,7 @@ public class DiscordService {
                 "Unmute",
                 3066993, // green
                 field("Speler", safeName(target)),
-                field("Door",   actorName)
+                field("Door", actorName)
         );
     }
 
@@ -66,8 +66,8 @@ public class DiscordService {
                 "Warn",
                 15844367, // yellow
                 field("Speler", safeName(target)),
-                field("Reden",  nullToDash(reason)),
-                field("Door",   actorName)
+                field("Reden", nullToDash(reason)),
+                field("Door", actorName)
         );
     }
 
@@ -76,8 +76,8 @@ public class DiscordService {
                 "Kick",
                 16733525, // red-ish
                 field("Speler", safeName(target)),
-                field("Reden",  nullToDash(reason)),
-                field("Door",   actorName)
+                field("Reden", nullToDash(reason)),
+                field("Door", actorName)
         );
     }
 
@@ -167,7 +167,8 @@ public class DiscordService {
         try {
             Object v = feature.getConfigHandler().getSetting("discordWebhookURL");
             return v == null ? "" : String.valueOf(v);
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
         return "";
     }
 }

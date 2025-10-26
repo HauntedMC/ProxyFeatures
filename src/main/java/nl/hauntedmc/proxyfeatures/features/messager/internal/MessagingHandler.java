@@ -94,7 +94,7 @@ public class MessagingHandler {
         var from = loc.getMessage("message.format.from")
                 .with("sender_server", s.getCurrentServer().map(x -> x.getServerInfo().getName()).orElse("unknown"))
                 .with("sender", s.getUsername())
-                .with( "message", msg)
+                .with("message", msg)
                 .forAudience(r)
                 .build();
         var to = loc.getMessage("message.format.to")

@@ -60,6 +60,7 @@ public class ResourcePackHandler {
 
     /**
      * Retrieve a pre-built ResourcePackInfo by key ("global" or gamemode name).
+     *
      * @param key the identifier for the pack
      * @return the ResourcePackInfo, or null if not found
      */
@@ -67,7 +68,9 @@ public class ResourcePackHandler {
         return packInfoMap.get(key.toLowerCase());
     }
 
-    /** Build a pack from arbitrary url+hash. */
+    /**
+     * Build a pack from arbitrary url+hash.
+     */
     public @NotNull ResourcePackInfo buildPackInfo(String url, byte[] hash) {
         return server.createResourcePackBuilder(url)
                 .setHash(hash)

@@ -19,7 +19,7 @@ public class ReplyCommand implements FeatureCommand {
 
     public ReplyCommand(Messenger feature) {
         this.feature = feature;
-        this.proxy   = feature.getPlugin().getProxy();
+        this.proxy = feature.getPlugin().getProxy();
         this.handler = feature.getHandler();
     }
 
@@ -41,8 +41,8 @@ public class ReplyCommand implements FeatureCommand {
 
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
-        String[] args    = inv.arguments();
-        var loc          = feature.getLocalizationHandler();
+        String[] args = inv.arguments();
+        var loc = feature.getLocalizationHandler();
 
         if (!(src instanceof Player player)) {
             src.sendMessage(loc.getMessage("message.cmd_usage").forAudience(src).build());
@@ -59,7 +59,7 @@ public class ReplyCommand implements FeatureCommand {
         handler.getLastRecipient(player.getUniqueId()).ifPresentOrElse(
                 uid -> proxy.getPlayer(uid).ifPresentOrElse(
                         target -> {
-                            String msg = String.join(" ", Arrays.copyOfRange(args,0,args.length));
+                            String msg = String.join(" ", Arrays.copyOfRange(args, 0, args.length));
                             feature.getHandler().processPrivateMessage(player, target, msg);
                         },
                         () -> player.sendMessage(loc.getMessage("message.offline").forAudience(player).build())

@@ -26,7 +26,8 @@ public class EventBusHandler {
             );
         } catch (Exception ex) {
             feature.getLogger().error("Failed to subscribe to channel");
-        }}
+        }
+    }
 
 
     private void handleIncoming(StaffChatMessage scMessage) {

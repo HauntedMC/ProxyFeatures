@@ -2,8 +2,8 @@ package nl.hauntedmc.proxyfeatures.features.playerinfo.service;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.PlayerInfo;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 
@@ -26,7 +26,11 @@ public class PlayerInfoService {
             zoneId = ZoneId.systemDefault();
         } else {
             ZoneId tmp;
-            try { tmp = ZoneId.of(tz); } catch (Exception e) { tmp = ZoneId.systemDefault(); }
+            try {
+                tmp = ZoneId.of(tz);
+            } catch (Exception e) {
+                tmp = ZoneId.systemDefault();
+            }
             zoneId = tmp;
         }
 
@@ -34,7 +38,8 @@ public class PlayerInfoService {
         formatter = DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
     }
 
-    public record OnlineStatus(boolean online, String serverName) {}
+    public record OnlineStatus(boolean online, String serverName) {
+    }
 
     public Optional<PlayerEntity> findPlayerEntityByName(String name) {
         return feature.getOrmContext().runInTransaction(session ->
@@ -88,7 +93,8 @@ public class PlayerInfoService {
             try {
                 UUID uuid = UUID.fromString(nameOrUuid);
                 opt = feature.getPlugin().getProxy().getPlayer(uuid);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         if (opt.isEmpty()) return new OnlineStatus(false, null);
 

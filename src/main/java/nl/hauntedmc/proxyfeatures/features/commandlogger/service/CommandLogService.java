@@ -22,7 +22,7 @@ public class CommandLogService {
      * Slaat een geverifieerde command-executie op in de database.
      * "server" wordt altijd "proxy" voor Velocity.
      *
-     * @param source CommandSource (speler of console, etc.)
+     * @param source      CommandSource (speler of console, etc.)
      * @param fullCommand command zonder leading slash (zoals ontvangen van het event)
      */
     public void logProxyCommand(CommandSource source, String fullCommand) {

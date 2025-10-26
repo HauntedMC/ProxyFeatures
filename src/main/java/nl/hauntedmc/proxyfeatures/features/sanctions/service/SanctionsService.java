@@ -1,9 +1,10 @@
 package nl.hauntedmc.proxyfeatures.features.sanctions.service;
 
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionType;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +23,9 @@ public class SanctionsService {
     // in-memory cache for mutes: playerId -> active mute
     private final Map<Long, SanctionEntity> muteCache = new ConcurrentHashMap<>();
 
-    public SanctionsService(Sanctions feature) { this.feature = feature; }
+    public SanctionsService(Sanctions feature) {
+        this.feature = feature;
+    }
 
     // ===== Player lookups =====
 
@@ -239,7 +242,10 @@ public class SanctionsService {
     public boolean isMuted(Long playerId) {
         SanctionEntity s = muteCache.get(playerId);
         if (s == null) return false;
-        if (!s.isActive()) { muteCache.remove(playerId); return false; }
+        if (!s.isActive()) {
+            muteCache.remove(playerId);
+            return false;
+        }
         if (s.isExpired(Instant.now())) {
             deactivateById(s.getId());
             muteCache.remove(playerId);
@@ -253,9 +259,12 @@ public class SanctionsService {
         if (s == null) return "0m";
         if (s.isPermanent()) return "permanent";
         long seconds = Math.max(0, s.getExpiresAt().getEpochSecond() - Instant.now().getEpochSecond());
-        long days = seconds / 86400; seconds %= 86400;
-        long hours = seconds / 3600; seconds %= 3600;
-        long minutes = seconds / 60; seconds %= 60;
+        long days = seconds / 86400;
+        seconds %= 86400;
+        long hours = seconds / 3600;
+        seconds %= 3600;
+        long minutes = seconds / 60;
+        seconds %= 60;
         StringBuilder sb = new StringBuilder();
         if (days > 0) sb.append(days).append("d ");
         if (hours > 0) sb.append(hours).append("h ");
@@ -275,7 +284,9 @@ public class SanctionsService {
 
     // ===== LISTING / PAGINATION =====
 
-    /** Count sanctions for a player, optionally active only. */
+    /**
+     * Count sanctions for a player, optionally active only.
+     */
     public long countSanctionsForPlayer(PlayerEntity p, boolean activeOnly) {
         return feature.getOrm().runInTransaction(session ->
                 session.createQuery(
@@ -287,7 +298,9 @@ public class SanctionsService {
         );
     }
 
-    /** Page sanctions for a player, newest first, DB-level pagination. */
+    /**
+     * Page sanctions for a player, newest first, DB-level pagination.
+     */
     public List<SanctionEntity> pageSanctionsForPlayer(PlayerEntity p, boolean activeOnly, int page, int pageSize) {
         int p1 = Math.max(1, page);
         int size = Math.max(1, pageSize);
@@ -306,7 +319,9 @@ public class SanctionsService {
         );
     }
 
-    /** Count all sanctions (any type/target). */
+    /**
+     * Count all sanctions (any type/target).
+     */
     public long countAllSanctions() {
         return feature.getOrm().runInTransaction(session ->
                 session.createQuery("select count(s.id) from SanctionEntity s", Long.class)
@@ -314,7 +329,9 @@ public class SanctionsService {
         );
     }
 
-    /** Page all sanctions globally, newest first, DB-level pagination. */
+    /**
+     * Page all sanctions globally, newest first, DB-level pagination.
+     */
     public List<SanctionEntity> pageAllSanctions(int page, int pageSize) {
         int p1 = Math.max(1, page);
         int size = Math.max(1, pageSize);
@@ -346,14 +363,14 @@ public class SanctionsService {
             long n = Long.parseLong(m.group(1));
             String unit = m.group(2).toLowerCase(Locale.ROOT);
             switch (unit) {
-                case "y"  -> totalSeconds += Duration.ofDays(365).getSeconds() * n;
+                case "y" -> totalSeconds += Duration.ofDays(365).getSeconds() * n;
                 case "mo" -> totalSeconds += Duration.ofDays(30).getSeconds() * n;
-                case "w"  -> totalSeconds += Duration.ofDays(7).getSeconds() * n;
-                case "d"  -> totalSeconds += Duration.ofDays(n).getSeconds();
-                case "h"  -> totalSeconds += Duration.ofHours(n).getSeconds();
-                case "m"  -> totalSeconds += Duration.ofMinutes(n).getSeconds();
-                case "s"  -> totalSeconds += n;
-                default   -> throw new IllegalArgumentException("invalid unit");
+                case "w" -> totalSeconds += Duration.ofDays(7).getSeconds() * n;
+                case "d" -> totalSeconds += Duration.ofDays(n).getSeconds();
+                case "h" -> totalSeconds += Duration.ofHours(n).getSeconds();
+                case "m" -> totalSeconds += Duration.ofMinutes(n).getSeconds();
+                case "s" -> totalSeconds += n;
+                default -> throw new IllegalArgumentException("invalid unit");
             }
         }
         if (found == 0 || totalSeconds <= 0) throw new IllegalArgumentException("invalid length");
@@ -368,8 +385,8 @@ public class SanctionsService {
         return trimmed;
     }
 
-    public Map<String, String> placeholdersFor(SanctionEntity s) {
-        Map<String, String> m = new HashMap<>();
+    public MessagePlaceholders placeholdersFor(SanctionEntity s) {
+        var ph = MessagePlaceholders.builder();
         String dur = s.isPermanent() ? "permanent" : humanDuration(Instant.now(), s.getExpiresAt());
 
         // Resolve target label: prefer player username, else IP, else "-"
@@ -384,18 +401,21 @@ public class SanctionsService {
         try {
             Object v = feature.getConfigHandler().getSetting("appealURL");
             if (v != null) appealUrl = String.valueOf(v);
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
 
-        m.put("reason", Optional.ofNullable(s.getReason()).orElse("-"));
-        m.put("duration", dur);
-        m.put("target", targetLabel);
-        m.put("ip", s.getTargetIp() != null ? s.getTargetIp() : "-");
-        m.put("actor", actorLabel);
-        m.put("appeal", appealUrl);
-        return m;
+        ph.add("reason", Optional.ofNullable(s.getReason()).orElse("-"));
+        ph.add("duration", dur);
+        ph.add("target", targetLabel);
+        ph.add("ip", s.getTargetIp() != null ? s.getTargetIp() : "-");
+        ph.add("actor", actorLabel);
+        ph.add("appeal", appealUrl);
+        return ph.build();
     }
 
-    /** Safely resolve a username from a (possibly detached) PlayerEntity reference. */
+    /**
+     * Safely resolve a username from a (possibly detached) PlayerEntity reference.
+     */
     private String resolveUsername(PlayerEntity ref) {
         if (ref == null) return null;
         Long id = ref.getId();
@@ -409,9 +429,12 @@ public class SanctionsService {
     public String humanDuration(Instant from, Instant to) {
         if (to == null) return "permanent";
         long seconds = Math.max(0, to.getEpochSecond() - from.getEpochSecond());
-        long days = seconds / 86400; seconds %= 86400;
-        long hours = seconds / 3600; seconds %= 3600;
-        long minutes = seconds / 60; seconds %= 60;
+        long days = seconds / 86400;
+        seconds %= 86400;
+        long hours = seconds / 3600;
+        seconds %= 3600;
+        long minutes = seconds / 60;
+        seconds %= 60;
         StringBuilder sb = new StringBuilder();
         if (days > 0) sb.append(days).append("d ");
         if (hours > 0) sb.append(hours).append("h ");
@@ -421,7 +444,7 @@ public class SanctionsService {
         return out.isEmpty() ? "0m" : out;
     }
 
-    public void broadcastToStaff(String messageKey, Map<String, String> ph) {
+    public void broadcastToStaff(String messageKey, MessagePlaceholders ph) {
         String notifyPerm = "proxyfeatures.feature.sanctions.notify";
 
         feature.getPlugin().getProxy().getAllPlayers().forEach(pl -> {
@@ -531,7 +554,9 @@ public class SanctionsService {
         );
     }
 
-    /** List sanctions for a specific player, newest first. If activeOnly=true, returns only active ones. */
+    /**
+     * List sanctions for a specific player, newest first. If activeOnly=true, returns only active ones.
+     */
     public List<SanctionEntity> listSanctionsForPlayer(PlayerEntity p, boolean activeOnly) {
         return feature.getOrm().runInTransaction(session -> {
             var q = session.createQuery(
@@ -544,7 +569,9 @@ public class SanctionsService {
         });
     }
 
-    /** Resolve a username for a (possibly detached) PlayerEntity safely. */
+    /**
+     * Resolve a username for a (possibly detached) PlayerEntity safely.
+     */
     public Optional<String> usernameOf(PlayerEntity ref) {
         if (ref == null || ref.getId() == null) return Optional.empty();
         return Optional.ofNullable(
@@ -555,7 +582,9 @@ public class SanctionsService {
         );
     }
 
-    /** Check if a target UUID is currently online and exempt from sanctions. */
+    /**
+     * Check if a target UUID is currently online and exempt from sanctions.
+     */
     public boolean isTargetExempt(String targetUuid) {
         try {
             UUID uuid = UUID.fromString(targetUuid);

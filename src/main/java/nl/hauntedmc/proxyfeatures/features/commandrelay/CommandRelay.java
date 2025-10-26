@@ -1,13 +1,13 @@
 package nl.hauntedmc.proxyfeatures.features.commandrelay;
 
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
-import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.EventBusHandler;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.messaging.CommandRelayMessage;
@@ -37,6 +37,7 @@ public class CommandRelay extends VelocityBaseFeature<Meta> {
     public MessageMap getDefaultMessages() {
         return new MessageMap();
     }
+
     @Override
     public void initialize() {
         // Init Redis messaging

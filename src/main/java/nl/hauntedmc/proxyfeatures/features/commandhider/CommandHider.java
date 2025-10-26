@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.commandhider;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.commandhider.internal.HiderHandler;
 import nl.hauntedmc.proxyfeatures.features.commandhider.listener.AvailableCommandListener;

@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.textcommands.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.textcommands.TextCommands;
 
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class TextCommand implements FeatureCommand{
+public class TextCommand implements FeatureCommand {
 
     private final String name;
     private final String messageKey;
@@ -24,7 +25,7 @@ public class TextCommand implements FeatureCommand{
         this.placeholders = placeholders;
     }
 
-    
+
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         if (!(source instanceof Player player)) {
@@ -35,29 +36,29 @@ public class TextCommand implements FeatureCommand{
 
         Component output = feature.getLocalizationHandler()
                 .getMessage(this.messageKey)
-                .withPlaceholders(this.placeholders)
+                .withPlaceholders(MessagePlaceholders.of(this.placeholders))
                 .forAudience(player)
                 .build();
 
         player.sendMessage(output);
     }
 
-    
+
     public boolean hasPermission(Invocation invocation) {
         return true;
     }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(List.of(""));
     }
 
-    
+
     public String getName() {
         return this.name;
     }
 
-    
+
     public String[] getAliases() {
         return new String[]{""};
     }

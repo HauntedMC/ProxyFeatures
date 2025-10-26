@@ -1,8 +1,9 @@
 package nl.hauntedmc.proxyfeatures.features.sanctions.entity;
 
 import jakarta.persistence.*;
-import java.time.Instant;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "player_sanctions", indexes = {
@@ -17,7 +18,9 @@ public class SanctionEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** For optimistic locking so concurrent changes don't clobber each other. */
+    /**
+     * For optimistic locking so concurrent changes don't clobber each other.
+     */
     @Version
     private Long version;
 
@@ -53,37 +56,90 @@ public class SanctionEntity {
     @Column(name = "active", nullable = false)
     private boolean active;
 
-    public Long getId() { return id; }
-    public Long getVersion() { return version; }
+    public Long getId() {
+        return id;
+    }
 
-    public SanctionType getType() { return type; }
-    public void setType(SanctionType type) { this.type = type; }
+    public Long getVersion() {
+        return version;
+    }
 
-    public PlayerEntity getTargetPlayer() { return targetPlayer; }
-    public void setTargetPlayer(PlayerEntity targetPlayer) { this.targetPlayer = targetPlayer; }
+    public SanctionType getType() {
+        return type;
+    }
 
-    public String getTargetIp() { return targetIp; }
-    public void setTargetIp(String targetIp) { this.targetIp = targetIp; }
+    public void setType(SanctionType type) {
+        this.type = type;
+    }
 
-    public String getReason() { return reason; }
-    public void setReason(String reason) { this.reason = reason; }
+    public PlayerEntity getTargetPlayer() {
+        return targetPlayer;
+    }
 
-    public PlayerEntity getActorPlayer() { return actorPlayer; }
-    public void setActorPlayer(PlayerEntity actorPlayer) { this.actorPlayer = actorPlayer; }
+    public void setTargetPlayer(PlayerEntity targetPlayer) {
+        this.targetPlayer = targetPlayer;
+    }
 
-    public String getActorName() { return actorName; }
-    public void setActorName(String actorName) { this.actorName = actorName; }
+    public String getTargetIp() {
+        return targetIp;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setTargetIp(String targetIp) {
+        this.targetIp = targetIp;
+    }
 
-    public Instant getExpiresAt() { return expiresAt; }
-    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
+    public String getReason() {
+        return reason;
+    }
 
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
 
-    public boolean isPermanent() { return expiresAt == null; }
+    public PlayerEntity getActorPlayer() {
+        return actorPlayer;
+    }
+
+    public void setActorPlayer(PlayerEntity actorPlayer) {
+        this.actorPlayer = actorPlayer;
+    }
+
+    public String getActorName() {
+        return actorName;
+    }
+
+    public void setActorName(String actorName) {
+        this.actorName = actorName;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public boolean isPermanent() {
+        return expiresAt == null;
+    }
+
     public boolean isExpired(Instant now) {
         return !isPermanent() && expiresAt.isBefore(now);
     }

@@ -16,7 +16,8 @@ import java.util.Optional;
  */
 public class FriendsCache {
 
-    private record PairKey(long a, long b) { }
+    private record PairKey(long a, long b) {
+    }
 
     private final Cache<String, Optional<PlayerRef>> playerByUuid =
             Caffeine.newBuilder()

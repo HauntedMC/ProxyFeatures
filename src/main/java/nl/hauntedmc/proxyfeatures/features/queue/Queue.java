@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.queue;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.queue.command.QueueCommand;
 import nl.hauntedmc.proxyfeatures.features.queue.listener.ConnectionListener;

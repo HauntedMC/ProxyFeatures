@@ -13,7 +13,7 @@ public class PacketManager {
     /**
      * Sends packets to a single player.
      *
-     * @param player The recipient player.
+     * @param player  The recipient player.
      * @param packets The packets to send.
      */
     public static void sendUnicast(Player player, Packet... packets) {
@@ -42,7 +42,7 @@ public class PacketManager {
      * @param packets The packets to send.
      */
     public static void sendBroadcast(Packet... packets) {
-        for (Player player :  ProxyFeatures.getAllPlayers()) {
+        for (Player player : ProxyFeatures.getAllPlayers()) {
             for (Packet packet : packets) {
                 packet.sendTo(player);
             }

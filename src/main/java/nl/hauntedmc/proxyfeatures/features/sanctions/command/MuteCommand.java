@@ -2,50 +2,69 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class MuteCommand implements FeatureCommand {
 
     private final Sanctions feature;
-    public MuteCommand(Sanctions feature) { this.feature = feature; }
 
-    
+    public MuteCommand(Sanctions feature) {
+        this.feature = feature;
+    }
+
+
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
-        if (a.length < 3) { sendMsg(src, "sanctions.usage.mute"); return; }
+        if (a.length < 3) {
+            sendMsg(src, "sanctions.usage.mute");
+            return;
+        }
 
         String targetName = a[0];
-        String length     = a[1];
-        String reason     = feature.getService().sanitizeReason(joinAfter(a, 2));
+        String length = a[1];
+        String reason = feature.getService().sanitizeReason(joinAfter(a, 2));
 
         var targetOpt = feature.getServiceLookup().byName(targetName);
-        if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
+        if (targetOpt.isEmpty()) {
+            sendMsg(src, "sanctions.not_found");
+            return;
+        }
         PlayerEntity target = targetOpt.get();
 
         if (src instanceof Player p && p.getUniqueId().toString().equals(target.getUuid())) {
-            sendMsg(src, "sanctions.self"); return;
+            sendMsg(src, "sanctions.self");
+            return;
         }
         if (feature.getService().findActiveMuteByPlayer(target).isPresent()) {
-            sendMsg(src, "sanctions.already_muted"); return;
+            sendMsg(src, "sanctions.already_muted");
+            return;
         }
 
         // Exempt protection (if online and has exempt permission)
         if (feature.getService().isTargetExempt(target.getUuid())) {
-            sendMsg(src, "sanctions.exempt_target"); return;
+            sendMsg(src, "sanctions.exempt_target");
+            return;
         }
 
         Instant expires;
-        try { expires = feature.getService().parseLengthToExpiry(length); }
-        catch (Exception e) { sendMsg(src, "sanctions.invalid_length"); return; }
+        try {
+            expires = feature.getService().parseLengthToExpiry(length);
+        } catch (Exception e) {
+            sendMsg(src, "sanctions.invalid_length");
+            return;
+        }
 
         if (expires == null && !src.hasPermission("proxyfeatures.feature.sanctions.command.mute.perm")) {
             sendMsg(src, "sanctions.perm_block");
@@ -85,19 +104,24 @@ public class MuteCommand implements FeatureCommand {
         }
     }
 
-    
+
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.mute");
     }
 
-     public String getName() { return "mute"; }
-     public String[] getAliases() { return new String[0]; }
+    public String getName() {
+        return "mute";
+    }
 
-    
+    public String[] getAliases() {
+        return new String[0];
+    }
+
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         // Keep these short, staff can still type custom lengths
-        List<String> durations = List.of("7d","30d","p");
+        List<String> durations = List.of("7d", "30d", "p");
 
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
             List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
@@ -128,9 +152,13 @@ public class MuteCommand implements FeatureCommand {
     private void sendMsg(CommandSource src, String key) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());
     }
+
     private String joinAfter(String[] arr, int idx) {
         StringBuilder sb = new StringBuilder();
-        for (int i = idx; i < arr.length; i++) { if (i > idx) sb.append(' '); sb.append(arr[i]); }
+        for (int i = idx; i < arr.length; i++) {
+            if (i > idx) sb.append(' ');
+            sb.append(arr[i]);
+        }
         return sb.toString();
     }
 }

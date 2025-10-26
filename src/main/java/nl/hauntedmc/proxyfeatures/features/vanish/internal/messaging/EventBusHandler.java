@@ -26,7 +26,7 @@ public class EventBusHandler {
                     this::handleIncoming
             );
         } catch (Exception ex) {
-            feature.getLogger().error("Failed to subscribe to vanish channel "+channel+": " + ex.getMessage());
+            feature.getLogger().error("Failed to subscribe to vanish channel " + channel + ": " + ex.getMessage());
         }
     }
 
@@ -46,7 +46,7 @@ public class EventBusHandler {
         try {
             feature.getVanishRegistry().applyUpdate(uuid, msg.getPlayerName(), msg.isVanished());
         } catch (Throwable t) {
-            feature.getLogger().error("Error applying vanish update for "+msg.getPlayerName()+": " + t.getMessage());
+            feature.getLogger().error("Error applying vanish update for " + msg.getPlayerName() + ": " + t.getMessage());
         }
     }
 

@@ -15,7 +15,6 @@ import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
-
 import com.velocitypowered.api.scheduler.Scheduler;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
@@ -29,7 +28,7 @@ import java.util.Collection;
 
 @Plugin(id = "proxyfeatures",
         name = "ProxyFeatures",
-        version = "1.7.0",
+        version = "2.0.0",
         url = "https://www.hauntedmc.nl",
         description = "ProxyFeatures",
         authors = {"HauntedMC"},
@@ -51,8 +50,8 @@ public class ProxyFeatures {
 
     @Inject
     public ProxyFeatures(ProxyServer proxy,
-                     ComponentLogger logger,
-                     @DataDirectory Path dataDirectory) {
+                         ComponentLogger logger,
+                         @DataDirectory Path dataDirectory) {
         ProxyFeatures.proxy = proxy;
         this.logger = logger;
         this.dataDirectory = dataDirectory;
@@ -160,6 +159,7 @@ public class ProxyFeatures {
     /**
      * Hack to get all players when we dont have an instance of getPlugin
      * TODO: should be refactored in the final design
+     *
      * @return All players on this proxy
      */
     public static Collection<Player> getAllPlayers() {

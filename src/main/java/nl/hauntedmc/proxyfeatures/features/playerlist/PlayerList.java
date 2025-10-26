@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.playerlist;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.playerlist.command.GlobalListCommand;
 import nl.hauntedmc.proxyfeatures.features.playerlist.command.ListCommand;

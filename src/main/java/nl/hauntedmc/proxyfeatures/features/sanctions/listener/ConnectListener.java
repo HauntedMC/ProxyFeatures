@@ -12,7 +12,7 @@ public class ConnectListener {
 
     private final Sanctions feature;
 
-    public ConnectListener (Sanctions feature) {
+    public ConnectListener(Sanctions feature) {
         this.feature = feature;
     }
 
@@ -27,7 +27,7 @@ public class ConnectListener {
 
             // Check UUID-ban (via PlayerEntity) and IP-ban
             var uuidBanOpt = playerOpt.flatMap(feature.getService()::findActiveBanByPlayer);
-            var ipBanOpt   = feature.getService().findActiveBanByIp(ip);
+            var ipBanOpt = feature.getService().findActiveBanByIp(ip);
 
             // Prefer UUID ban over IP ban
             SanctionEntity ban = uuidBanOpt.orElse(ipBanOpt.orElse(null));

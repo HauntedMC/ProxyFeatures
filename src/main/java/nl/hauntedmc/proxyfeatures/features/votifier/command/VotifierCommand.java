@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.votifier.command;
 
 import com.velocitypowered.api.command.CommandSource;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
 
@@ -10,13 +11,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class VotifierCommand implements FeatureCommand{
+public class VotifierCommand implements FeatureCommand {
 
     private final Votifier feature;
 
-    public VotifierCommand(Votifier feature) { this.feature = feature; }
+    public VotifierCommand(Votifier feature) {
+        this.feature = feature;
+    }
 
-    
+
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -43,23 +46,27 @@ public class VotifierCommand implements FeatureCommand{
             );
             src.sendMessage(feature.getLocalizationHandler()
                     .getMessage("votifier.status")
-                    .withPlaceholders(ph)
+                    .withPlaceholders(MessagePlaceholders.of(ph))
                     .forAudience(src).build());
         } else {
             sendUsage(src);
         }
     }
 
-    
+
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.votifier.command");
     }
 
-     public String getName() { return "votifier"; }
+    public String getName() {
+        return "votifier";
+    }
 
-     public String[] getAliases() { return new String[0]; }
+    public String[] getAliases() {
+        return new String[0];
+    }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         if (a.length <= 1) {

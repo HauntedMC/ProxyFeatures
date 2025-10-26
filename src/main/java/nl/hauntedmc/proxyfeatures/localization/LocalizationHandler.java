@@ -43,14 +43,18 @@ public class LocalizationHandler {
         }
     }
 
-    /** Reload defaults and per-language files. */
+    /**
+     * Reload defaults and per-language files.
+     */
     public void reloadLocalization() {
         defaultMessagesResource.reload();
         languageResources.values().forEach(ResourceHandler::reload);
         plugin.getLogger().info("All localization files reloaded.");
     }
 
-    /** Register defaults (create missing keys only). */
+    /**
+     * Register defaults (create missing keys only).
+     */
     public void registerDefaultMessages(MessageMap messageMap) {
         boolean changes = false;
         CommentedConfigurationNode root = defaultMessagesResource.getConfig();
@@ -124,7 +128,9 @@ public class LocalizationHandler {
             return this;
         }
 
-        /** Build: legacy(&/§ + hex) -> MiniMessage tags -> MiniMessage parse -> Component. */
+        /**
+         * Build: legacy(&/§ + hex) -> MiniMessage tags -> MiniMessage parse -> Component.
+         */
         public Component build() {
             String raw = (audience instanceof Player p)
                     ? getTranslatedMessage(key, p)
@@ -157,7 +163,9 @@ public class LocalizationHandler {
         return node(root, dottedKey).virtual();
     }
 
-    /** Get translated message for a Velocity player; fallback to defaults. */
+    /**
+     * Get translated message for a Velocity player; fallback to defaults.
+     */
     private @NotNull String getTranslatedMessage(String key, Player player) {
         Language language = LanguageUtils.getPlayerLanguage(player);
         String msg = null;

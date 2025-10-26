@@ -8,11 +8,10 @@ import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.SlashServer;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class SlashServerCommand implements FeatureCommand{
+public class SlashServerCommand implements FeatureCommand {
 
     private final SlashServer feature;
     private final String serverName;
@@ -89,17 +88,17 @@ public class SlashServerCommand implements FeatureCommand{
         });
     }
 
-    
+
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.slashserver.use");
     }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         return CompletableFuture.completedFuture(List.of());
     }
 
-    
+
     public String getName() {
         return serverName;
     }

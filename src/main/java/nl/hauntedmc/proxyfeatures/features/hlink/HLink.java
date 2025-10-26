@@ -1,14 +1,14 @@
 package nl.hauntedmc.proxyfeatures.features.hlink;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.HLinkCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.LinkCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.command.RegisterCommand;
-import nl.hauntedmc.proxyfeatures.features.hlink.internal.hook.LuckPermsHook;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.HLinkHandler;
+import nl.hauntedmc.proxyfeatures.features.hlink.internal.hook.LuckPermsHook;
 import nl.hauntedmc.proxyfeatures.features.hlink.meta.Meta;
 
 public class HLink extends VelocityBaseFeature<Meta> {
@@ -39,9 +39,9 @@ public class HLink extends VelocityBaseFeature<Meta> {
         messageMap.add("hlink.footer", "&7&m------------------------------");
         messageMap.add("hlink.errorCreatingKey", "&cFout bij linken van account. Maak een support ticket aan voor hulp.");
         messageMap.add("hlink.linkMessage", "&eJe account is succesvol gelinkt aan de website.");
-        messageMap.add("hlink.syncUsage",        "&cGebruik: /hlink sync <speler>");
-        messageMap.add("hlink.syncNotOnline",    "&cSpeler &6{player}&c niet gevonden.");
-        messageMap.add("hlink.syncSuccess",      "&aSpeler &6{player}&a gesynchroniseerd.");
+        messageMap.add("hlink.syncUsage", "&cGebruik: /hlink sync <speler>");
+        messageMap.add("hlink.syncNotOnline", "&cSpeler &6{player}&c niet gevonden.");
+        messageMap.add("hlink.syncSuccess", "&aSpeler &6{player}&a gesynchroniseerd.");
         return messageMap;
     }
 

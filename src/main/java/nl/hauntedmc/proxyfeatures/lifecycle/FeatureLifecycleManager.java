@@ -46,7 +46,9 @@ public class FeatureLifecycleManager {
         return dataManager;
     }
 
-    /** Access to the cache manager for this feature. */
+    /**
+     * Access to the cache manager for this feature.
+     */
     public FeatureCacheManager getCacheManager() {
         return cacheManager;
     }

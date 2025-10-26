@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.tablist;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.tablist.listener.JoinListener;
 import nl.hauntedmc.proxyfeatures.features.tablist.meta.Meta;

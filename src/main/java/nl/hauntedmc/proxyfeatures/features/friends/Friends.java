@@ -1,11 +1,11 @@
 package nl.hauntedmc.proxyfeatures.features.friends;
 
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
-import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.friends.command.FriendCommand;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendRelationEntity;

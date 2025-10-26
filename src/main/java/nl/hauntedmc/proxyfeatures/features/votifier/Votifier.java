@@ -1,12 +1,12 @@
 package nl.hauntedmc.proxyfeatures.features.votifier;
 
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
-import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.votifier.command.VotifierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.EventBusHandler;
@@ -21,7 +21,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.file.*;
+import java.nio.file.FileSystemException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.util.Optional;
@@ -71,7 +73,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap m = new MessageMap();
-        m.add("votifier.usage",   "[Votifier] Gebruik: /votifier <status");
+        m.add("votifier.usage", "[Votifier] Gebruik: /votifier <status");
         m.add("votifier.status",
                 "[Votifier] Status={status}, Host={host}, Port={port}, Timeout={timeout}ms, KeyBits={keybits}");
 
@@ -216,7 +218,9 @@ public class Votifier extends VelocityBaseFeature<Meta> {
 
     /* =========================  Introspection for command  ========================= */
 
-    public boolean isRunning() { return server != null && server.isRunning(); }
+    public boolean isRunning() {
+        return server != null && server.isRunning();
+    }
 
     public String currentHost() {
         if (server != null) return server.getHost();

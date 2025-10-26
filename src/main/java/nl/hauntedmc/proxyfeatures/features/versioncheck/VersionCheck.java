@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.versioncheck;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.internal.VersionHandler;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.listener.ConnectionListener;

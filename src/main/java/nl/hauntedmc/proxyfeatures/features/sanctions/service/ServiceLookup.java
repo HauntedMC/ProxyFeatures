@@ -7,7 +7,10 @@ import java.util.Optional;
 
 public class ServiceLookup {
     private final Sanctions feature;
-    public ServiceLookup(Sanctions feature) { this.feature = feature; }
+
+    public ServiceLookup(Sanctions feature) {
+        this.feature = feature;
+    }
 
     public Optional<PlayerEntity> byName(String name) {
         return feature.getOrm().runInTransaction(s ->

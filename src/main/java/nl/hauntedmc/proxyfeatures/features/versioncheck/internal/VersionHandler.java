@@ -7,8 +7,6 @@ import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.VersionCheck;
 
-import java.util.Map;
-
 public class VersionHandler {
 
     private final VersionCheck feature;
@@ -20,7 +18,7 @@ public class VersionHandler {
         minimum_protocol_version = (int) feature.getConfigHandler().getSetting("minimum_protocol_version");
         friendly_protocol_name = (String) feature.getConfigHandler().getSetting("friendly_protocol_name");
     }
-    
+
     public void checkVersion(LoginEvent event) {
         Player player = event.getPlayer();
         int protocolVersion = player.getProtocolVersion().getProtocol();
@@ -49,5 +47,5 @@ public class VersionHandler {
     public String getFriendlyProtocolName() {
         return friendly_protocol_name;
     }
-    
+
 }

@@ -7,7 +7,10 @@ import nl.hauntedmc.proxyfeatures.features.queue.Queue;
 import nl.hauntedmc.proxyfeatures.features.queue.QueueManager;
 import nl.hauntedmc.proxyfeatures.features.queue.model.ServerQueue;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -16,7 +19,7 @@ import java.util.stream.Collectors;
  * /queue leave      -> verlaat je huidige wachtrij
  * /queue info <srv>  -> toon kop van de wachtrij (staff)
  */
-public class QueueCommand implements FeatureCommand{
+public class QueueCommand implements FeatureCommand {
     private final Queue feature;
     private final QueueManager manager;
 
@@ -25,18 +28,22 @@ public class QueueCommand implements FeatureCommand{
         this.manager = manager;
     }
 
-    
-    public String getName() { return "queue"; }
 
-    
-    public String[] getAliases() { return new String[]{ "q" }; }
+    public String getName() {
+        return "queue";
+    }
 
-    
+
+    public String[] getAliases() {
+        return new String[]{"q"};
+    }
+
+
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.queue.command");
     }
 
-    
+
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         List<String> args = List.of(invocation.arguments());
@@ -184,7 +191,7 @@ public class QueueCommand implements FeatureCommand{
         return feature.getPlugin().getProxy().getPlayer(id).map(Player::getUsername).orElse(id.toString());
     }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length == 0) {

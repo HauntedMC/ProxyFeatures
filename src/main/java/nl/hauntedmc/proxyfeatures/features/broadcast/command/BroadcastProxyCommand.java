@@ -9,7 +9,10 @@ import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.broadcast.Broadcast;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,11 +25,16 @@ public class BroadcastProxyCommand implements FeatureCommand {
 
     public BroadcastProxyCommand(Broadcast feature) {
         this.feature = feature;
-        this.proxy   = feature.getPlugin().getProxy();
+        this.proxy = feature.getPlugin().getProxy();
     }
 
-    public String getName()    { return "broadcastproxy"; }
-    public String[] getAliases() { return new String[]{""}; }
+    public String getName() {
+        return "broadcastproxy";
+    }
+
+    public String[] getAliases() {
+        return new String[]{""};
+    }
 
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission(
@@ -35,7 +43,7 @@ public class BroadcastProxyCommand implements FeatureCommand {
 
     public void execute(Invocation invocation) {
         CommandSource src = invocation.source();
-        String[] args     = invocation.arguments();
+        String[] args = invocation.arguments();
 
         if (args.length < 2) {
             sendUsage(src);
@@ -46,9 +54,9 @@ public class BroadcastProxyCommand implements FeatureCommand {
         String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
 
         switch (mode) {
-            case "chat"  -> broadcastChat(message, src);
+            case "chat" -> broadcastChat(message, src);
             case "title" -> broadcastTitle(message, src);
-            default      -> {
+            default -> {
                 src.sendMessage(feature.getLocalizationHandler()
                         .getMessage("broadcast.noMode")
                         .forAudience(src)
@@ -71,22 +79,22 @@ public class BroadcastProxyCommand implements FeatureCommand {
         if (msg.contains("|")) {
             String[] split = msg.split("\\|", 2);
             titlePart = split[0].trim();
-            subPart   = split[1].trim();
+            subPart = split[1].trim();
         } else {
             titlePart = msg;
-            subPart   = "";
+            subPart = "";
         }
 
         Component titleComp = legacyAmp.deserialize(titlePart);
-        Component subComp   = legacyAmp.deserialize(subPart);
+        Component subComp = legacyAmp.deserialize(subPart);
 
-        int fadeIn  = (int) feature.getConfigHandler().getSetting("title_fade_in");
-        int stay    = (int) feature.getConfigHandler().getSetting("title_stay");
+        int fadeIn = (int) feature.getConfigHandler().getSetting("title_fade_in");
+        int stay = (int) feature.getConfigHandler().getSetting("title_stay");
         int fadeOut = (int) feature.getConfigHandler().getSetting("title_fade_out");
 
         Title.Times times = Title.Times.times(
                 Duration.ofMillis(fadeIn * 50L),
-                Duration.ofMillis(stay    * 50L),
+                Duration.ofMillis(stay * 50L),
                 Duration.ofMillis(fadeOut * 50L));
 
         Title title = Title.title(titleComp, subComp, times);

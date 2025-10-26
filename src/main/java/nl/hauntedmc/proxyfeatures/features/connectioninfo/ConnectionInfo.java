@@ -1,13 +1,13 @@
 package nl.hauntedmc.proxyfeatures.features.connectioninfo;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
-import nl.hauntedmc.proxyfeatures.features.connectioninfo.listener.PlayerListener;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.command.ConnectionInfoCommand;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.command.PingCommand;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.internal.SessionHandler;
+import nl.hauntedmc.proxyfeatures.features.connectioninfo.listener.PlayerListener;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.meta.Meta;
 
 public class ConnectionInfo extends VelocityBaseFeature<Meta> {

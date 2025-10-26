@@ -7,7 +7,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Thread-safe in-memory storage of country codes. */
+/**
+ * Thread-safe in-memory storage of country codes.
+ */
 public class CountryService implements CountryAPI {
 
     // Final mapping by UUID -> ISO country code (uppercased)
@@ -21,13 +23,17 @@ public class CountryService implements CountryAPI {
         return v == null || v.isBlank() ? Optional.empty() : Optional.of(v);
     }
 
-    /** Stage the detected country for a username during PreLogin. */
+    /**
+     * Stage the detected country for a username during PreLogin.
+     */
     public void stageForUsername(String username, String countryCode) {
         if (username == null || username.isBlank() || countryCode == null || countryCode.isBlank()) return;
         byUsername.put(username.toLowerCase(Locale.ROOT), normalize(countryCode));
     }
 
-    /** Promote staged username mapping to UUID after successful login. */
+    /**
+     * Promote staged username mapping to UUID after successful login.
+     */
     public void promoteToUuid(String username, UUID uuid) {
         if (username == null || uuid == null) return;
         String code = byUsername.remove(username.toLowerCase(Locale.ROOT));
@@ -36,7 +42,9 @@ public class CountryService implements CountryAPI {
         }
     }
 
-    /** Cleanup on disconnect (optional; keep if you don't want to persist across sessions). */
+    /**
+     * Cleanup on disconnect (optional; keep if you don't want to persist across sessions).
+     */
     public void clear(UUID uuid) {
         if (uuid != null) byUuid.remove(uuid);
     }

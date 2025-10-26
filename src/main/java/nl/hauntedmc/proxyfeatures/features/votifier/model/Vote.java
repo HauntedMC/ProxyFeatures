@@ -4,5 +4,6 @@ public record Vote(
         String serviceName,
         String username,
         String address,
-        long   timestamp
-) {}
+        long timestamp
+) {
+}

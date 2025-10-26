@@ -4,6 +4,7 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
@@ -24,9 +25,11 @@ public class SanctionListCommand implements FeatureCommand {
     private static final DateTimeFormatter TS =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
-    public SanctionListCommand(Sanctions feature) { this.feature = feature; }
+    public SanctionListCommand(Sanctions feature) {
+        this.feature = feature;
+    }
 
-    
+
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
@@ -112,7 +115,10 @@ public class SanctionListCommand implements FeatureCommand {
 
     private void showPlayerList(CommandSource src, String playerName, boolean activeOnly, int page, int pageSize) {
         var targetOpt = feature.getServiceLookup().byName(playerName);
-        if (targetOpt.isEmpty()) { sendMsg(src, "sanctions.not_found"); return; }
+        if (targetOpt.isEmpty()) {
+            sendMsg(src, "sanctions.not_found");
+            return;
+        }
         PlayerEntity target = targetOpt.get();
 
         long total = feature.getService().countSanctionsForPlayer(target, activeOnly);
@@ -126,7 +132,7 @@ public class SanctionListCommand implements FeatureCommand {
         int pages = (int) Math.max(1, Math.ceil(total / (double) pageSize));
         int pg = clampPage(page, pages);
 
-        Map<String,String> headerPh = new HashMap<>();
+        Map<String, String> headerPh = new HashMap<>();
         headerPh.put("player", target.getUsername());
         headerPh.put("mode", modeLabel);
         headerPh.put("count", String.valueOf(total));
@@ -260,16 +266,20 @@ public class SanctionListCommand implements FeatureCommand {
         return Math.min(page, totalPages);
     }
 
-    
+
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.sanctionlist");
     }
 
-     public String getName() { return "sanctionlist"; }
+    public String getName() {
+        return "sanctionlist";
+    }
 
-     public String[] getAliases() { return new String[0]; }
+    public String[] getAliases() {
+        return new String[0];
+    }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
 
@@ -305,37 +315,44 @@ public class SanctionListCommand implements FeatureCommand {
     private void sendMsg(CommandSource src, String key) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());
     }
+
     private void sendMsg(CommandSource src, String key, Map<String, String> ph) {
-        src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(ph).forAudience(src).build());
+        src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(MessagePlaceholders.of(ph)).forAudience(src).build());
     }
 
     private void sendRawLine(CommandSource src, String raw) {
         src.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(raw));
     }
 
-    private String fmt(Instant t) { return t == null ? "-" : TS.format(t); }
+    private String fmt(Instant t) {
+        return t == null ? "-" : TS.format(t);
+    }
 
     private String typeLabel(CommandSource src, SanctionType t) {
         return switch (t) {
-            case BAN    -> raw(src, "sanctions.type.ban");
+            case BAN -> raw(src, "sanctions.type.ban");
             case BAN_IP -> raw(src, "sanctions.type.ban_ip");
-            case MUTE   -> raw(src, "sanctions.type.mute");
-            case WARN   -> raw(src, "sanctions.type.warn");
-            case KICK   -> raw(src, "sanctions.type.kick");
+            case MUTE -> raw(src, "sanctions.type.mute");
+            case WARN -> raw(src, "sanctions.type.warn");
+            case KICK -> raw(src, "sanctions.type.kick");
         };
     }
 
-    /** Render a localization key to a legacy-ampersand string (so it can be injected as a fragment). */
+    /**
+     * Render a localization key to a legacy-ampersand string (so it can be injected as a fragment).
+     */
     private String raw(CommandSource src, String key) {
         return LegacyComponentSerializer.legacyAmpersand().serialize(
                 feature.getLocalizationHandler().getMessage(key).forAudience(src).build()
         );
     }
 
-    /** Same as {@link #raw(CommandSource, String)} but with placeholders. */
-    private String raw(CommandSource src, String key, Map<String,String> ph) {
+    /**
+     * Same as {@link #raw(CommandSource, String)} but with placeholders.
+     */
+    private String raw(CommandSource src, String key, Map<String, String> ph) {
         return LegacyComponentSerializer.legacyAmpersand().serialize(
-                feature.getLocalizationHandler().getMessage(key).withPlaceholders(ph).forAudience(src).build()
+                feature.getLocalizationHandler().getMessage(key).withPlaceholders(MessagePlaceholders.of(ph)).forAudience(src).build()
         );
     }
 }

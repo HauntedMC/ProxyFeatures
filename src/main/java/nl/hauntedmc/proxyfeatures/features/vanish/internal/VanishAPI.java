@@ -17,22 +17,30 @@ public class VanishAPI {
         this.feature = feature;
     }
 
-    /** All online players minus the currently vanished online players. */
+    /**
+     * All online players minus the currently vanished online players.
+     */
     public int getAdjustedPlayerCount() {
         return feature.getVanishRegistry().getAdjustedOnlineCount();
     }
 
-    /** List of online players excluding those currently vanished. */
+    /**
+     * List of online players excluding those currently vanished.
+     */
     public List<Player> getAdjustedOnlinePlayers() {
         return feature.getVanishRegistry().getAdjustedOnlinePlayers();
     }
 
-    /** List of currently vanished online players. */
+    /**
+     * List of currently vanished online players.
+     */
     public List<Player> getVanishedPlayers() {
         return feature.getVanishRegistry().getVanishedOnlinePlayers();
     }
 
-    /** Number of currently vanished online players. */
+    /**
+     * Number of currently vanished online players.
+     */
     public int getVanishedCount() {
         return feature.getVanishRegistry().getVanishedOnlineCount();
     }

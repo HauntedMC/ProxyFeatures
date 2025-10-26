@@ -39,7 +39,6 @@ public class PlayerListener {
     }
 
 
-
     private void sendResourcePackOffer(Continuation continuation, Player player, String packIdentifier) {
         feature.getResourcePackHandler().blockConfiguration(player.getUniqueId(), continuation);
         ResourcePackInfo packInfo = feature.getResourcePackHandler().getPackInfo(packIdentifier);

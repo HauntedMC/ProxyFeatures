@@ -1,16 +1,15 @@
 package nl.hauntedmc.proxyfeatures.features.friends.entity;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import jakarta.persistence.PersistenceException;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.support.FriendsCache;
 import org.hibernate.exception.ConstraintViolationException;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class FriendsService {
     private final Friends feature;

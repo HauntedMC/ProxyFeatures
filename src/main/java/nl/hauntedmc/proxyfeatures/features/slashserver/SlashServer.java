@@ -1,9 +1,9 @@
 package nl.hauntedmc.proxyfeatures.features.slashserver;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.slashserver.command.SlashServerCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.meta.Meta;

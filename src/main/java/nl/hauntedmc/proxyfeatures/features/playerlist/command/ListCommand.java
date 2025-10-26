@@ -4,17 +4,17 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
-import net.kyori.adventure.text.Component;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class ListCommand implements FeatureCommand{
+public class ListCommand implements FeatureCommand {
 
     private final PlayerList feature;
     private final List<String> blacklist;

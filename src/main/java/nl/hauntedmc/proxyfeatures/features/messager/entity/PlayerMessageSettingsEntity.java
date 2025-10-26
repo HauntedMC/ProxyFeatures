@@ -33,21 +33,43 @@ public class PlayerMessageSettingsEntity {
     )
     private final Set<PlayerEntity> blockedPlayers = new HashSet<>();
 
-    public PlayerMessageSettingsEntity() {}
+    public PlayerMessageSettingsEntity() {
+    }
 
     public PlayerMessageSettingsEntity(PlayerEntity player) {
         this.player = player;
         this.playerId = player.getId();
     }
 
-    public boolean isMsgToggle() { return msgToggle; }
-    public void setMsgToggle(boolean msgToggle) { this.msgToggle = msgToggle; }
+    public boolean isMsgToggle() {
+        return msgToggle;
+    }
 
-    public boolean isMsgSpy() { return msgSpy; }
-    public void setMsgSpy(boolean msgSpy) { this.msgSpy = msgSpy; }
+    public void setMsgToggle(boolean msgToggle) {
+        this.msgToggle = msgToggle;
+    }
 
-    public Set<PlayerEntity> getBlockedPlayers() { return blockedPlayers; }
-    public void block(PlayerEntity target)   { blockedPlayers.add(target); }
-    public void unblock(PlayerEntity target) { blockedPlayers.remove(target); }
-    public boolean isBlocking(PlayerEntity t){ return blockedPlayers.contains(t); }
+    public boolean isMsgSpy() {
+        return msgSpy;
+    }
+
+    public void setMsgSpy(boolean msgSpy) {
+        this.msgSpy = msgSpy;
+    }
+
+    public Set<PlayerEntity> getBlockedPlayers() {
+        return blockedPlayers;
+    }
+
+    public void block(PlayerEntity target) {
+        blockedPlayers.add(target);
+    }
+
+    public void unblock(PlayerEntity target) {
+        blockedPlayers.remove(target);
+    }
+
+    public boolean isBlocking(PlayerEntity t) {
+        return blockedPlayers.contains(t);
+    }
 }

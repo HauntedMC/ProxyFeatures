@@ -5,12 +5,15 @@ import java.util.List;
 
 public final class Paginator {
 
-    private Paginator() {}
+    private Paginator() {
+    }
 
     public record Page<T>(List<T> items, int page, int totalPages, int totalItems, int pageSize) {
     }
 
-    /** 1-based paging; clamps page into [1..totalPages]. */
+    /**
+     * 1-based paging; clamps page into [1..totalPages].
+     */
     public static <T> Page<T> paginate(List<T> all, int page, int pageSize) {
         if (all == null || all.isEmpty()) {
             return new Page<>(Collections.emptyList(), 1, 1, 0, pageSize);

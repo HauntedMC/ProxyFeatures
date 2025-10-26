@@ -20,7 +20,9 @@ public class ServerQueue {
         this.serverName = serverName;
     }
 
-    public String serverName() { return serverName; }
+    public String serverName() {
+        return serverName;
+    }
 
     public synchronized QueueEntry enqueue(UUID playerId, int priority) {
         if (index.containsKey(playerId)) return index.get(playerId); // idempotent
@@ -67,7 +69,9 @@ public class ServerQueue {
         }
     }
 
-    public synchronized boolean contains(UUID playerId) { return index.containsKey(playerId); }
+    public synchronized boolean contains(UUID playerId) {
+        return index.containsKey(playerId);
+    }
 
     public synchronized Optional<Integer> positionOf(UUID playerId) {
         QueueEntry e = index.get(playerId);

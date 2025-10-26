@@ -1,18 +1,20 @@
 package nl.hauntedmc.proxyfeatures.features.resourcepack.command;
 
+import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.ResourcePack;
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.proxy.ProxyServer;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class ResourcePackCommand implements FeatureCommand{
+public class ResourcePackCommand implements FeatureCommand {
 
     private final ResourcePack feature;
     private final ProxyServer proxy;

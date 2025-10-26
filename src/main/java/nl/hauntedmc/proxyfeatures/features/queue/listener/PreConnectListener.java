@@ -31,7 +31,7 @@ public class PreConnectListener {
         } else if (decision.bypass()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.join.bypass")
-                    .withPlaceholders(java.util.Map.of("server", target))
+                    .with("server", target)
                     .forAudience(player)
                     .build());
         }

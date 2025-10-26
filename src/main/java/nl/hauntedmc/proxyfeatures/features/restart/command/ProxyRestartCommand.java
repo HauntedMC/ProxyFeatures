@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class ProxyRestartCommand implements FeatureCommand{
+public class ProxyRestartCommand implements FeatureCommand {
 
     private static final String BASE_PERMISSION = "proxyfeatures.feature.restart.command.proxyrestart";
     private static final String FORCE_PERMISSION = "proxyfeatures.feature.restart.command.proxyrestart.force";
@@ -22,17 +22,17 @@ public class ProxyRestartCommand implements FeatureCommand{
         this.handler = feature.getHandler();
     }
 
-    
+
     public String getName() {
         return "proxyrestart";
     }
 
-    
+
     public String[] getAliases() {
-        return new String[] { "" };
+        return new String[]{""};
     }
 
-    
+
     public boolean hasPermission(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length > 0 && "force".equalsIgnoreCase(args[0])) {
@@ -41,7 +41,7 @@ public class ProxyRestartCommand implements FeatureCommand{
         return invocation.source().hasPermission(BASE_PERMISSION);
     }
 
-    
+
     public void execute(Invocation invocation) {
         CommandSource src = invocation.source();
         String[] args = invocation.arguments();
@@ -64,12 +64,12 @@ public class ProxyRestartCommand implements FeatureCommand{
             src.sendMessage(feature.getLocalizationHandler().getMessage("restart.forced").forAudience(src).build());
             handler.forceRestart();
             return;
-    }
+        }
 
         src.sendMessage(feature.getLocalizationHandler().getMessage("restart.cmd_usage").forAudience(src).build());
     }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
         if (args.length == 1) {

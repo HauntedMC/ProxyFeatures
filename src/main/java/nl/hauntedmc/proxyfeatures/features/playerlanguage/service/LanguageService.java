@@ -1,26 +1,23 @@
 package nl.hauntedmc.proxyfeatures.features.playerlanguage.service;
 
 import com.velocitypowered.api.proxy.Player;
-import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
+import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 import nl.hauntedmc.proxyfeatures.common.util.LanguageUtils;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
 
 import java.time.Duration;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LanguageService implements LanguageAPI {
 
     // Helper to carry both the language and whether this is a new entry
-    private record LoadResult(Language language, boolean createdDefault) {}
+    private record LoadResult(Language language, boolean createdDefault) {
+    }
 
     private static final String DEFAULT_CODE = "EN"; // fallback for unknowns
 
@@ -37,14 +34,18 @@ public class LanguageService implements LanguageAPI {
         this.orm = orm;
     }
 
-    /** Warm cache on login (non-fatal if PlayerEntity not yet persisted). */
+    /**
+     * Warm cache on login (non-fatal if PlayerEntity not yet persisted).
+     */
     public void warm(UUID uuid) {
         get(uuid); // lazy loads into cache / persists default if possible
         // also try to cache the playerId if possible
         loadPlayerId(uuid).ifPresent(id -> idCache.put(uuid, id));
     }
 
-    /** Forget on quit to keep memory small. */
+    /**
+     * Forget on quit to keep memory small.
+     */
     public void forget(UUID uuid) {
         langCache.remove(uuid);
         idCache.remove(uuid);
@@ -180,7 +181,9 @@ public class LanguageService implements LanguageAPI {
         return findUuidByName(username);
     }
 
-    /** Exact username match (case-sensitive or insensitive as you prefer); uses DataRegistry. */
+    /**
+     * Exact username match (case-sensitive or insensitive as you prefer); uses DataRegistry.
+     */
     public Optional<UUID> findUuidByName(String username) {
         return Optional.ofNullable(orm.runInTransaction(session -> {
             var p = session.createQuery("FROM PlayerEntity WHERE username = :u", PlayerEntity.class)

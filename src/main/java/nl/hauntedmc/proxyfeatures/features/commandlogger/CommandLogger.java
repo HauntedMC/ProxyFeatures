@@ -1,17 +1,17 @@
 package nl.hauntedmc.proxyfeatures.features.commandlogger;
 
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
-import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.commandlogger.entity.CommandExecutionEntity;
 import nl.hauntedmc.proxyfeatures.features.commandlogger.internal.LogHandler;
-import nl.hauntedmc.proxyfeatures.features.commandlogger.service.CommandLogService;
 import nl.hauntedmc.proxyfeatures.features.commandlogger.listener.CommandListener;
 import nl.hauntedmc.proxyfeatures.features.commandlogger.meta.Meta;
+import nl.hauntedmc.proxyfeatures.features.commandlogger.service.CommandLogService;
 
 public class CommandLogger extends VelocityBaseFeature<Meta> {
 

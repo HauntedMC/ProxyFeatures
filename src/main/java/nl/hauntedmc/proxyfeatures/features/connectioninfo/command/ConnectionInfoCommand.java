@@ -9,7 +9,8 @@ import nl.hauntedmc.proxyfeatures.features.connectioninfo.ConnectionInfo;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 

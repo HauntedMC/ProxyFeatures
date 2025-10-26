@@ -21,7 +21,9 @@ public class FeatureConfigHandler extends MainConfigHandler {
         this.featureName = featureName;
     }
 
-    /** Legacy raw getter at 'features.<feature>.<key or dotted path>'. */
+    /**
+     * Legacy raw getter at 'features.<feature>.<key or dotted path>'.
+     */
     public Object getSetting(String key) {
         try {
             return config.node(path("features." + featureName, key)).get(Object.class);
@@ -30,12 +32,16 @@ public class FeatureConfigHandler extends MainConfigHandler {
         }
     }
 
-    /** Typed getter: coerces to requested type or throws. */
+    /**
+     * Typed getter: coerces to requested type or throws.
+     */
     public <T> T getSetting(String key, Class<T> type) {
         return ConfigTypes.convert(getSetting(key), type);
     }
 
-    /** Typed getter with default. */
+    /**
+     * Typed getter with default.
+     */
     public <T> T getSetting(String key, Class<T> type, T defaultValue) {
         return ConfigTypes.convertOrDefault(getSetting(key), type, defaultValue);
     }
@@ -81,27 +87,37 @@ public class FeatureConfigHandler extends MainConfigHandler {
     // Node API (zero boilerplate)
     // -------------------------
 
-    /** Node rooted at 'features.<featureName>'. */
+    /**
+     * Node rooted at 'features.<featureName>'.
+     */
     public ConfigNode node() {
         return ConfigNode.ofRaw(getNode(""), "features." + featureName);
     }
 
-    /** Node rooted at 'features.<featureName>.<key>'. */
+    /**
+     * Node rooted at 'features.<featureName>.<key>'.
+     */
     public ConfigNode node(String key) {
         return ConfigNode.ofRaw(getNode(key), "features." + featureName + (key.isBlank() ? "" : "." + key));
     }
 
-    /** Node rooted at a dotted path under this feature (e.g., "items.cosmetic-item"). */
+    /**
+     * Node rooted at a dotted path under this feature (e.g., "items.cosmetic-item").
+     */
     public ConfigNode nodeAt(String dottedPath) {
         return node().getAt(dottedPath);
     }
 
-    /** Typed value at dotted path (throws if invalid). */
+    /**
+     * Typed value at dotted path (throws if invalid).
+     */
     public <T> T getAt(String dottedPath, Class<T> type) {
         return node().getAt(dottedPath).asRequired(type);
     }
 
-    /** Typed value at dotted path with default. */
+    /**
+     * Typed value at dotted path with default.
+     */
     public <T> T getAt(String dottedPath, Class<T> type, T defaultValue) {
         return node().getAt(dottedPath).as(type, defaultValue);
     }

@@ -1,35 +1,45 @@
 package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 
 import com.velocitypowered.api.command.CommandSource;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 
 import java.net.InetAddress;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class UnbanIpCommand implements FeatureCommand {
 
     private final Sanctions feature;
 
-    public UnbanIpCommand(Sanctions feature) { this.feature = feature; }
+    public UnbanIpCommand(Sanctions feature) {
+        this.feature = feature;
+    }
 
-    
+
     public void execute(Invocation inv) {
         CommandSource src = inv.source();
         String[] a = inv.arguments();
 
-        if (a.length < 1) { sendMsg(src, "sanctions.usage.unbanip"); return; }
+        if (a.length < 1) {
+            sendMsg(src, "sanctions.usage.unbanip");
+            return;
+        }
 
         String ipInput = a[0];
         String ip = normalizeIp(ipInput);
-        if (ip == null) { sendMsg(src, "sanctions.ip_invalid"); return; }
+        if (ip == null) {
+            sendMsg(src, "sanctions.ip_invalid");
+            return;
+        }
 
         boolean changed;
         try {
             changed = feature.getService().deactivateActiveBanByIp(ip);
         } catch (Throwable t) {
-            feature.getLogger().error("[Sanctions] Failed to unban IP "+ip+": "+ t.getMessage());
+            feature.getLogger().error("[Sanctions] Failed to unban IP " + ip + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
             return;
         }
@@ -43,15 +53,20 @@ public class UnbanIpCommand implements FeatureCommand {
         sendMsg(src, "sanctions.unbanned_ip", Map.of("ip", ip));
     }
 
-    
+
     public boolean hasPermission(Invocation inv) {
         return inv.source().hasPermission("proxyfeatures.feature.sanctions.command.unbanip");
     }
 
-     public String getName() { return "unbanip"; }
-     public String[] getAliases() { return new String[0]; }
+    public String getName() {
+        return "unbanip";
+    }
 
-    
+    public String[] getAliases() {
+        return new String[0];
+    }
+
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] a = invocation.arguments();
         String prefix = (a.length >= 1) ? a[0] : "";
@@ -61,12 +76,18 @@ public class UnbanIpCommand implements FeatureCommand {
 
     // helpers
     private String normalizeIp(String ip) {
-        try { return InetAddress.getByName(ip).getHostAddress(); } catch (Exception e) { return null; }
+        try {
+            return InetAddress.getByName(ip).getHostAddress();
+        } catch (Exception e) {
+            return null;
+        }
     }
+
     private void sendMsg(CommandSource src, String key) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key).forAudience(src).build());
     }
+
     private void sendMsg(CommandSource src, String key, Map<String, String> ph) {
-        src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(ph).forAudience(src).build());
+        src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(MessagePlaceholders.of(ph)).forAudience(src).build());
     }
 }

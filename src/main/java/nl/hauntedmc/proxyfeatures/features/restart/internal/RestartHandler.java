@@ -113,7 +113,7 @@ public class RestartHandler {
             if (useChat) {
                 Component chat = feature.getLocalizationHandler()
                         .getMessage("restart.warn_chat")
-                        .withPlaceholders(java.util.Map.of("seconds", Integer.toString(seconds)))
+                        .with("seconds", seconds)
                         .forAudience(p)
                         .build();
                 p.sendMessage(chat);
@@ -125,7 +125,7 @@ public class RestartHandler {
                         .build();
                 Component subtitle = feature.getLocalizationHandler()
                         .getMessage("restart.warn_subtitle")
-                        .withPlaceholders(java.util.Map.of("seconds", Integer.toString(seconds)))
+                        .with("seconds", seconds)
                         .forAudience(p)
                         .build();
                 p.showTitle(Title.title(title, subtitle, titleTimes));
@@ -176,7 +176,10 @@ public class RestartHandler {
     private static int asInt(Object o, int def) {
         if (o instanceof Number n) return n.intValue();
         if (o instanceof String s) {
-            try { return Integer.parseInt(s); } catch (NumberFormatException ignored) {}
+            try {
+                return Integer.parseInt(s);
+            } catch (NumberFormatException ignored) {
+            }
         }
         return def;
     }

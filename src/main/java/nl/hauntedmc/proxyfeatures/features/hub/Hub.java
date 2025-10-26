@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.hub;
 
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.hub.command.HubCommand;
 import nl.hauntedmc.proxyfeatures.features.hub.meta.Meta;
@@ -37,5 +37,6 @@ public class Hub extends VelocityBaseFeature<Meta> {
     }
 
     @Override
-    public void disable() { }
+    public void disable() {
+    }
 }

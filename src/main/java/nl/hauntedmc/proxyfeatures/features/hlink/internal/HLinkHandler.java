@@ -216,5 +216,6 @@ public class HLinkHandler {
     }
 
     // Simple POJO to cache player's username and primary group.
-    private record CachedPlayerData(String username, String primaryGroup){}
+    private record CachedPlayerData(String username, String primaryGroup) {
+    }
 }

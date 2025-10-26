@@ -6,7 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public final class ConfigParseUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private ConfigParseUtils() {}
+    private ConfigParseUtils() {
+    }
 
     /**
      * Convert a raw object (usually a Map/List from your ConfigMap) into a typed POJO.

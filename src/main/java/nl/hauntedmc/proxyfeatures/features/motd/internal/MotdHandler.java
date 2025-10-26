@@ -4,6 +4,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.TextFormatter;
 import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.motd.Motd;
@@ -95,7 +97,10 @@ public class MotdHandler {
         String line2 = getLine2(words, index1, index2);
         String completeMotd = line1 + "\n" + line2;
 
-        return  ComponentUtils.deserializeMMComponent(completeMotd);
+        return ComponentFormatter.deserialize(completeMotd)
+                .expect(TextFormatter.InputFormat.MIXED_INPUT)
+                .features(ComponentFormatter.ALL_DEFAULTS())
+                .toComponent();
     }
 
     private static @NotNull String getLine2(List<String> words, int index1, int index2) {

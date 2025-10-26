@@ -24,13 +24,17 @@ public class MainConfigHandler {
         injectGlobalDefaults(Map.of("server_name", "proxy"));
     }
 
-    /** Reloads config from disk. */
+    /**
+     * Reloads config from disk.
+     */
     public void reloadConfig() {
         configResource.reload();
         this.config = configResource.getConfig();
     }
 
-    /** Registers a feature with enabled=false if missing. */
+    /**
+     * Registers a feature with enabled=false if missing.
+     */
     public void registerFeature(String featureName) {
         CommentedConfigurationNode n = config.node("features", featureName, "enabled");
         if (n.virtual()) {
@@ -75,12 +79,16 @@ public class MainConfigHandler {
         if (updated) configResource.save();
     }
 
-    /** Checks if a feature is enabled. */
+    /**
+     * Checks if a feature is enabled.
+     */
     public boolean isFeatureEnabled(String featureName) {
         return config.node("features", featureName, "enabled").getBoolean(false);
     }
 
-    /** Sets a feature’s enabled state. */
+    /**
+     * Sets a feature’s enabled state.
+     */
     public void setFeatureEnabled(String featureName, boolean enabled) {
         try {
             config.node("features", featureName, "enabled").set(enabled);
@@ -90,7 +98,9 @@ public class MainConfigHandler {
         }
     }
 
-    /** Removes feature sections that no longer exist. */
+    /**
+     * Removes feature sections that no longer exist.
+     */
     public void cleanupUnusedFeatures(Set<String> registeredFeatures) {
         CommentedConfigurationNode featuresNode = config.node("features");
         if (featuresNode.virtual()) return;
@@ -112,7 +122,9 @@ public class MainConfigHandler {
     // Global setting accessors
     // -------------------------
 
-    /** Legacy raw getter (underlying Configurate value) at "global.<key or dotted path>". */
+    /**
+     * Legacy raw getter (underlying Configurate value) at "global.<key or dotted path>".
+     */
     public Object getGlobalSetting(String key) {
         try {
             return config.node(path("global", key)).get(Object.class);
@@ -121,17 +133,23 @@ public class MainConfigHandler {
         }
     }
 
-    /** Typed getter. */
+    /**
+     * Typed getter.
+     */
     public <T> T getGlobalSetting(String key, Class<T> type) {
         return ConfigTypes.convert(getGlobalSetting(key), type);
     }
 
-    /** Typed getter with default. */
+    /**
+     * Typed getter with default.
+     */
     public <T> T getGlobalSetting(String key, Class<T> type, T defaultValue) {
         return ConfigTypes.convertOrDefault(getGlobalSetting(key), type, defaultValue);
     }
 
-    /** A node view rooted at global.<key>. */
+    /**
+     * A node view rooted at global.<key>.
+     */
     public ConfigNode globalNode(String key) {
         return ConfigNode.ofRaw(getGlobalSetting(key), "global." + key);
     }
@@ -162,7 +180,9 @@ public class MainConfigHandler {
     // Helpers: pruning & type reconciliation
     // =====================================
 
-    /** Compute allowed top-level keys from defaults (handles dotted keys). */
+    /**
+     * Compute allowed top-level keys from defaults (handles dotted keys).
+     */
     private Set<String> topLevelKeysFromDefaults(ConfigMap defaults) {
         Set<String> out = new LinkedHashSet<>();
         for (String key : defaults.keySet()) {
@@ -172,7 +192,9 @@ public class MainConfigHandler {
         return out;
     }
 
-    /** Remove unknown top-level keys under features.<featureName>. */
+    /**
+     * Remove unknown top-level keys under features.<featureName>.
+     */
     private boolean pruneUnknownFeatureKeys(String featureName, Set<String> allowedTopLevelKeys) {
         CommentedConfigurationNode section = config.node("features", featureName);
         if (section.virtual()) return false;
@@ -189,7 +211,9 @@ public class MainConfigHandler {
         return changed;
     }
 
-    /** Remove existing top-level keys whose kind differs from what defaults imply. */
+    /**
+     * Remove existing top-level keys whose kind differs from what defaults imply.
+     */
     private boolean reconcileMismatchedFeatureKeyTypes(String featureName, ConfigMap defaults) {
         CommentedConfigurationNode base = config.node("features", featureName);
         if (base.virtual()) return false;
@@ -214,7 +238,9 @@ public class MainConfigHandler {
         return changed;
     }
 
-    /** Determine expected kind from defaults (handles dotted keys). */
+    /**
+     * Determine expected kind from defaults (handles dotted keys).
+     */
     private ConfigValueKind expectedKindForTopKey(String topKey, ConfigMap defaults) {
         if (defaults.contains(topKey)) {
             return classifyValueKind(defaults.get(topKey));
@@ -226,9 +252,11 @@ public class MainConfigHandler {
         return null;
     }
 
-    private enum ConfigValueKind { MAP, LIST, BOOLEAN, NUMBER, STRING, OTHER }
+    private enum ConfigValueKind {MAP, LIST, BOOLEAN, NUMBER, STRING, OTHER}
 
-    /** Classify a default value’s kind. */
+    /**
+     * Classify a default value’s kind.
+     */
     private ConfigValueKind classifyValueKind(Object value) {
         return switch (value) {
             case null -> null;
@@ -241,19 +269,27 @@ public class MainConfigHandler {
         };
     }
 
-    /** Classify actual node kind under Configurate. */
+    /**
+     * Classify actual node kind under Configurate.
+     */
     private ConfigValueKind classifyNodeKind(CommentedConfigurationNode n) {
         if (n.virtual()) return null;
         // Try structural first
         try {
             if (!n.childrenMap().isEmpty()) return ConfigValueKind.MAP;
-        } catch (UnsupportedOperationException ignored) {}
+        } catch (UnsupportedOperationException ignored) {
+        }
         try {
             if (!n.childrenList().isEmpty()) return ConfigValueKind.LIST;
-        } catch (UnsupportedOperationException ignored) {}
+        } catch (UnsupportedOperationException ignored) {
+        }
 
         Object v;
-        try { v = n.get(Object.class); } catch (Exception e) { return ConfigValueKind.OTHER; }
+        try {
+            v = n.get(Object.class);
+        } catch (Exception e) {
+            return ConfigValueKind.OTHER;
+        }
         return classifyValueKind(v);
     }
 

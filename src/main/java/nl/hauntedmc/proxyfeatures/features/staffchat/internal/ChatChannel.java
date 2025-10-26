@@ -1,11 +1,10 @@
 package nl.hauntedmc.proxyfeatures.features.staffchat.internal;
 
 import com.velocitypowered.api.proxy.Player;
-import nl.hauntedmc.proxyfeatures.features.staffchat.StaffChat;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.proxyfeatures.features.staffchat.StaffChat;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,7 +24,7 @@ public class ChatChannel {
         this.id = id;
         this.prefix = prefix;
         this.permission = "proxyfeatures.feature.staffchat." + id;
-        this.formatKey = "staffchat."+id+"_format";
+        this.formatKey = "staffchat." + id + "_format";
     }
 
 
@@ -75,13 +74,11 @@ public class ChatChannel {
      */
     public void broadcastMessage(StaffChat feature, String serverName, String playerName, String message) {
         // Format the message using the localization handler and the channel’s format key.
-        Component formattedMessage = feature.getLocalizationHandler().getMessage(formatKey).withPlaceholders(
-                Map.of(
-                        "server", serverName,
-                        "player", playerName,
-                        "message", message
-                )
-        ).build();
+        Component formattedMessage = feature.getLocalizationHandler().getMessage(formatKey)
+                .with("server", serverName)
+                .with("player", playerName)
+                .with("message", message)
+                .build();
 
         for (Player viewer : getViewers()) {
             if (viewer.hasPermission(permission)) {

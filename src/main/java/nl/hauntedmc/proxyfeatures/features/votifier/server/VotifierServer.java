@@ -11,11 +11,15 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public final class VotifierServer {
 
-    public interface VoteHandler { void onVote(Vote vote); }
+    public interface VoteHandler {
+        void onVote(Vote vote);
+    }
 
     private final String host;
     private final int port;
@@ -55,7 +59,8 @@ public final class VotifierServer {
             if (privateKey instanceof RSAPrivateKey rsa) {
                 keyBytes = (rsa.getModulus().bitLength() + 7) / 8;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
         if (keyBytes <= 0) {
             keyBytes = 256;
             logger.warn("Unable to introspect RSA modulus; defaulting block size to " + keyBytes + " bytes.");
@@ -97,17 +102,31 @@ public final class VotifierServer {
     public synchronized void stop() {
         running = false;
         if (server != null && !server.isClosed()) {
-            try { server.close(); } catch (IOException ignored) {}
+            try {
+                server.close();
+            } catch (IOException ignored) {
+            }
         }
         if (pool != null) {
             pool.shutdownNow();
-            try { pool.awaitTermination(2, TimeUnit.SECONDS); } catch (InterruptedException ignored) {}
+            try {
+                pool.awaitTermination(2, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) {
+            }
         }
     }
 
-    public boolean isRunning() { return running; }
-    public String getHost() { return host; }
-    public int getPort() { return port; }
+    public boolean isRunning() {
+        return running;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
 
     private void handleClient(Socket s) {
         SocketAddress remote = s.getRemoteSocketAddress();
@@ -147,12 +166,15 @@ public final class VotifierServer {
             }
 
             String service = sanitize(parts[1]);
-            String user    = sanitize(parts[2]);
+            String user = sanitize(parts[2]);
             String addrStr = sanitize(parts[3]);
-            String tsStr   = sanitize(parts[4]);
+            String tsStr = sanitize(parts[4]);
             long ts;
-            try { ts = Long.parseLong(tsStr); }
-            catch (NumberFormatException nfe) { ts = System.currentTimeMillis(); }
+            try {
+                ts = Long.parseLong(tsStr);
+            } catch (NumberFormatException nfe) {
+                ts = System.currentTimeMillis();
+            }
 
             handler.onVote(new Vote(service, user, addrStr, ts));
         } catch (EOFException eof) {
@@ -180,7 +202,8 @@ public final class VotifierServer {
      */
     private byte[] readExactWithDeadline(InputStream in, int expectedBytes, int cap, int totalTimeoutMs) throws IOException {
         if (expectedBytes <= 0) throw new IOException("Expected bytes must be > 0");
-        if (expectedBytes > cap) throw new IOException("Expected block (" + expectedBytes + "B) exceeds cap " + cap + "B");
+        if (expectedBytes > cap)
+            throw new IOException("Expected block (" + expectedBytes + "B) exceeds cap " + cap + "B");
 
         byte[] out = new byte[expectedBytes];
         int off = 0;
@@ -213,13 +236,17 @@ public final class VotifierServer {
         try {
             int avail = Math.min(in.available(), Math.max(0, cap - expectedBytes));
             if (avail > 0) in.skipNBytes(avail);
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
 
         return out;
     }
 
     private void safeClose(Socket s) {
-        try { s.close(); } catch (Throwable ignored) {}
+        try {
+            s.close();
+        } catch (Throwable ignored) {
+        }
     }
 
     private String sanitize(String s) {

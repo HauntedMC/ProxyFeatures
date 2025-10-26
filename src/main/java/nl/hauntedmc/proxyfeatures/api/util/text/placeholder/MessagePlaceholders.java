@@ -34,6 +34,18 @@ public final class MessagePlaceholders {
         return new MessagePlaceholders(Map.of());
     }
 
+    public static MessagePlaceholders of(String key, String value) {
+        return new MessagePlaceholders(Map.of(key, value));
+    }
+
+    public static MessagePlaceholders of(Map<String, String> values) {
+        return new MessagePlaceholders(new HashMap<>(values));
+    }
+
+    public String get(String key) {
+        return values.get(key);
+    }
+
     /**
      * Replaces literal tokens like "{key}" with their string values.
      * Keys are applied longest-first to avoid "{a}" interfering with "{ab}".

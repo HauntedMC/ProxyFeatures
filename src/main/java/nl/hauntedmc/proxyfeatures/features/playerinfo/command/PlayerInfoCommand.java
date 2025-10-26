@@ -4,40 +4,43 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.PlayerInfo;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.service.PlayerInfoService;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 
-import java.util.*;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class PlayerInfoCommand implements FeatureCommand{
+public class PlayerInfoCommand implements FeatureCommand {
     private final PlayerInfo feature;
 
     public PlayerInfoCommand(PlayerInfo feature) {
         this.feature = feature;
     }
 
-    
+
     public String getName() {
         return "playerinfo";
     }
 
-    
+
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    
+
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.playerinfo.command");
     }
 
-    
+
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
@@ -204,7 +207,7 @@ public class PlayerInfoCommand implements FeatureCommand{
         );
     }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
 

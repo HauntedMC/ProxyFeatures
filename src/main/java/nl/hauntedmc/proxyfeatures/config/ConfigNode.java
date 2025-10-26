@@ -15,12 +15,16 @@ public final class ConfigNode {
         this.path = path == null ? "" : path;
     }
 
-    /** Create a node from a raw value (already fetched from Configurate) and normalize it. */
+    /**
+     * Create a node from a raw value (already fetched from Configurate) and normalize it.
+     */
     public static ConfigNode ofRaw(Object raw, String path) {
         return new ConfigNode(ConfigTypes.toPlain(raw), path);
     }
 
-    public boolean isNull() { return value == null; }
+    public boolean isNull() {
+        return value == null;
+    }
 
     public <T> T as(Class<T> type, T defaultValue) {
         return ConfigTypes.convertOrDefault(value, type, defaultValue);
@@ -73,12 +77,20 @@ public final class ConfigNode {
         return ConfigTypes.convertMapValues(value, valueType);
     }
 
-    public Object raw() { return value; }
-    public String path() { return path; }
+    public Object raw() {
+        return value;
+    }
+
+    public String path() {
+        return path;
+    }
 
     private String childPath(String key) {
         return path.isEmpty() ? key : path + "." + key;
     }
 
-    @Override public String toString() { return "ConfigNode(" + path + ")"; }
+    @Override
+    public String toString() {
+        return "ConfigNode(" + path + ")";
+    }
 }

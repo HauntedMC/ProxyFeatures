@@ -11,12 +11,7 @@ import nl.hauntedmc.proxyfeatures.internal.action.enable.FeatureEnableResponse;
 import nl.hauntedmc.proxyfeatures.internal.action.reload.FeatureReloadResponse;
 import nl.hauntedmc.proxyfeatures.internal.action.softreload.FeatureSoftReloadResponse;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -330,12 +325,13 @@ public final class ProxyFeaturesCommand implements SimpleCommand {
             String featurePrefix = args[1].toLowerCase(L);
 
             List<String> result = switch (sub) {
-                case "reload", "softreload", "disable" -> plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
-                        .map(VelocityBaseFeature::getFeatureName)
-                        .filter(Objects::nonNull)
-                        .filter(name -> name.toLowerCase(L).startsWith(featurePrefix))
-                        .sorted(String.CASE_INSENSITIVE_ORDER)
-                        .toList();
+                case "reload", "softreload", "disable" ->
+                        plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                                .map(VelocityBaseFeature::getFeatureName)
+                                .filter(Objects::nonNull)
+                                .filter(name -> name.toLowerCase(L).startsWith(featurePrefix))
+                                .sorted(String.CASE_INSENSITIVE_ORDER)
+                                .toList();
 
                 case "enable" -> {
                     Set<String> loadedLower = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()

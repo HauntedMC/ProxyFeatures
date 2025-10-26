@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.common.util.Paginator;
@@ -74,7 +75,9 @@ public class FriendCommand implements FeatureCommand {
         return inv.source().hasPermission("proxyfeatures.feature.friend.command.friends");
     }
 
-    /** Base `/fr` (and `/fr <page>`) – online friends only, paginated. */
+    /**
+     * Base `/fr` (and `/fr <page>`) – online friends only, paginated.
+     */
     private void showOnlineList(Player p, int requestedPage) {
         PlayerRef me = getRef(p);
         if (!svc.getOrCreateSettings(me).isEnabled()) {
@@ -145,7 +148,9 @@ public class FriendCommand implements FeatureCommand {
         }
     }
 
-    /** `/fr list [page]` – online first then offline, both A–Z, paginated. */
+    /**
+     * `/fr list [page]` – online first then offline, both A–Z, paginated.
+     */
     private void list(Player p, String[] args) {
         PlayerRef me = getRef(p);
 
@@ -213,7 +218,8 @@ public class FriendCommand implements FeatureCommand {
         if (args.length >= 2) {
             try {
                 requestedPage = Integer.parseInt(args[1]);
-            } catch (NumberFormatException ignored) { }
+            } catch (NumberFormatException ignored) {
+            }
         }
 
         var page = Paginator.paginate(lines, requestedPage, pageSize);
@@ -498,7 +504,9 @@ public class FriendCommand implements FeatureCommand {
                 }), () -> sendMsg(p, "friend.not_online"));
     }
 
-    /** `/fr requests [page]` – incoming then outgoing, paginated. */
+    /**
+     * `/fr requests [page]` – incoming then outgoing, paginated.
+     */
     private void requests(Player p, String[] args) {
         PlayerRef me = getRef(p);
 
@@ -532,7 +540,10 @@ public class FriendCommand implements FeatureCommand {
         int pageSize = getListPageSize();
         int requestedPage = 1;
         if (args.length >= 2) {
-            try { requestedPage = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
+            try {
+                requestedPage = Integer.parseInt(args[1]);
+            } catch (NumberFormatException ignored) {
+            }
         }
         var page = Paginator.paginate(lines, requestedPage, pageSize);
 
@@ -617,7 +628,7 @@ public class FriendCommand implements FeatureCommand {
 
     private void sendMsg(CommandSource src, String key, Map<String, String> ph) {
         src.sendMessage(feature.getLocalizationHandler().getMessage(key)
-                .withPlaceholders(ph).forAudience(src).build());
+                .withPlaceholders(MessagePlaceholders.of(ph)).forAudience(src).build());
     }
 
     private PlayerRef getRef(Player p) {

@@ -1,12 +1,12 @@
 package nl.hauntedmc.proxyfeatures.features.hlink.internal.hook;
 
+import com.velocitypowered.api.proxy.Player;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.event.EventBus;
-import net.luckperms.api.event.node.NodeMutateEvent;
 import net.luckperms.api.event.EventSubscription;
+import net.luckperms.api.event.node.NodeMutateEvent;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
-import com.velocitypowered.api.proxy.Player;
 
 import java.util.ArrayList;
 import java.util.List;

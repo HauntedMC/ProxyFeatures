@@ -280,7 +280,7 @@ public class QueueManager {
                 player.sendMessage(feature.getLocalizationHandler()
                         .getMessage("queue.join.moved_between_queues")
                         .with("server", server)
-                        .with("position",posAfterMove + 1)
+                        .with("position", posAfterMove + 1)
                         .forAudience(player)
                         .build());
             }

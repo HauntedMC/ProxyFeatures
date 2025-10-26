@@ -2,12 +2,12 @@ package nl.hauntedmc.proxyfeatures.features.playerlist.internal;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.TextComponent;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 
 import java.util.*;

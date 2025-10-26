@@ -1,13 +1,12 @@
 package nl.hauntedmc.proxyfeatures.features.hlink.command;
 
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.HLinkHandler;
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.proxy.Player;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -22,22 +21,22 @@ public class HLinkCommand implements FeatureCommand {
         this.handler = feature.getHLinkHandler();
     }
 
-    
+
     public String getName() {
         return "hlink";
     }
 
-    
+
     public String[] getAliases() {
         return new String[]{""};
     }
 
-    
+
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("proxyfeatures.feature.hlink.command.sync");
     }
 
-    
+
     public void execute(Invocation invocation) {
         CommandSource source = invocation.source();
         List<String> args = List.of(invocation.arguments());
@@ -79,7 +78,7 @@ public class HLinkCommand implements FeatureCommand {
         );
     }
 
-    
+
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         List<String> args = List.of(invocation.arguments());
 

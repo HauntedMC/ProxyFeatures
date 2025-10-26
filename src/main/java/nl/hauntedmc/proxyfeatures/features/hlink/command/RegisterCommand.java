@@ -1,12 +1,12 @@
 package nl.hauntedmc.proxyfeatures.features.hlink.command;
 
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.proxy.Player;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.HLinkHandler;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.proxy.Player;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

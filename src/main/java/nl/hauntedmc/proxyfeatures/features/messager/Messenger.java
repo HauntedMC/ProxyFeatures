@@ -1,17 +1,16 @@
 package nl.hauntedmc.proxyfeatures.features.messager;
 
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
-import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.features.messager.command.MessagingCommand;
 import nl.hauntedmc.proxyfeatures.features.messager.command.ReplyCommand;
 import nl.hauntedmc.proxyfeatures.features.messager.entity.PlayerMessageSettingsEntity;
 import nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingHandler;
-import nl.hauntedmc.proxyfeatures.features.messager.command.MessagingCommand;
-import nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingSettingsService;
 import nl.hauntedmc.proxyfeatures.features.messager.listener.PlayerListener;
 import nl.hauntedmc.proxyfeatures.features.messager.meta.Meta;
 

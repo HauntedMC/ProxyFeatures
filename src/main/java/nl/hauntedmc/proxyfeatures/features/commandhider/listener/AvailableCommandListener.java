@@ -14,6 +14,7 @@ public class AvailableCommandListener {
         this.feature = feature;
 
     }
+
     /**
      * Removes configured commands from the player's available commands tree.
      */

@@ -1,18 +1,18 @@
 package nl.hauntedmc.proxyfeatures.features.playerlanguage;
 
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
-import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
-import nl.hauntedmc.proxyfeatures.features.playerlanguage.meta.Meta;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.command.LanguageCommand;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.listener.LanguageListener;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
-import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
+import nl.hauntedmc.proxyfeatures.features.playerlanguage.meta.Meta;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.service.LanguageService;
 
 public class PlayerLanguage extends VelocityBaseFeature<Meta> {
@@ -77,5 +77,7 @@ public class PlayerLanguage extends VelocityBaseFeature<Meta> {
         APIRegistry.unregister(LanguageAPI.class);
     }
 
-    public LanguageService getService() { return service; }
+    public LanguageService getService() {
+        return service;
+    }
 }

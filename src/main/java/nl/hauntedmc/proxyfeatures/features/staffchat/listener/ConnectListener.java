@@ -5,10 +5,11 @@ import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.proxy.Player;
+import net.kyori.adventure.text.Component;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.features.staffchat.StaffChat;
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannel;
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler;
-import net.kyori.adventure.text.Component;
 
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +40,7 @@ public class ConnectListener {
             if (viewer.hasPermission(channel.getPermission())) {
                 Component message = feature.getLocalizationHandler()
                         .getMessage(messageKey)
-                        .withPlaceholders(placeholders)
+                        .withPlaceholders(MessagePlaceholders.of(placeholders))
                         .forAudience(viewer) // build for the recipient's locale
                         .build();
                 viewer.sendMessage(message);

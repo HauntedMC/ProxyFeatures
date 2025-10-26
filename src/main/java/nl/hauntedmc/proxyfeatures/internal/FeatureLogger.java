@@ -13,30 +13,40 @@ public class FeatureLogger {
 
     public FeatureLogger(ComponentLogger delegate, String featureName) {
         this.delegate = delegate;
-        this.prefix   = Component.text("[" + featureName + "] ");
+        this.prefix = Component.text("[" + featureName + "] ");
     }
 
-    /** Log at INFO level. */
+    /**
+     * Log at INFO level.
+     */
     public void info(Component msg) {
         delegate.info(prefix.append(msg));
     }
 
-    /** Log at WARN level. */
+    /**
+     * Log at WARN level.
+     */
     public void warn(Component msg) {
         delegate.warn(prefix.append(msg));
     }
 
-    /** Log at ERROR level. */
+    /**
+     * Log at ERROR level.
+     */
     public void error(Component msg) {
         delegate.error(prefix.append(msg));
     }
 
-    /** Log at DEBUG level. */
+    /**
+     * Log at DEBUG level.
+     */
     public void debug(Component msg) {
         delegate.debug(prefix.append(msg));
     }
 
-    /** Log at TRACE level. */
+    /**
+     * Log at TRACE level.
+     */
     public void trace(Component msg) {
         delegate.trace(prefix.append(msg));
     }
@@ -45,15 +55,19 @@ public class FeatureLogger {
     public void info(String msg) {
         info(Component.text(msg));
     }
+
     public void warn(String msg) {
         warn(Component.text(msg));
     }
+
     public void error(String msg) {
         error(Component.text(msg));
     }
+
     public void debug(String msg) {
         debug(Component.text(msg));
     }
+
     public void trace(String msg) {
         trace(Component.text(msg));
     }

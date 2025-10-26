@@ -15,7 +15,6 @@ import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPChecker;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 

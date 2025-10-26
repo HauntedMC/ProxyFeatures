@@ -11,9 +11,21 @@ public final class ServerStatus {
         this.onlinePlayers = onlinePlayers;
         this.maxPlayers = maxPlayers;
     }
-    public static ServerStatus online(int online, int max) { return new ServerStatus(true, online, max); }
-    public static ServerStatus offline() { return new ServerStatus(false, -1, -1); }
-    public static ServerStatus unknown() { return new ServerStatus(false, -1, -1); }
-    public boolean isOnline() { return online; }
+
+    public static ServerStatus online(int online, int max) {
+        return new ServerStatus(true, online, max);
+    }
+
+    public static ServerStatus offline() {
+        return new ServerStatus(false, -1, -1);
+    }
+
+    public static ServerStatus unknown() {
+        return new ServerStatus(false, -1, -1);
+    }
+
+    public boolean isOnline() {
+        return online;
+    }
 }
 

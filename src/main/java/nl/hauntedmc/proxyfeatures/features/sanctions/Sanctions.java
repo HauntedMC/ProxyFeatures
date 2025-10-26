@@ -1,10 +1,11 @@
 package nl.hauntedmc.proxyfeatures.features.sanctions;
 
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
-import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.sanctions.command.*;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
@@ -12,7 +13,6 @@ import nl.hauntedmc.proxyfeatures.features.sanctions.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.sanctions.meta.Meta;
 import nl.hauntedmc.proxyfeatures.features.sanctions.service.DiscordService;
 import nl.hauntedmc.proxyfeatures.features.sanctions.service.SanctionsService;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.sanctions.service.ServiceLookup;
 
 import java.time.Duration;
@@ -57,25 +57,25 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         m.add("sanctions.internal_error", "&8&l[&c&lSanctions&8&l]&r &cEr ging iets mis. Probeer het later opnieuw.");
 
         // Command usage
-        m.add("sanctions.usage.ban",         "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/ban <naam> <lengte> <reden>");
-        m.add("sanctions.usage.banip",       "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/banip <ip> <lengte> <reden>");
-        m.add("sanctions.usage.mute",        "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/mute <naam> <lengte> <reden>");
-        m.add("sanctions.usage.warn",        "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/warn <naam> <reden>");
-        m.add("sanctions.usage.kick",        "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/kick <naam> <reden>");
-        m.add("sanctions.usage.unban",       "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unban <naam>");
-        m.add("sanctions.usage.unmute",      "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unmute <naam>");
-        m.add("sanctions.usage.unbanip",     "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unbanip <ip>");
-        m.add("sanctions.usage.sanctionlist","&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/sanctionlist <naam> <all|active>");
+        m.add("sanctions.usage.ban", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/ban <naam> <lengte> <reden>");
+        m.add("sanctions.usage.banip", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/banip <ip> <lengte> <reden>");
+        m.add("sanctions.usage.mute", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/mute <naam> <lengte> <reden>");
+        m.add("sanctions.usage.warn", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/warn <naam> <reden>");
+        m.add("sanctions.usage.kick", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/kick <naam> <reden>");
+        m.add("sanctions.usage.unban", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unban <naam>");
+        m.add("sanctions.usage.unmute", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unmute <naam>");
+        m.add("sanctions.usage.unbanip", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/unbanip <ip>");
+        m.add("sanctions.usage.sanctionlist", "&8&l[&c&lSanctions&8&l]&r &eGebruik: &f/sanctionlist <naam> <all|active>");
 
         // Not currently sanctioned
         m.add("sanctions.not_banned_player", "&8&l[&c&lSanctions&8&l]&r &cDeze speler is momenteel niet verbannen.");
-        m.add("sanctions.not_banned_ip",     "&8&l[&c&lSanctions&8&l]&r &cDit IP-adres is momenteel niet verbannen.");
-        m.add("sanctions.not_muted",         "&8&l[&c&lSanctions&8&l]&r &cDeze speler is momenteel niet gemute.");
+        m.add("sanctions.not_banned_ip", "&8&l[&c&lSanctions&8&l]&r &cDit IP-adres is momenteel niet verbannen.");
+        m.add("sanctions.not_muted", "&8&l[&c&lSanctions&8&l]&r &cDeze speler is momenteel niet gemute.");
 
         // Success feedback to executor
-        m.add("sanctions.unbanned",    "&8&l[&c&lSanctions&8&l]&r &aUnban uitgevoerd &8• &7Speler: &f{target}");
+        m.add("sanctions.unbanned", "&8&l[&c&lSanctions&8&l]&r &aUnban uitgevoerd &8• &7Speler: &f{target}");
         m.add("sanctions.unbanned_ip", "&8&l[&c&lSanctions&8&l]&r &aIP-Unban uitgevoerd &8• &7IP: &f{ip}");
-        m.add("sanctions.unmuted",     "&8&l[&c&lSanctions&8&l]&r &aUnmute uitgevoerd &8• &7Speler: &f{target}");
+        m.add("sanctions.unmuted", "&8&l[&c&lSanctions&8&l]&r &aUnmute uitgevoerd &8• &7Speler: &f{target}");
 
         // Player-facing (CHAT)
         m.add("sanctions.notify.unmuted",
@@ -141,9 +141,9 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         m.add("sanctions.list.empty",
                 "&8&l[&c&lSanctions&8&l]&r &7Geen sancties gevonden voor &f{player}&7 (&f{mode}&7).");
         m.add("sanctions.list.entry.separator", "");
-        m.add("sanctions.list.recent.header","&8&l[&c&lSanctions&8&l]&r &eRecente sancties &7(&f{count}&7)");
-        m.add("sanctions.list.recent.empty","&8&l[&c&lSanctions&8&l]&r &7Er zijn nog geen sancties.");
-        m.add("sanctions.list.page","&7Pagina &f{page}&7/&f{pages}&7 &8• &7Per pagina: &f{size}");
+        m.add("sanctions.list.recent.header", "&8&l[&c&lSanctions&8&l]&r &eRecente sancties &7(&f{count}&7)");
+        m.add("sanctions.list.recent.empty", "&8&l[&c&lSanctions&8&l]&r &7Er zijn nog geen sancties.");
+        m.add("sanctions.list.page", "&7Pagina &f{page}&7/&f{pages}&7 &8• &7Per pagina: &f{size}");
 
         // Labels for dynamic lines
         m.add("sanctions.label.type", "&7Type:");

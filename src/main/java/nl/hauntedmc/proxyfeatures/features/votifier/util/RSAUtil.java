@@ -10,9 +10,12 @@ import java.util.Base64;
 import java.util.Optional;
 
 public final class RSAUtil {
-    private RSAUtil() {}
+    private RSAUtil() {
+    }
 
-    /** Generates a new RSA keypair and writes PEM files (public: X.509, private: PKCS#8). */
+    /**
+     * Generates a new RSA keypair and writes PEM files (public: X.509, private: PKCS#8).
+     */
     public static void generateAndSaveKeyPair(Path publicPem, Path privatePem, int bits)
             throws GeneralSecurityException, IOException {
         if (bits < 2048) throw new GeneralSecurityException("Key bits too small: " + bits);
@@ -34,7 +37,9 @@ public final class RSAUtil {
         Files.writeString(privatePem, privPem);
     }
 
-    /** Reads a PKCS#8 PEM private key and returns it. */
+    /**
+     * Reads a PKCS#8 PEM private key and returns it.
+     */
     public static Optional<PrivateKey> readPrivateKeyPem(Path pemPkcs8) {
         try {
             if (!Files.exists(pemPkcs8)) return Optional.empty();
