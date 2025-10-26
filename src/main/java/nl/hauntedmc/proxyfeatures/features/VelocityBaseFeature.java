@@ -5,10 +5,10 @@ import nl.hauntedmc.proxyfeatures.api.feature.Feature;
 import nl.hauntedmc.proxyfeatures.api.feature.meta.BaseMeta;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.config.FeatureConfigHandler;
-import nl.hauntedmc.proxyfeatures.internal.FeatureLogger;
-import nl.hauntedmc.proxyfeatures.lifecycle.FeatureLifecycleManager;
-import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
+import nl.hauntedmc.proxyfeatures.framework.config.FeatureConfigHandler;
+import nl.hauntedmc.proxyfeatures.framework.lifecycle.FeatureLifecycleManager;
+import nl.hauntedmc.proxyfeatures.framework.localization.LocalizationHandler;
+import nl.hauntedmc.proxyfeatures.framework.log.FeatureLogger;
 
 import java.util.List;
 

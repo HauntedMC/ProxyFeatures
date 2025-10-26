@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.restart.command;
 
 import com.velocitypowered.api.command.CommandSource;
-import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.restart.Restart;
 import nl.hauntedmc.proxyfeatures.features.restart.internal.RestartHandler;
 

@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.votifier.server;
 
 import nl.hauntedmc.proxyfeatures.features.votifier.model.Vote;
-import nl.hauntedmc.proxyfeatures.internal.FeatureLogger;
+import nl.hauntedmc.proxyfeatures.framework.log.FeatureLogger;
 
 import javax.crypto.Cipher;
 import java.io.*;

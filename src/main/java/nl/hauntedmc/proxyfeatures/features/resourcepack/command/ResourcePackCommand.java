@@ -4,7 +4,7 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
-import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.ResourcePack;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils;
 

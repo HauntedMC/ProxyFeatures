@@ -2,7 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.connectioninfo.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
-import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.connectioninfo.ConnectionInfo;
 
 import java.util.List;

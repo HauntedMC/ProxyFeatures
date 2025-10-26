@@ -3,8 +3,8 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
-import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 
 import java.util.List;

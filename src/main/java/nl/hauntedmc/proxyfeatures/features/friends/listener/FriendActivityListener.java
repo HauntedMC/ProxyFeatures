@@ -5,7 +5,7 @@ import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
+import nl.hauntedmc.proxyfeatures.api.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendSnapshot;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendsService;

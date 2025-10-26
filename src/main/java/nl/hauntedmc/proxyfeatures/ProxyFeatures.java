@@ -17,10 +17,10 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.scheduler.Scheduler;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
-import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
-import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
-import nl.hauntedmc.proxyfeatures.localization.LocalizationHandler;
+import nl.hauntedmc.proxyfeatures.framework.command.ProxyFeaturesCommand;
+import nl.hauntedmc.proxyfeatures.framework.config.MainConfigHandler;
+import nl.hauntedmc.proxyfeatures.framework.loader.FeatureLoadManager;
+import nl.hauntedmc.proxyfeatures.framework.localization.LocalizationHandler;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.nio.file.Path;

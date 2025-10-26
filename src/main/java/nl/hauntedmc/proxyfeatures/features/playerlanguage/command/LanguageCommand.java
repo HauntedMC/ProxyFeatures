@@ -2,8 +2,8 @@ package nl.hauntedmc.proxyfeatures.features.playerlanguage.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
-import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
 
 import java.util.*;

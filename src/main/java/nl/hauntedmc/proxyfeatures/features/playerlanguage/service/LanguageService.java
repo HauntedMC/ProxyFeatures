@@ -5,15 +5,14 @@ import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
 import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
-import nl.hauntedmc.proxyfeatures.common.util.LanguageUtils;
+import nl.hauntedmc.proxyfeatures.api.player.LanguageAPI;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
-import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class LanguageService implements LanguageAPI {
+public class LanguageService implements nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI {
 
     // Helper to carry both the language and whether this is a new entry
     private record LoadResult(Language language, boolean createdDefault) {
@@ -215,7 +214,7 @@ public class LanguageService implements LanguageAPI {
      * NL group -> NL; DE group -> DE; otherwise EN.
      */
     private Language computeDefaultLanguage(UUID uuid) {
-        String cc = LanguageUtils.getPlayerCountry(uuid);
+        String cc = LanguageAPI.getPlayerCountry(uuid);
 
         // NL group
         if (cc.equals("NL") || cc.equals("BE") || cc.equals("SR") || cc.equals("CW") || cc.equals("AW") || cc.equals("SX")) {

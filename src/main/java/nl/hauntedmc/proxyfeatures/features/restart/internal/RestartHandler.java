@@ -5,7 +5,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import nl.hauntedmc.proxyfeatures.features.restart.Restart;
-import nl.hauntedmc.proxyfeatures.lifecycle.FeatureTaskManager;
+import nl.hauntedmc.proxyfeatures.framework.lifecycle.FeatureTaskManager;
 
 import java.time.Duration;
 import java.util.HashSet;

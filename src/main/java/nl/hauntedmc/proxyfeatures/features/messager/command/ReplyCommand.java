@@ -3,7 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.messager.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
-import nl.hauntedmc.proxyfeatures.commands.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.messager.Messenger;
 import nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingHandler;
 

@@ -2,7 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.announcer.internal;
 
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.features.announcer.Announcer;
-import nl.hauntedmc.proxyfeatures.lifecycle.FeatureTaskManager;
+import nl.hauntedmc.proxyfeatures.framework.lifecycle.FeatureTaskManager;
 
 import java.time.Duration;
 

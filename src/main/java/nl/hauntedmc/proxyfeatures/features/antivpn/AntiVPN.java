@@ -1,9 +1,9 @@
 package nl.hauntedmc.proxyfeatures.features.antivpn;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.APIRegistry;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
-import nl.hauntedmc.proxyfeatures.common.util.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.antivpn.api.CountryAPI;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.CountryService;

@@ -1,6 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.announcer.internal;
 
-import nl.hauntedmc.proxyfeatures.config.ConfigNode;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigNode;
 import nl.hauntedmc.proxyfeatures.features.announcer.Announcer;
 
 import java.util.ArrayList;
