@@ -17,6 +17,7 @@ import nl.hauntedmc.proxyfeatures.framework.loader.disable.FeatureDisableRespons
 import nl.hauntedmc.proxyfeatures.framework.loader.enable.FeatureEnableResponse;
 import nl.hauntedmc.proxyfeatures.framework.loader.reload.FeatureReloadResponse;
 import nl.hauntedmc.proxyfeatures.framework.loader.softreload.FeatureSoftReloadResponse;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -44,12 +45,12 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
     }
 
     @Override
-    public String name() {
+    public @NotNull String name() {
         return "proxyfeatures";
     }
 
     @Override
-    public LiteralCommandNode<CommandSource> buildTree() {
+    public @NotNull LiteralCommandNode<CommandSource> buildTree() {
         // Root node with global gate, shows usage when executed bare
         LiteralArgumentBuilder<CommandSource> root =
                 LiteralArgumentBuilder.<CommandSource>literal(name())

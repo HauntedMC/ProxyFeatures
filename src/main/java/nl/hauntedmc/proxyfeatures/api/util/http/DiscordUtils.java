@@ -1,7 +1,5 @@
 package nl.hauntedmc.proxyfeatures.api.util.http;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -30,18 +28,6 @@ public class DiscordUtils {
                 os.flush();
             }
 
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_NO_CONTENT) {
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getErrorStream()))) {
-                    StringBuilder errorResponse = new StringBuilder();
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        errorResponse.append(line);
-                    }
-                } catch (Exception ignored) {
-                }
-            }
             connection.disconnect();
         } catch (Exception ignored) {
         }

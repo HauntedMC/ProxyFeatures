@@ -74,14 +74,12 @@ public class HubCommand implements FeatureCommand {
                             .build());
                 } else {
                     // Only send a failure message if a reason is provided.
-                    result.getReasonComponent().ifPresent(reason -> {
-                        player.sendMessage(feature.getLocalizationHandler()
-                                .getMessage("hub.connection_failure")
-                                .with("server", LOBBY_NAME)
-                                .with("reason", reason)
-                                .forAudience(player)
-                                .build());
-                    });
+                    result.getReasonComponent().ifPresent(reason -> player.sendMessage(feature.getLocalizationHandler()
+                            .getMessage("hub.connection_failure")
+                            .with("server", LOBBY_NAME)
+                            .with("reason", reason)
+                            .forAudience(player)
+                            .build()));
                 }
             });
         });

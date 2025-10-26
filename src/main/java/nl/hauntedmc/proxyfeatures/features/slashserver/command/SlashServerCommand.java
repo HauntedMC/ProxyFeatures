@@ -73,14 +73,12 @@ public class SlashServerCommand implements FeatureCommand {
                             .build());
                 } else {
                     // Only send a failure message if the proxy provided a reason.
-                    result.getReasonComponent().ifPresent(component -> {
-                        player.sendMessage(feature.getLocalizationHandler()
-                                .getMessage("slash.connection_failure")
-                                .with("server", serverName)
-                                .with("reason", component)
-                                .forAudience(player)
-                                .build());
-                    });
+                    result.getReasonComponent().ifPresent(component -> player.sendMessage(feature.getLocalizationHandler()
+                            .getMessage("slash.connection_failure")
+                            .with("server", serverName)
+                            .with("reason", component)
+                            .forAudience(player)
+                            .build()));
                 }
             });
         });

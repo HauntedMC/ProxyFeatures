@@ -150,14 +150,12 @@ public class QueueManager {
 
             feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> player.createConnectionRequest(target).connect().thenAccept(res -> {
                 if (!res.isSuccessful()) {
-                    res.getReasonComponent().ifPresent(reason -> {
-                        player.sendMessage(feature.getLocalizationHandler()
-                                .getMessage("queue.join.connection_failure")
-                                .with("server", serverName)
-                                .with("reason", reason)
-                                .forAudience(player)
-                                .build());
-                    });
+                    res.getReasonComponent().ifPresent(reason -> player.sendMessage(feature.getLocalizationHandler()
+                            .getMessage("queue.join.connection_failure")
+                            .with("server", serverName)
+                            .with("reason", reason)
+                            .forAudience(player)
+                            .build()));
                     // We intentionally do NOT requeue automatically to avoid duplicates / loops.
                 } else {
                     queue.clearReservation(next.playerId());
