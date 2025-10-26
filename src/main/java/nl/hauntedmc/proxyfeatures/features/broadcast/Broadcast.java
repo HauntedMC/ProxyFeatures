@@ -34,9 +34,10 @@ public class Broadcast extends VelocityBaseFeature<Meta> {
 
     @Override
     public void initialize() {
+        // Register as Brigadier command (Velocity)
         getLifecycleManager()
                 .getCommandManager()
-                .registerFeatureCommand(new BroadcastProxyCommand(this));
+                .registerBrigadierCommand(new BroadcastProxyCommand(this));
     }
 
     @Override

@@ -1,10 +1,17 @@
 package nl.hauntedmc.proxyfeatures.framework.command;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.command.SimpleCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.framework.loader.disable.FeatureDisableResponse;
 import nl.hauntedmc.proxyfeatures.framework.loader.enable.FeatureEnableResponse;
@@ -14,9 +21,21 @@ import nl.hauntedmc.proxyfeatures.framework.loader.softreload.FeatureSoftReloadR
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-public final class ProxyFeaturesCommand implements SimpleCommand {
+/**
+ * Framework root command defined as a Brigadier command.
+ * Root: /proxyfeatures
+ *
+ * Subcommands:
+ * - status
+ * - list
+ * - enable <feature>
+ * - disable <feature>
+ * - reload <feature>
+ * - softreload <feature>
+ * - reloadlocal
+ */
+public final class ProxyFeaturesCommand implements BrigadierCommand {
 
     private final ProxyFeatures plugin;
 
@@ -25,81 +44,121 @@ public final class ProxyFeaturesCommand implements SimpleCommand {
     }
 
     @Override
-    public void execute(final Invocation invocation) {
-        final CommandSource sender = invocation.source();
-        final String[] args = invocation.arguments();
-
-        if (args.length == 0) {
-            sender.sendMessage(plugin.getLocalizationHandler()
-                    .getMessage("general.usage")
-                    .forAudience(sender)
-                    .build());
-            return;
-        }
-
-        switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "status" -> {
-                if (!has(sender, "proxyfeatures.command.status")) return;
-                sendPluginStatus(sender);
-            }
-            case "list" -> {
-                if (!has(sender, "proxyfeatures.command.list")) return;
-                listLoadedFeatures(sender);
-            }
-            case "softreload" -> {
-                if (!has(sender, "proxyfeatures.command.reload")) return;
-                if (args.length < 2) {
-                    sender.sendMessage(plugin.getLocalizationHandler()
-                            .getMessage("command.softreload.usage")
-                            .forAudience(sender)
-                            .build());
-                    return;
-                }
-                handleSoftReload(sender, args[1]);
-            }
-            case "reload" -> {
-                if (!has(sender, "proxyfeatures.command.reload")) return;
-                if (args.length < 2) {
-                    sender.sendMessage(plugin.getLocalizationHandler()
-                            .getMessage("command.reload.usage")
-                            .forAudience(sender)
-                            .build());
-                    return;
-                }
-                handleReload(sender, args[1]);
-            }
-            case "enable" -> {
-                if (!has(sender, "proxyfeatures.command.enable")) return;
-                if (args.length < 2) return; // mimic Bukkit behaviour (no explicit usage)
-                handleEnable(sender, args[1]);
-            }
-            case "disable" -> {
-                if (!has(sender, "proxyfeatures.command.disable")) return;
-                if (args.length < 2) return; // mimic Bukkit behaviour (no explicit usage)
-                handleDisable(sender, args[1]);
-            }
-            case "reloadlocal" -> {
-                if (!has(sender, "proxyfeatures.command.reloadlocal")) return;
-                try {
-                    plugin.getLocalizationHandler().reloadLocalization();
-                    sender.sendMessage(plugin.getLocalizationHandler()
-                            .getMessage("command.reloadlocal.success")
-                            .forAudience(sender)
-                            .build());
-                } catch (Throwable t) {
-                    plugin.getLogger().warn("Localization reload failed: {}", t.getMessage());
-                    sender.sendMessage(plugin.getLocalizationHandler()
-                            .getMessage("command.reloadlocal.fail")
-                            .forAudience(sender)
-                            .build());
-                }
-            }
-            default -> sender.sendMessage(plugin.getLocalizationHandler()
-                    .getMessage("general.unknown_command")
-                    .forAudience(sender)
-                    .build());
-        }
+    public String name() {
+        return "proxyfeatures";
     }
+
+    @Override
+    public LiteralCommandNode<CommandSource> buildTree() {
+        // Root node with global gate, shows usage when executed bare
+        LiteralArgumentBuilder<CommandSource> root =
+                LiteralArgumentBuilder.<CommandSource>literal(name())
+                        .requires(src -> src.hasPermission("proxyfeatures.use"))
+                        .executes(ctx -> {
+                            CommandSource sender = ctx.getSource();
+                            sender.sendMessage(plugin.getLocalizationHandler()
+                                    .getMessage("general.usage")
+                                    .forAudience(sender)
+                                    .build());
+                            return 1;
+                        });
+
+        // /proxyfeatures status
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("status")
+                .requires(src -> src.hasPermission("proxyfeatures.command.status"))
+                .executes(ctx -> {
+                    sendPluginStatus(ctx.getSource());
+                    return 1;
+                })
+        );
+
+        // /proxyfeatures list
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("list")
+                .requires(src -> src.hasPermission("proxyfeatures.command.list"))
+                .executes(ctx -> {
+                    listLoadedFeatures(ctx.getSource());
+                    return 1;
+                })
+        );
+
+        // /proxyfeatures reloadlocal
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("reloadlocal")
+                .requires(src -> src.hasPermission("proxyfeatures.command.reloadlocal"))
+                .executes(ctx -> {
+                    CommandSource sender = ctx.getSource();
+                    try {
+                        plugin.getLocalizationHandler().reloadLocalization();
+                        sender.sendMessage(plugin.getLocalizationHandler()
+                                .getMessage("command.reloadlocal.success")
+                                .forAudience(sender)
+                                .build());
+                    } catch (Throwable t) {
+                        plugin.getLogger().warn("Localization reload failed: {}", t.getMessage());
+                        sender.sendMessage(plugin.getLocalizationHandler()
+                                .getMessage("command.reloadlocal.fail")
+                                .forAudience(sender)
+                                .build());
+                    }
+                    return 1;
+                })
+        );
+
+        // Argument suggestions used by multiple subs
+        SuggestionProvider<CommandSource> featureSuggestLoaded = (ctx, builder) -> suggestLoadedFeatures(builder);
+        SuggestionProvider<CommandSource> featureSuggestEnable = (ctx, builder) -> suggestEnableCandidates(builder);
+
+        // /proxyfeatures softreload <feature>
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("softreload")
+                .requires(src -> src.hasPermission("proxyfeatures.command.reload"))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("feature", StringArgumentType.word())
+                        .suggests(featureSuggestLoaded)
+                        .executes(ctx -> {
+                            String feature = StringArgumentType.getString(ctx, "feature");
+                            handleSoftReload(ctx.getSource(), feature);
+                            return 1;
+                        }))
+        );
+
+        // /proxyfeatures reload <feature>
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("reload")
+                .requires(src -> src.hasPermission("proxyfeatures.command.reload"))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("feature", StringArgumentType.word())
+                        .suggests(featureSuggestLoaded)
+                        .executes(ctx -> {
+                            String feature = StringArgumentType.getString(ctx, "feature");
+                            handleReload(ctx.getSource(), feature);
+                            return 1;
+                        }))
+        );
+
+        // /proxyfeatures enable <feature>
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("enable")
+                .requires(src -> src.hasPermission("proxyfeatures.command.enable"))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("feature", StringArgumentType.word())
+                        .suggests(featureSuggestEnable)
+                        .executes(ctx -> {
+                            String feature = StringArgumentType.getString(ctx, "feature");
+                            handleEnable(ctx.getSource(), feature);
+                            return 1;
+                        }))
+        );
+
+        // /proxyfeatures disable <feature>
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("disable")
+                .requires(src -> src.hasPermission("proxyfeatures.command.disable"))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("feature", StringArgumentType.word())
+                        .suggests(featureSuggestLoaded)
+                        .executes(ctx -> {
+                            String feature = StringArgumentType.getString(ctx, "feature");
+                            handleDisable(ctx.getSource(), feature);
+                            return 1;
+                        }))
+        );
+
+        return root.build();
+    }
+
+    /* ============================ Handlers ============================ */
 
     private void handleEnable(CommandSource sender, String feature) {
         FeatureEnableResponse resp = plugin.getFeatureLoadManager().enableFeature(feature);
@@ -230,17 +289,6 @@ public final class ProxyFeaturesCommand implements SimpleCommand {
         }
     }
 
-    private boolean has(CommandSource sender, String perm) {
-        if (!sender.hasPermission(perm)) {
-            sender.sendMessage(plugin.getLocalizationHandler()
-                    .getMessage("general.no_permission")
-                    .forAudience(sender)
-                    .build());
-            return false;
-        }
-        return true;
-    }
-
     private void sendPluginStatus(CommandSource sender) {
         List<VelocityBaseFeature<?>> loadedFeatures = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
         List<String> loadedCommands = new ArrayList<>();
@@ -296,64 +344,47 @@ public final class ProxyFeaturesCommand implements SimpleCommand {
         }
     }
 
-    @Override
-    public boolean hasPermission(final Invocation invocation) {
-        // Global gate; per-subcommand checks still enforced
-        return invocation.source().hasPermission("proxyfeatures.use");
+    /* ============================ Suggestions ============================ */
+
+    private CompletableFuture<Suggestions> suggestLoadedFeatures(SuggestionsBuilder builder) {
+        final Locale L = Locale.ROOT;
+        String prefix = builder.getRemaining().toLowerCase(L);
+
+        var names = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                .map(VelocityBaseFeature::getFeatureName)
+                .filter(Objects::nonNull)
+                .filter(n -> n.toLowerCase(L).startsWith(prefix))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+
+        for (String n : names) builder.suggest(n);
+        return builder.buildFuture();
     }
 
-    @Override
-    public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
+    private CompletableFuture<Suggestions> suggestEnableCandidates(SuggestionsBuilder builder) {
         final Locale L = Locale.ROOT;
-        final String[] args = invocation.arguments();
+        String prefix = builder.getRemaining().toLowerCase(L);
 
-        if (args.length == 0) {
-            return CompletableFuture.completedFuture(List.of());
-        }
+        Set<String> loadedLower = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
+                .map(VelocityBaseFeature::getFeatureName)
+                .filter(Objects::nonNull)
+                .map(s -> s.toLowerCase(L))
+                .collect(Collectors.toSet());
 
-        if (args.length == 1) {
-            String prefix = args[0].toLowerCase(L);
-            List<String> subs = Stream.of("list", "disable", "enable", "reload", "reloadlocal", "softreload", "status")
-                    .filter(s -> s.toLowerCase(L).startsWith(prefix))
-                    .sorted(String.CASE_INSENSITIVE_ORDER)
-                    .toList();
-            return CompletableFuture.completedFuture(subs);
-        }
+        var names = plugin.getFeatureLoadManager().getFeatureRegistry().getAvailableFeatures().keySet().stream()
+                .filter(Objects::nonNull)
+                .filter(name -> !loadedLower.contains(name.toLowerCase(L)))
+                .filter(name -> name.toLowerCase(L).startsWith(prefix))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
 
-        if (args.length == 2) {
-            String sub = args[0].toLowerCase(L);
-            String featurePrefix = args[1].toLowerCase(L);
+        for (String n : names) builder.suggest(n);
+        return builder.buildFuture();
+    }
 
-            List<String> result = switch (sub) {
-                case "reload", "softreload", "disable" ->
-                        plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
-                                .map(VelocityBaseFeature::getFeatureName)
-                                .filter(Objects::nonNull)
-                                .filter(name -> name.toLowerCase(L).startsWith(featurePrefix))
-                                .sorted(String.CASE_INSENSITIVE_ORDER)
-                                .toList();
-
-                case "enable" -> {
-                    Set<String> loadedLower = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures().stream()
-                            .map(VelocityBaseFeature::getFeatureName)
-                            .filter(Objects::nonNull)
-                            .map(s -> s.toLowerCase(L))
-                            .collect(Collectors.toSet());
-
-                    yield plugin.getFeatureLoadManager().getFeatureRegistry().getAvailableFeatures().keySet().stream()
-                            .filter(Objects::nonNull)
-                            .filter(name -> !loadedLower.contains(name.toLowerCase(L)))
-                            .filter(name -> name.toLowerCase(L).startsWith(featurePrefix))
-                            .sorted(String.CASE_INSENSITIVE_ORDER)
-                            .toList();
-                }
-
-                default -> Collections.emptyList();
-            };
-
-            return CompletableFuture.completedFuture(result);
-        }
-
-        return CompletableFuture.completedFuture(Collections.emptyList());
+    // Optional: description exposed to some registrars/clients
+    @Override
+    public String description() {
+        return "ProxyFeatures framework command (status, list, enable/disable, reload, softreload, reloadlocal).";
     }
 }

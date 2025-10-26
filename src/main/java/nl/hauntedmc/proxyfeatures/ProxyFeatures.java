@@ -77,7 +77,6 @@ public class ProxyFeatures {
         featureLoadManager.initializeFeatures();
     }
 
-
     /**
      * This event is fired when the proxy is
      * reloaded by the user using /velocity reload.
@@ -98,7 +97,6 @@ public class ProxyFeatures {
         getLogger().info("proxyfeatures is shutting down...");
     }
 
-
     public ComponentLogger getLogger() {
         return logger;
     }
@@ -106,11 +104,16 @@ public class ProxyFeatures {
     private void registerBaseCommand() {
         CommandManager commandManager = proxy.getCommandManager();
 
-        CommandMeta proxyfeaturesCommandMeta = commandManager.metaBuilder("proxyfeatures")
+        // Build Brigadier tree and register via Velocity's BrigadierCommand wrapper
+        ProxyFeaturesCommand root = new ProxyFeaturesCommand(this);
+        com.velocitypowered.api.command.BrigadierCommand brigadier =
+                new com.velocitypowered.api.command.BrigadierCommand(root.buildTree());
+
+        CommandMeta meta = commandManager.metaBuilder(brigadier)
                 .plugin(this)
                 .build();
 
-        commandManager.register(proxyfeaturesCommandMeta, new ProxyFeaturesCommand(this));
+        commandManager.register(meta, brigadier);
     }
 
     private void registerCommonListeners() {

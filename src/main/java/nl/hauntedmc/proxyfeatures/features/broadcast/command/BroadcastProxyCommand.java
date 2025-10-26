@@ -1,23 +1,30 @@
 package nl.hauntedmc.proxyfeatures.features.broadcast.command;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
-import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
+import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.features.broadcast.Broadcast;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-public class BroadcastProxyCommand implements FeatureCommand {
+/**
+ * /broadcastproxy <chat|title> <message...>
+ *  - chat: sends a chat broadcast (supports &-color codes)
+ *  - title: sends a title; split main/subtitle with a single '|'
+ */
+public final class BroadcastProxyCommand implements BrigadierCommand {
 
     private final Broadcast feature;
     private final ProxyServer proxy;
@@ -28,43 +35,76 @@ public class BroadcastProxyCommand implements FeatureCommand {
         this.proxy = feature.getPlugin().getProxy();
     }
 
-    public String getName() {
+    @Override
+    public @NotNull String name() {
         return "broadcastproxy";
     }
 
-    public String[] getAliases() {
-        return new String[]{""};
+    @Override
+    public String description() {
+        return "Broadcast a message to all players (chat or title).";
     }
 
-    public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission(
-                "proxyfeatures.feature.broadcast.command.broadcastproxy");
+    @Override
+    public @NotNull LiteralCommandNode<CommandSource> buildTree() {
+        // Root
+        LiteralArgumentBuilder<CommandSource> root =
+                LiteralArgumentBuilder.<CommandSource>literal(name())
+                        .requires(src -> src.hasPermission("proxyfeatures.feature.broadcast.command.broadcastproxy"))
+                        .executes(ctx -> {
+                            // Show usage when no subcommand given
+                            ctx.getSource().sendMessage(feature.getLocalizationHandler()
+                                    .getMessage("broadcast.usage")
+                                    .forAudience(ctx.getSource())
+                                    .build());
+                            return 1;
+                        });
+
+        // Suggestion providers (modern UX-style hints)
+        SuggestionProvider<CommandSource> chatMessageSugg = (c, b) -> suggestChatExamples(b);
+        SuggestionProvider<CommandSource> titleMessageSugg = (c, b) -> suggestTitleExamples(b);
+
+        // /broadcastproxy chat <message...>
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("chat")
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("message", StringArgumentType.greedyString())
+                        .suggests(chatMessageSugg)
+                        .executes(ctx -> {
+                            String msg = StringArgumentType.getString(ctx, "message");
+                            broadcastChat(msg, ctx.getSource());
+                            return 1;
+                        })));
+
+        // /broadcastproxy title <message...>  (use "|" to separate title|subtitle)
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("title")
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("message", StringArgumentType.greedyString())
+                        .suggests(titleMessageSugg)
+                        .executes(ctx -> {
+                            String msg = StringArgumentType.getString(ctx, "message");
+                            broadcastTitle(msg, ctx.getSource());
+                            return 1;
+                        })));
+
+        return root.build();
     }
 
-    public void execute(Invocation invocation) {
-        CommandSource src = invocation.source();
-        String[] args = invocation.arguments();
+    /* ============================ Suggestions ============================ */
 
-        if (args.length < 2) {
-            sendUsage(src);
-            return;
-        }
-
-        String mode = args[0].toLowerCase(Locale.ROOT);
-        String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-
-        switch (mode) {
-            case "chat" -> broadcastChat(message, src);
-            case "title" -> broadcastTitle(message, src);
-            default -> {
-                src.sendMessage(feature.getLocalizationHandler()
-                        .getMessage("broadcast.noMode")
-                        .forAudience(src)
-                        .build());
-                sendUsage(src);
-            }
-        }
+    private CompletableFuture<Suggestions> suggestChatExamples(SuggestionsBuilder b) {
+        // Clean, modern suggestions that show typical admin use-cases.
+        b.suggest("&aServer &frestart &fover &c5 &fminuten");
+        b.suggest("&eNieuwe &aupdate&f: &b/perks &fvoor info");
+        b.suggest("&dEvent &fin &a/spawn &fbegint nu!");
+        return b.buildFuture();
     }
+
+    private CompletableFuture<Suggestions> suggestTitleExamples(SuggestionsBuilder b) {
+        b.suggest("&6Welkom op HauntedMC | &7Veel plezier!");
+        b.suggest("&cRestart inkomend | &7Sla veilig uit en reconnect zo");
+        b.suggest("&aDubbele XP! | &7Alle minigames dit uur");
+        return b.buildFuture();
+    }
+
+    /* ============================ Execution ============================ */
 
     private void broadcastChat(String msg, CommandSource src) {
         Component comp = legacyAmp.deserialize(msg);
@@ -76,10 +116,10 @@ public class BroadcastProxyCommand implements FeatureCommand {
         String titlePart;
         String subPart;
 
-        if (msg.contains("|")) {
-            String[] split = msg.split("\\|", 2);
-            titlePart = split[0].trim();
-            subPart = split[1].trim();
+        int pipe = msg.indexOf('|');
+        if (pipe >= 0) {
+            titlePart = msg.substring(0, pipe).trim();
+            subPart = msg.substring(pipe + 1).trim();
         } else {
             titlePart = msg;
             subPart = "";
@@ -100,37 +140,15 @@ public class BroadcastProxyCommand implements FeatureCommand {
         Title title = Title.title(titleComp, subComp, times);
 
         proxy.getAllPlayers().forEach(p -> p.showTitle(title));
-
         acknowledge(src);
     }
 
-    private void sendUsage(CommandSource src) {
-        src.sendMessage(feature.getLocalizationHandler()
-                .getMessage("broadcast.usage")
-                .forAudience(src)
-                .build());
-    }
+    /* ============================ Helpers ============================ */
 
     private void acknowledge(CommandSource src) {
         src.sendMessage(feature.getLocalizationHandler()
                 .getMessage("broadcast.sent")
                 .forAudience(src)
                 .build());
-    }
-
-    public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        String[] args = invocation.arguments();
-
-        if (args.length == 0 || args[0].isEmpty()) {
-            return CompletableFuture.completedFuture(List.of("chat", "title"));
-        }
-        if (args.length == 1) {
-            String partial = args[0].toLowerCase(Locale.ROOT);
-            List<String> modes = Stream.of("chat", "title")
-                    .filter(m -> m.startsWith(partial))
-                    .collect(Collectors.toList());
-            return CompletableFuture.completedFuture(modes);
-        }
-        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }
