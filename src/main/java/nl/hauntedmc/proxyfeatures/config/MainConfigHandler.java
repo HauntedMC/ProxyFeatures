@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.config;
 
-import nl.hauntedmc.commonlib.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.resource.ResourceHandler;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 

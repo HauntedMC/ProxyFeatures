@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.playerlist.meta;
 
 
-import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
+import nl.hauntedmc.proxyfeatures.api.feature.meta.BaseMeta;
 
 import java.util.List;
 

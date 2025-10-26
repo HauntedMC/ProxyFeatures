@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.staffchat.meta;
 
 
-import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
+import nl.hauntedmc.proxyfeatures.api.feature.meta.BaseMeta;
 
 public class Meta implements BaseMeta {
 

@@ -1,10 +1,10 @@
 package nl.hauntedmc.proxyfeatures.features;
 
-import nl.hauntedmc.commonlib.config.ConfigMap;
-import nl.hauntedmc.commonlib.featureapi.feature.Feature;
-import nl.hauntedmc.commonlib.featureapi.feature.meta.BaseMeta;
-import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.feature.Feature;
+import nl.hauntedmc.proxyfeatures.api.feature.meta.BaseMeta;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.config.FeatureConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.FeatureLogger;
 import nl.hauntedmc.proxyfeatures.lifecycle.FeatureLifecycleManager;

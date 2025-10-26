@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.votifier;
 
-import nl.hauntedmc.commonlib.config.ConfigMap;
-import nl.hauntedmc.commonlib.localization.MessageMap;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;

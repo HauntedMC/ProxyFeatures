@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.sanctions.service;
 
-import nl.hauntedmc.commonlib.util.DiscordUtils;
-import nl.hauntedmc.commonlib.util.JsonUtils;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.api.util.http.DiscordUtils;
+import nl.hauntedmc.proxyfeatures.api.util.parse.JsonUtils;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 

@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.playerlanguage.service;
 
 import com.velocitypowered.api.proxy.Player;
-import nl.hauntedmc.commonlib.localization.Language;
+import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;

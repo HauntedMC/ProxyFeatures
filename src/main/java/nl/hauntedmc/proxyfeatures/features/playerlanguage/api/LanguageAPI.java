@@ -1,6 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.playerlanguage.api;
 
-import nl.hauntedmc.commonlib.localization.Language;
+import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 
 import java.util.UUID;
 

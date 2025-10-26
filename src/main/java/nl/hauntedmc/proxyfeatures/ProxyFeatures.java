@@ -18,7 +18,6 @@ import com.velocitypowered.api.proxy.ProxyServer;
 
 import com.velocitypowered.api.scheduler.Scheduler;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import nl.hauntedmc.commonlib.featureapi.FeaturePlugin;
 import nl.hauntedmc.proxyfeatures.commands.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.internal.FeatureLoadManager;
@@ -38,7 +37,7 @@ import java.util.Collection;
                 @Dependency(id = "dataregistry"),
                 @Dependency(id = "dataprovider")
         })
-public class ProxyFeatures implements FeaturePlugin {
+public class ProxyFeatures {
 
     private MainConfigHandler mainConfigHandler;
     private FeatureLoadManager featureLoadManager;

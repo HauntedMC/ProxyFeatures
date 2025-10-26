@@ -2,7 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.commandrelay.internal;
 
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.commonlib.util.CastUtils;
+import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataprovider.database.messaging.api.Subscription;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.CommandRelay;

@@ -10,7 +10,7 @@ import net.luckperms.api.node.NodeType;
 import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.track.Track;
 import net.luckperms.api.track.TrackManager;
-import nl.hauntedmc.commonlib.http.SimpleHttpClient;
+import nl.hauntedmc.proxyfeatures.api.util.http.SimpleHttpClient;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.api.AccountRequest;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.api.LinkRequest;

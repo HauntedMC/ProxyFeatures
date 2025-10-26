@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
-import nl.hauntedmc.commonlib.util.ConfigParseUtils;
+import nl.hauntedmc.proxyfeatures.api.util.parse.ConfigParseUtils;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.ResourcePack;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils;
 import org.jetbrains.annotations.NotNull;

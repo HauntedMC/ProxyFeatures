@@ -6,7 +6,7 @@ import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.commonlib.util.CastUtils;
+import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.antivpn.AntiVPN;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.CountryService;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPCheckResult;

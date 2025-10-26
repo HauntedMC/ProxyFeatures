@@ -1,6 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.commandhider.internal;
 
-import nl.hauntedmc.commonlib.util.CastUtils;
+import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.commandhider.CommandHider;
 
 import java.util.HashSet;

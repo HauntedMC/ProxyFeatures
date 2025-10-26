@@ -1,8 +1,8 @@
 package nl.hauntedmc.proxyfeatures.features.motd;
 
-import nl.hauntedmc.commonlib.config.ConfigMap;
-import nl.hauntedmc.commonlib.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.motd.internal.MotdHandler;
 import nl.hauntedmc.proxyfeatures.features.motd.listener.PingListener;

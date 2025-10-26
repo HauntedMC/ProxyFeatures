@@ -1,7 +1,7 @@
 package nl.hauntedmc.proxyfeatures.common.util;
 
 import com.velocitypowered.api.proxy.Player;
-import nl.hauntedmc.commonlib.localization.Language;
+import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI;
 import nl.hauntedmc.proxyfeatures.features.antivpn.api.CountryAPI;
 

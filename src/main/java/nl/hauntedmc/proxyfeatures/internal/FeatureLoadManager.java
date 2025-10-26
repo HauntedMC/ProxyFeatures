@@ -1,8 +1,5 @@
 package nl.hauntedmc.proxyfeatures.internal;
 
-import nl.hauntedmc.commonlib.featureapi.event.FeatureDisabledEvent;
-import nl.hauntedmc.commonlib.featureapi.event.FeatureEventManager;
-import nl.hauntedmc.commonlib.featureapi.event.FeatureLoadedEvent;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
@@ -178,7 +175,6 @@ public final class FeatureLoadManager {
             mainConfigHandler.setFeatureEnabled(featureName, false);
             featureRegistry.deregisterLoadedFeature(featureName);
             plugin.getLogger().info("Feature disabled: {}", featureName);
-            FeatureEventManager.triggerEvent(new FeatureDisabledEvent(featureName));
             return new FeatureDisableResponse(FeatureDisableResult.SUCCESS, featureName, dependents);
         } catch (Throwable t) {
             plugin.getLogger().error("Disable failed: {}", featureName, t);
@@ -272,7 +268,6 @@ public final class FeatureLoadManager {
             feature.initialize();
             featureRegistry.registerLoadedFeature(featureName, feature);
             plugin.getLogger().info("Feature loaded: {}", featureName);
-            FeatureEventManager.triggerEvent(new FeatureLoadedEvent(featureName));
             return true;
         }
 

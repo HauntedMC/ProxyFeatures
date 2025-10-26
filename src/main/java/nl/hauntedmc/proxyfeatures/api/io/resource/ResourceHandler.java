@@ -1,4 +1,4 @@
-package nl.hauntedmc.proxyfeatures.common.resources;
+package nl.hauntedmc.proxyfeatures.api.io.resource;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import org.spongepowered.configurate.CommentedConfigurationNode;

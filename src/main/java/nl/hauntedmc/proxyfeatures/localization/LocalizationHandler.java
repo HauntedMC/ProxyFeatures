@@ -3,13 +3,15 @@ package nl.hauntedmc.proxyfeatures.localization;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.commonlib.localization.Language;
-import nl.hauntedmc.commonlib.localization.MessageMap;
-import nl.hauntedmc.commonlib.util.ComponentUtils;
-import nl.hauntedmc.commonlib.util.PlaceholderUtils;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.common.resources.ResourceHandler;
+import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
+import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
+import nl.hauntedmc.proxyfeatures.api.io.resource.ResourceHandler;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
+import nl.hauntedmc.proxyfeatures.api.util.text.format.TextFormatter;
+import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.common.util.LanguageUtils;
+import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.util.EnumMap;
@@ -28,9 +30,7 @@ public class LocalizationHandler {
         loadLanguageFiles();
     }
 
-    /**
-     * Loads each language file using the ResourceHandler.
-     */
+    // Load each language file using ResourceHandler (Configurate backed)
     private void loadLanguageFiles() {
         for (Language lang : Language.values()) {
             String resourcePath = LANG_DIR + "/" + lang.getFileName();
@@ -43,39 +43,32 @@ public class LocalizationHandler {
         }
     }
 
-    /**
-     * Reloads both the default messages and language-specific files.
-     */
+    /** Reload defaults and per-language files. */
     public void reloadLocalization() {
         defaultMessagesResource.reload();
         languageResources.values().forEach(ResourceHandler::reload);
         plugin.getLogger().info("All localization files reloaded.");
     }
 
-    /**
-     * Registers multiple default messages.
-     */
+    /** Register defaults (create missing keys only). */
     public void registerDefaultMessages(MessageMap messageMap) {
         boolean changes = false;
-        CommentedConfigurationNode config = defaultMessagesResource.getConfig();
-        for (Map.Entry<String, String> entry : messageMap.getMessages().entrySet()) {
-            String key = entry.getKey();
-            String defaultValue = entry.getValue();
-            if (isNodeMissing(config, key)) {
+        CommentedConfigurationNode root = defaultMessagesResource.getConfig();
+        for (Map.Entry<String, String> e : messageMap.getMessages().entrySet()) {
+            String key = e.getKey();
+            if (isMissing(root, key)) {
                 try {
-                    config.node((Object[]) key.split("\\.")).set(defaultValue);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    node(root, key).set(e.getValue());
+                } catch (Exception ex) {
+                    throw new RuntimeException("Failed to set default message for key: " + key, ex);
                 }
                 changes = true;
             }
         }
-        if (changes) {
-            defaultMessagesResource.save();
-        }
+        if (changes) defaultMessagesResource.save();
     }
 
-    // --- Fluent Builder API ---
+    // --- Fluent Builder API (mirrors the Bukkit version) ---
 
     public MessageBuilder getMessage(String key) {
         return new MessageBuilder(key);
@@ -84,7 +77,10 @@ public class LocalizationHandler {
     public class MessageBuilder {
         private final String key;
         private Audience audience;
-        private Map<String, String> placeholders;
+        private MessagePlaceholders placeholders = MessagePlaceholders.empty();
+
+        private boolean autoLinkUrls = false;
+        private boolean autoLinkUnderline = true;
 
         private MessageBuilder(String key) {
             this.key = key;
@@ -95,108 +91,87 @@ public class LocalizationHandler {
             return this;
         }
 
-        public MessageBuilder withPlaceholders(Map<String, String> placeholders) {
-            this.placeholders = placeholders;
+        public MessageBuilder withPlaceholders(MessagePlaceholders placeholders) {
+            if (placeholders != null) this.placeholders = placeholders;
             return this;
         }
 
+        public MessageBuilder with(String k, String v) {
+            this.placeholders = MessagePlaceholders.builder()
+                    .addAll(this.placeholders).addString(k, v).build();
+            return this;
+        }
+
+        public MessageBuilder with(String k, Number v) {
+            this.placeholders = MessagePlaceholders.builder()
+                    .addAll(this.placeholders).addNumber(k, v).build();
+            return this;
+        }
+
+        public MessageBuilder with(String k, Component v) {
+            this.placeholders = MessagePlaceholders.builder()
+                    .addAll(this.placeholders).addComponent(k, v).build();
+            return this;
+        }
+
+        public MessageBuilder autoLinkUrls(boolean on) {
+            this.autoLinkUrls = on;
+            return this;
+        }
+
+        public MessageBuilder autoLinkUnderline(boolean on) {
+            this.autoLinkUnderline = on;
+            return this;
+        }
+
+        /** Build: legacy(&/§ + hex) -> MiniMessage tags -> MiniMessage parse -> Component. */
         public Component build() {
-            String rawMessage;
-            if (audience instanceof Player) {
-                rawMessage = getTranslatedMessage(key, (Player) audience);
-            } else {
-                rawMessage = defaultMessagesResource.getConfig().node((Object[]) key.split("\\."))
-                        .getString("&cMessage not found: " + key);
-            }
-            return parseAndDeserialize(rawMessage, placeholders);
+            String raw = (audience instanceof Player p)
+                    ? getTranslatedMessage(key, p)
+                    : node(defaultMessagesResource.getConfig(), key).getString("&cMessage not found: " + key);
+            return render(raw);
+        }
+
+        private Component render(String s) {
+            // Mixed input conversion with preprocessing hooks (PAPI + our placeholders)
+            s = TextFormatter.convert(s)
+                    .expect(TextFormatter.InputFormat.MIXED_INPUT)
+                    .preprocess(str -> MessagePlaceholders.applyPlaceholders(str, placeholders))
+                    .toMiniMessage();
+
+            ComponentFormatter.Converter conv = ComponentFormatter.deserialize(s)
+                    .expect(TextFormatter.InputFormat.MINIMESSAGE)
+                    .features(ComponentFormatter.ALL_DEFAULTS());
+
+            if (autoLinkUrls) conv.autoLinkUrls(autoLinkUnderline);
+            return conv.toComponent();
         }
     }
 
-    // --- Private Helper Methods ---
+    // --- Helpers ---
 
-    private boolean isNodeMissing(CommentedConfigurationNode node, String key) {
-        return node.node((Object[]) key.split("\\.")).virtual();
+    private static CommentedConfigurationNode node(CommentedConfigurationNode root, String dottedKey) {
+        return root.node((Object[]) dottedKey.split("\\."));
     }
 
-    /**
-     * Retrieves a translated message for the player based on their language settings.
-     * Falls back to the default message if a localized version is not found.
-     */
-    private String getTranslatedMessage(String key, Player targetPlayer) {
-        Language language = LanguageUtils.getPlayerLanguage(targetPlayer);
-        String message = null;
+    private static boolean isMissing(CommentedConfigurationNode root, String dottedKey) {
+        return node(root, dottedKey).virtual();
+    }
+
+    /** Get translated message for a Velocity player; fallback to defaults. */
+    private @NotNull String getTranslatedMessage(String key, Player player) {
+        Language language = LanguageUtils.getPlayerLanguage(player);
+        String msg = null;
         if (language != null) {
-            ResourceHandler resource = languageResources.get(language);
-            if (resource != null && !isNodeMissing(resource.getConfig(), key)) {
-                message = resource.getConfig().node((Object[]) key.split("\\.")).getString();
+            ResourceHandler res = languageResources.get(language);
+            if (res != null && !isMissing(res.getConfig(), key)) {
+                msg = node(res.getConfig(), key).getString();
             }
         }
-        if (message == null) {
-            message = defaultMessagesResource.getConfig().node((Object[]) key.split("\\."))
+        if (msg == null) {
+            msg = node(defaultMessagesResource.getConfig(), key)
                     .getString("&cMessage not found: " + key);
         }
-        return message;
-    }
-
-    /**
-     * Applies placeholders, converts legacy to MiniMessage tags, then parses as MiniMessage Component.
-     */
-    private Component parseAndDeserialize(String message, Map<String, String> placeholders) {
-        if (placeholders != null) {
-            message = PlaceholderUtils.parsePlaceholders(message, placeholders);
-        }
-        String mmReady = legacyToMiniMessage(message);
-        return ComponentUtils.deserializeMMComponent(mmReady);
-    }
-
-    /**
-     * Convert legacy color/format codes (both & and §), including Spigot hex (&x&R&RG&G&B&B) and &#RRGGBB,
-     * into MiniMessage tags so strings can mix legacy and MiniMessage safely.
-     */
-    private static String legacyToMiniMessage(String input) {
-        if (input == null || input.isEmpty()) return input;
-
-        // Normalize § to &
-        input = input.replace('§', '&');
-
-        // Hex color formats:
-        // 1) "&#RRGGBB"  -> "<#RRGGBB>"
-        input = input.replaceAll("(?i)&#([0-9a-f]{6})", "<#$1>");
-
-        // 2) "&x&R&R&G&G&B&B" (Spigot-style) -> "<#RRGGBB>"
-        input = input.replaceAll(
-                "(?i)&x&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])",
-                "<#$1$2$3$4$5$6>"
-        );
-
-        // Standard color codes
-        input = input
-                .replaceAll("(?i)&0", "<black>")
-                .replaceAll("(?i)&1", "<dark_blue>")
-                .replaceAll("(?i)&2", "<dark_green>")
-                .replaceAll("(?i)&3", "<dark_aqua>")
-                .replaceAll("(?i)&4", "<dark_red>")
-                .replaceAll("(?i)&5", "<dark_purple>")
-                .replaceAll("(?i)&6", "<gold>")
-                .replaceAll("(?i)&7", "<gray>")
-                .replaceAll("(?i)&8", "<dark_gray>")
-                .replaceAll("(?i)&9", "<blue>")
-                .replaceAll("(?i)&a", "<green>")
-                .replaceAll("(?i)&b", "<aqua>")
-                .replaceAll("(?i)&c", "<red>")
-                .replaceAll("(?i)&d", "<light_purple>")
-                .replaceAll("(?i)&e", "<yellow>")
-                .replaceAll("(?i)&f", "<white>");
-
-        // Formatting codes
-        input = input
-                .replaceAll("(?i)&l", "<bold>")
-                .replaceAll("(?i)&n", "<underlined>")
-                .replaceAll("(?i)&m", "<strikethrough>")
-                .replaceAll("(?i)&o", "<italic>")
-                .replaceAll("(?i)&k", "<obfuscated>")
-                .replaceAll("(?i)&r", "<reset>");
-
-        return input;
+        return msg;
     }
 }
