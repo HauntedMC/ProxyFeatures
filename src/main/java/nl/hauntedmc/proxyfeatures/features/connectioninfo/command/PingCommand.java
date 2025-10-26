@@ -66,7 +66,7 @@ public class PingCommand implements FeatureCommand {
         }
 
         if (optTarget.isEmpty()) {
-            src.sendMessage(feature.getLocalizationHandler().getMessage("connectioninfo.ping_notFound").withPlaceholders(Map.of("player", targetName)).forAudience(src).build());
+            src.sendMessage(feature.getLocalizationHandler().getMessage("connectioninfo.ping_notFound").with("player", targetName).forAudience(src).build());
             return;
         }
 
@@ -86,15 +86,20 @@ public class PingCommand implements FeatureCommand {
         // pick message key and placeholders
         String key = other ? "connectioninfo.ping_other" : "connectioninfo.ping_self";
 
-        Map<String, String> ph = new HashMap<>();
-        ph.put("color", color);
-        ph.put("ping", String.valueOf(ping));
 
         if (other) {
-            ph.put("player", target.getUsername());
+            src.sendMessage(feature.getLocalizationHandler().getMessage(key)
+                    .with("color", color)
+                    .with("ping", String.valueOf(ping))
+                    .with("player", target.getUsername())
+                    .forAudience(src).build());
+            return;
         }
 
-        src.sendMessage(feature.getLocalizationHandler().getMessage(key).withPlaceholders(ph).forAudience(src).build());
+        src.sendMessage(feature.getLocalizationHandler().getMessage(key)
+                .with("color", color)
+                .with("ping", String.valueOf(ping))
+                .forAudience(src).build());
     }
 
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {

@@ -31,7 +31,7 @@ public class VersionHandler {
                             Component.text("Verbinding verbroken:", NamedTextColor.RED),
                             feature.getLocalizationHandler().getMessage("versioncheck.unsupported_version")
                                     .forAudience(player)
-                                    .withPlaceholders(Map.of("friendly_protocol_name", friendly_protocol_name))
+                                    .with("friendly_protocol_name", friendly_protocol_name)
                                     .build()
                     )
             ));

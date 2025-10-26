@@ -40,7 +40,7 @@ public class SlashServerCommand implements FeatureCommand{
         if (optionalServer.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("slash.not_available")
-                    .withPlaceholders(Map.of("server", serverName))
+                    .with("server", serverName)
                     .forAudience(player)
                     .build());
             return;
@@ -60,7 +60,7 @@ public class SlashServerCommand implements FeatureCommand{
             if (err != null || ping == null) {
                 player.sendMessage(feature.getLocalizationHandler()
                         .getMessage("slash.offline")
-                        .withPlaceholders(Map.of("server", serverName))
+                        .with("server", serverName)
                         .forAudience(player)
                         .build());
                 return;
@@ -70,7 +70,7 @@ public class SlashServerCommand implements FeatureCommand{
                 if (result.isSuccessful()) {
                     player.sendMessage(feature.getLocalizationHandler()
                             .getMessage("slash.connection_success")
-                            .withPlaceholders(Map.of("server", serverName))
+                            .with("server", serverName)
                             .forAudience(player)
                             .build());
                 } else {
@@ -79,7 +79,8 @@ public class SlashServerCommand implements FeatureCommand{
                         String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
                         player.sendMessage(feature.getLocalizationHandler()
                                 .getMessage("slash.connection_failure")
-                                .withPlaceholders(Map.of("server", serverName, "reason", reason))
+                                .with("server", serverName)
+                                .with("reason", reason)
                                 .forAudience(player)
                                 .build());
                     });

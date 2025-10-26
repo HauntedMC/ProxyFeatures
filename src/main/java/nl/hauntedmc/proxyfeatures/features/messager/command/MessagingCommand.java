@@ -104,23 +104,23 @@ public class MessagingCommand implements FeatureCommand {
             if (sub.equals("block")) {
                 if (isBlocked) {
                     p.sendMessage(loc.getMessage("message.block.already")
-                            .withPlaceholders(Map.of("player", target.getUsername()))
+                            .with("player", target.getUsername())
                             .forAudience(p).build());
                 } else {
                     handler.block(p.getUniqueId(), them);
                     p.sendMessage(loc.getMessage("message.block.success")
-                            .withPlaceholders(Map.of("player", target.getUsername()))
+                            .with("player", target.getUsername())
                             .forAudience(p).build());
                 }
             } else {
                 if (!isBlocked) {
                     p.sendMessage(loc.getMessage("message.unblock.not_blocked")
-                            .withPlaceholders(Map.of("player", target.getUsername()))
+                            .with("player", target.getUsername())
                             .forAudience(p).build());
                 } else {
                     handler.unblock(p.getUniqueId(), them);
                     p.sendMessage(loc.getMessage("message.unblock.success")
-                            .withPlaceholders(Map.of("player", target.getUsername()))
+                            .with("player", target.getUsername())
                             .forAudience(p).build());
                 }
             }

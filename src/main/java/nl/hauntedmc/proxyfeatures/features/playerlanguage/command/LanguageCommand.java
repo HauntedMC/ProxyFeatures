@@ -41,7 +41,7 @@ public class LanguageCommand implements FeatureCommand{
         if (args.length == 0) {
             Language current = feature.getService().get(p.getUniqueId());
             src.sendMessage(feature.getLocalizationHandler().getMessage("language.current")
-                    .withPlaceholders(Map.of("lang", current.name()))
+                    .with("lang", current.name())
                     .forAudience(src).build());
             src.sendMessage(feature.getLocalizationHandler().getMessage("language.usage").forAudience(src).build());
             return;
@@ -53,13 +53,14 @@ public class LanguageCommand implements FeatureCommand{
             Optional<UUID> targetUuid = feature.getService().resolveUuidByName(targetName);
             if (targetUuid.isEmpty()) {
                 src.sendMessage(feature.getLocalizationHandler().getMessage("language.not_found")
-                        .withPlaceholders(Map.of("target", targetName))
+                        .with("target", targetName)
                         .forAudience(src).build());
                 return;
             }
             Language lang = feature.getService().get(targetUuid.get());
             src.sendMessage(feature.getLocalizationHandler().getMessage("language.current_other")
-                    .withPlaceholders(Map.of("target", targetName, "lang", lang.name()))
+                    .with("target", targetName)
+                    .with("lang", lang.name())
                     .forAudience(src).build());
             return;
         }
@@ -72,14 +73,14 @@ public class LanguageCommand implements FeatureCommand{
                 chosen = Language.valueOf(token);
             } catch (IllegalArgumentException ex) {
                 src.sendMessage(feature.getLocalizationHandler().getMessage("language.invalid")
-                        .withPlaceholders(Map.of("input", token))
+                        .with("input", token)
                         .forAudience(src).build());
                 return;
             }
 
             feature.getService().set(p.getUniqueId(), chosen);
             src.sendMessage(feature.getLocalizationHandler().getMessage("language.set")
-                    .withPlaceholders(Map.of("lang", chosen.name()))
+                    .with("lang", chosen.name())
                     .forAudience(src).build());
             return;
         }
@@ -96,7 +97,7 @@ public class LanguageCommand implements FeatureCommand{
         Optional<UUID> targetUuid = feature.getService().resolveUuidByName(targetName);
         if (targetUuid.isEmpty()) {
             src.sendMessage(feature.getLocalizationHandler().getMessage("language.not_found")
-                    .withPlaceholders(Map.of("target", targetName))
+                    .with("target", targetName)
                     .forAudience(src).build());
             return;
         }
@@ -106,14 +107,15 @@ public class LanguageCommand implements FeatureCommand{
             chosen = Language.valueOf(token);
         } catch (IllegalArgumentException ex) {
             src.sendMessage(feature.getLocalizationHandler().getMessage("language.invalid")
-                    .withPlaceholders(Map.of("input", token))
+                    .with("input", token)
                     .forAudience(src).build());
             return;
         }
 
         feature.getService().set(targetUuid.get(), chosen);
         src.sendMessage(feature.getLocalizationHandler().getMessage("language.set_other")
-                .withPlaceholders(Map.of("target", targetName, "lang", chosen.name()))
+                .with("target", targetName)
+                .with("lang", chosen.name())
                 .forAudience(src).build());
     }
 

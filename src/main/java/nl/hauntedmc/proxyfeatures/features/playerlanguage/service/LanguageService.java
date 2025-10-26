@@ -100,7 +100,7 @@ public class LanguageService implements LanguageAPI {
             feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> feature.getPlugin().getProxy().getPlayer(playerUuid).ifPresent(player -> {
                 var msg = feature.getLocalizationHandler()
                         .getMessage("language.default_auto")
-                        .withPlaceholders(Map.of("language", resolved.name()))
+                        .with("language", resolved.name())
                         .forAudience(player)
                         .build();
                 player.sendMessage(msg);

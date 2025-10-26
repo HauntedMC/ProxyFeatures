@@ -145,7 +145,7 @@ public class QueueManager {
 
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.advance.now_connecting")
-                    .withPlaceholders(Map.of("server", serverName))
+                    .with("server", serverName)
                     .forAudience(player)
                     .build());
 
@@ -155,7 +155,8 @@ public class QueueManager {
                         String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
                         player.sendMessage(feature.getLocalizationHandler()
                                 .getMessage("queue.join.connection_failure")
-                                .withPlaceholders(Map.of("server", serverName, "reason", reason))
+                                .with("server", serverName)
+                                .with("reason", reason)
                                 .forAudience(player)
                                 .build());
                     });
@@ -194,10 +195,8 @@ public class QueueManager {
 
                 switch (next) {
                     case 0, 1 -> p.sendActionBar(feature.getLocalizationHandler().getMessage("queue.actionbar.status")
-                            .withPlaceholders(Map.of(
-                                    "server", q.serverName(),
-                                    "position", String.valueOf(idx + 1)
-                            ))
+                            .with("server", q.serverName())
+                            .with("position", idx + 1)
                             .forAudience(p)
                             .build());
                     case 2, 3 -> p.sendActionBar(feature.getLocalizationHandler()
@@ -270,7 +269,8 @@ public class QueueManager {
                 int pos = queue.positionOf(player.getUniqueId()).orElse(0);
                 player.sendMessage(feature.getLocalizationHandler()
                         .getMessage("queue.join.already_in_queue")
-                        .withPlaceholders(Map.of("server", server, "position", String.valueOf(pos + 1)))
+                        .with("server", server)
+                        .with("position", pos + 1)
                         .forAudience(player)
                         .build());
             } else {
@@ -279,7 +279,8 @@ public class QueueManager {
                 int posAfterMove = queue.positionOf(player.getUniqueId()).orElse(0);
                 player.sendMessage(feature.getLocalizationHandler()
                         .getMessage("queue.join.moved_between_queues")
-                        .withPlaceholders(Map.of("server", server, "position", String.valueOf(posAfterMove + 1)))
+                        .with("server", server)
+                        .with("position",posAfterMove + 1)
                         .forAudience(player)
                         .build());
             }
@@ -291,14 +292,15 @@ public class QueueManager {
         int position = queue.positionOf(player.getUniqueId()).orElse(0) + 1;
         player.sendMessage(feature.getLocalizationHandler()
                 .getMessage("queue.join.denied.full")
-                .withPlaceholders(Map.of("server", server, "position", String.valueOf(position)))
+                .with("server", server)
+                .with("position", position)
                 .forAudience(player)
                 .build());
 
         int grace = ((Number) feature.getConfigHandler().getSetting("grace-seconds")).intValue();
         player.sendMessage(feature.getLocalizationHandler()
                 .getMessage("queue.grace.active")
-                .withPlaceholders(Map.of("seconds", String.valueOf(grace)))
+                .with("seconds", grace)
                 .forAudience(player)
                 .build());
 

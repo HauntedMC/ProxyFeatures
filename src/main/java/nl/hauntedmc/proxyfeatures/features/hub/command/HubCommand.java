@@ -41,7 +41,7 @@ public class HubCommand implements FeatureCommand{
         if (lobbyOptional.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("hub.not_available")
-                    .withPlaceholders(Map.of("server", LOBBY_NAME))
+                    .with("server", LOBBY_NAME)
                     .forAudience(player)
                     .build());
             return;
@@ -61,7 +61,7 @@ public class HubCommand implements FeatureCommand{
             if (err != null || ping == null) {
                 player.sendMessage(feature.getLocalizationHandler()
                         .getMessage("hub.offline")
-                        .withPlaceholders(Map.of("server", LOBBY_NAME))
+                        .with("server", LOBBY_NAME)
                         .forAudience(player)
                         .build());
                 return;
@@ -71,7 +71,7 @@ public class HubCommand implements FeatureCommand{
                 if (result.isSuccessful()) {
                     player.sendMessage(feature.getLocalizationHandler()
                             .getMessage("hub.connection_success")
-                            .withPlaceholders(Map.of("server", LOBBY_NAME))
+                            .with("server", LOBBY_NAME)
                             .forAudience(player)
                             .build());
                 } else {
@@ -80,7 +80,8 @@ public class HubCommand implements FeatureCommand{
                         String reason = LegacyComponentSerializer.legacyAmpersand().serialize(component);
                         player.sendMessage(feature.getLocalizationHandler()
                                 .getMessage("hub.connection_failure")
-                                .withPlaceholders(Map.of("server", LOBBY_NAME, "reason", reason))
+                                .with("server", LOBBY_NAME)
+                                .with("reason", reason)
                                 .forAudience(player)
                                 .build());
                     });

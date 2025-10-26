@@ -92,17 +92,15 @@ public class MessagingHandler {
 
         var loc = feature.getLocalizationHandler();
         var from = loc.getMessage("message.format.from")
-                .withPlaceholders(Map.of(
-                        "sender_server", s.getCurrentServer().map(x -> x.getServerInfo().getName()).orElse("unknown"),
-                        "sender", s.getUsername(),
-                        "message", msg))
+                .with("sender_server", s.getCurrentServer().map(x -> x.getServerInfo().getName()).orElse("unknown"))
+                .with("sender", s.getUsername())
+                .with( "message", msg)
                 .forAudience(r)
                 .build();
         var to = loc.getMessage("message.format.to")
-                .withPlaceholders(Map.of(
-                        "receiver_server", r.getCurrentServer().map(x -> x.getServerInfo().getName()).orElse("unknown"),
-                        "receiver", r.getUsername(),
-                        "message", msg))
+                .with("receiver_server", r.getCurrentServer().map(x -> x.getServerInfo().getName()).orElse("unknown"))
+                .with("receiver", r.getUsername())
+                .with("message", msg)
                 .forAudience(s)
                 .build();
 
@@ -114,10 +112,9 @@ public class MessagingHandler {
                 .map(id -> feature.getPlugin().getProxy().getPlayer(id))
                 .flatMap(Optional::stream)
                 .forEach(p -> p.sendMessage(loc.getMessage("message.format.spy")
-                        .withPlaceholders(Map.of(
-                                "sender", s.getUsername(),
-                                "receiver", r.getUsername(),
-                                "message", msg))
+                        .with("sender", s.getUsername())
+                        .with("receiver", r.getUsername())
+                        .with("message", msg)
                         .forAudience(p)
                         .build()));
     }

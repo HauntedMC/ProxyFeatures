@@ -49,7 +49,7 @@ public class KickCommand implements FeatureCommand{
 
             if (targetOnline != null) {
                 targetOnline.disconnect(feature.getLocalizationHandler().getMessage("sanctions.notify.kick")
-                        .withPlaceholders(Map.of("reason", reason))
+                        .with("reason", reason)
                         .forAudience(targetOnline).build());
             }
             feature.getDiscordService().sendKick(target, reason, actorName);

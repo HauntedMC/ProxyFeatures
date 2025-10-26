@@ -133,7 +133,6 @@ public class LocalizationHandler {
         }
 
         private Component render(String s) {
-            // Mixed input conversion with preprocessing hooks (PAPI + our placeholders)
             s = TextFormatter.convert(s)
                     .expect(TextFormatter.InputFormat.MIXED_INPUT)
                     .preprocess(str -> MessagePlaceholders.applyPlaceholders(str, placeholders))

@@ -73,7 +73,9 @@ public class AntiVPNListener {
         if (useRegionCheck && !country.isBlank() && !allowedCountriesUpper.contains(country)) {
             // Notify staff about a region block.
             Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_region")
-                    .withPlaceholders(Map.of("player", playerName, "country", country)).build();
+                    .with("player", playerName)
+                    .with("country", country)
+                    .build();
             notifyStaff(notifyMessage);
 
             event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
@@ -86,7 +88,8 @@ public class AntiVPNListener {
         if (useVpnCheck && result.vpn()) {
             // Notify staff about a VPN/proxy block.
             Component notifyMessage = feature.getLocalizationHandler().getMessage("antivpn.notify_vpn")
-                    .withPlaceholders(Map.of("player", playerName)).build();
+                    .with("player", playerName)
+                    .build();
             notifyStaff(notifyMessage);
 
             event.setResult(PreLoginEvent.PreLoginComponentResult.denied(

@@ -72,7 +72,7 @@ public class ConnectionInfoCommand implements FeatureCommand {
         if (optTarget.isEmpty()) {
             src.sendMessage(feature.getLocalizationHandler()
                     .getMessage("connectioninfo.cmd_playerNotFound")
-                    .withPlaceholders(Map.of("player", targetName))
+                    .with("player", targetName)
                     .forAudience(src)
                     .build());
             return;
@@ -106,7 +106,7 @@ public class ConnectionInfoCommand implements FeatureCommand {
         String subject = other ? " van " + target.getUsername() : "";
         src.sendMessage(feature.getLocalizationHandler()
                 .getMessage("connectioninfo.cmd_header")
-                .withPlaceholders(Map.of("subject", subject))
+                .with("subject", subject)
                 .forAudience(src)
                 .build());
 
@@ -121,10 +121,8 @@ public class ConnectionInfoCommand implements FeatureCommand {
     private void sendEntry(CommandSource src, String setting, String value) {
         src.sendMessage(feature.getLocalizationHandler()
                 .getMessage("connectioninfo.cmd_entry")
-                .withPlaceholders(Map.of(
-                        "setting", setting,
-                        "value", value
-                ))
+                .with("setting", setting)
+                .with("value", value)
                 .forAudience(src)
                 .build());
     }

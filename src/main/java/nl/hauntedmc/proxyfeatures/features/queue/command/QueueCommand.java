@@ -63,7 +63,7 @@ public class QueueCommand implements FeatureCommand{
             if (q == null) {
                 source.sendMessage(feature.getLocalizationHandler()
                         .getMessage("queue.status.not_enabled")
-                        .withPlaceholders(Map.of("server", server))
+                        .with("server", server)
                         .forAudience(source)
                         .build());
                 return;
@@ -71,14 +71,12 @@ public class QueueCommand implements FeatureCommand{
             int pos = q.positionOf(p.getUniqueId()).orElse(0);
             source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.status.header")
-                    .withPlaceholders(Map.of("server", server))
+                    .with("server", server)
                     .forAudience(source).build());
             source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.status.line")
-                    .withPlaceholders(Map.of(
-                            "server", server,
-                            "position", String.valueOf(pos + 1)
-                    ))
+                    .with("server", server)
+                    .with("position", pos + 1)
                     .forAudience(source).build());
             return;
         }
@@ -118,7 +116,7 @@ public class QueueCommand implements FeatureCommand{
             // Shouldn't happen if findQueueOf returned this, but handle gracefully
             source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.status.not_enabled")
-                    .withPlaceholders(Map.of("server", server))
+                    .with("server", server)
                     .forAudience(source)
                     .build());
             return;
@@ -129,7 +127,7 @@ public class QueueCommand implements FeatureCommand{
 
         source.sendMessage(feature.getLocalizationHandler()
                 .getMessage("queue.cmd.leave.done")
-                .withPlaceholders(Map.of("server", server))
+                .with("server", server)
                 .forAudience(source)
                 .build());
     }
@@ -154,14 +152,14 @@ public class QueueCommand implements FeatureCommand{
         if (opt.isEmpty()) {
             source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.cmd.target_not_enabled")
-                    .withPlaceholders(Map.of("server", server))
+                    .with("server", server)
                     .forAudience(source).build());
             return;
         }
         var q = opt.get();
         source.sendMessage(feature.getLocalizationHandler()
                 .getMessage("queue.cmd.info.header")
-                .withPlaceholders(Map.of("server", server))
+                .with("server", server)
                 .forAudience(source).build());
         final int[] shown = {0};
         q.forEachIndexed((i, e) -> {
@@ -169,11 +167,10 @@ public class QueueCommand implements FeatureCommand{
             String name = managerNameOf(e.playerId());
             source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("queue.cmd.info.entry")
-                    .withPlaceholders(Map.of(
-                            "idx", String.valueOf(i + 1),
-                            "name", name,
-                            "priority", String.valueOf(e.priority())
-                    )).forAudience(source).build());
+                    .with("idx", i + 1)
+                    .with("name", name)
+                    .with("priority", e.priority())
+                    .forAudience(source).build());
             shown[0]++;
         });
         if (shown[0] == 0) {

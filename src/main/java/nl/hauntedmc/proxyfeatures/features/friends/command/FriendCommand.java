@@ -109,9 +109,8 @@ public class FriendCommand implements FeatureCommand {
         for (String name : onlineNames) {
             entries.add(feature.getLocalizationHandler()
                     .getMessage("friend.online_entry")
-                    .withPlaceholders(Map.of(
-                            "player", name,
-                            "server", onlineSuffix.getOrDefault(name, "?")))
+                    .with("player", name)
+                    .with("server", onlineSuffix.getOrDefault(name, "?"))
                     .forAudience(p)
                     .build());
         }
@@ -131,10 +130,9 @@ public class FriendCommand implements FeatureCommand {
             // Footer for consistency with /fr list
             p.sendMessage(feature.getLocalizationHandler()
                     .getMessage("friend.list.page")
-                    .withPlaceholders(Map.of(
-                            "page", String.valueOf(page.page()),
-                            "pages", String.valueOf(page.totalPages()),
-                            "size", String.valueOf(page.pageSize())))
+                    .with("page", String.valueOf(page.page()))
+                    .with("pages", String.valueOf(page.totalPages()))
+                    .with("size", String.valueOf(page.pageSize()))
                     .forAudience(p)
                     .build());
         }
@@ -186,9 +184,8 @@ public class FriendCommand implements FeatureCommand {
             String status = "&a● ";
             lines.add(feature.getLocalizationHandler()
                     .getMessage("friend.list.entry")
-                    .withPlaceholders(Map.of(
-                            "status", status,
-                            "player", name + suffix))
+                    .with("status", status)
+                    .with("player", name + suffix)
                     .forAudience(p)
                     .build());
         }
@@ -196,9 +193,8 @@ public class FriendCommand implements FeatureCommand {
             String status = "&c● ";
             lines.add(feature.getLocalizationHandler()
                     .getMessage("friend.list.entry")
-                    .withPlaceholders(Map.of(
-                            "status", status,
-                            "player", name))
+                    .with("status", status)
+                    .with("player", name)
                     .forAudience(p)
                     .build());
         }
@@ -206,9 +202,8 @@ public class FriendCommand implements FeatureCommand {
         long onlineCount = onlineNames.size();
         p.sendMessage(feature.getLocalizationHandler()
                 .getMessage("friend.list.header")
-                .withPlaceholders(Map.of(
-                        "online", String.valueOf(onlineCount),
-                        "total", String.valueOf(total)))
+                .with("online", String.valueOf(onlineCount))
+                .with("total", String.valueOf(total))
                 .forAudience(p)
                 .build());
 
@@ -231,10 +226,9 @@ public class FriendCommand implements FeatureCommand {
         // Footer with page info
         p.sendMessage(feature.getLocalizationHandler()
                 .getMessage("friend.list.page")
-                .withPlaceholders(Map.of(
-                        "page", String.valueOf(page.page()),
-                        "pages", String.valueOf(page.totalPages()),
-                        "size", String.valueOf(page.pageSize())))
+                .with("page", String.valueOf(page.page()))
+                .with("pages", String.valueOf(page.totalPages()))
+                .with("size", String.valueOf(page.pageSize()))
                 .forAudience(p)
                 .build());
     }
@@ -521,14 +515,14 @@ public class FriendCommand implements FeatureCommand {
         for (String u : incoming) {
             lines.add(feature.getLocalizationHandler()
                     .getMessage("friend.requests.incoming_entry")
-                    .withPlaceholders(Map.of("player", u))
+                    .with("player", u)
                     .forAudience(p)
                     .build());
         }
         for (String u : outgoing) {
             lines.add(feature.getLocalizationHandler()
                     .getMessage("friend.requests.outgoing_entry")
-                    .withPlaceholders(Map.of("player", u))
+                    .with("player", u)
                     .forAudience(p)
                     .build());
         }
@@ -549,10 +543,9 @@ public class FriendCommand implements FeatureCommand {
         // Footer reusing the same page message
         p.sendMessage(feature.getLocalizationHandler()
                 .getMessage("friend.list.page")
-                .withPlaceholders(Map.of(
-                        "page", String.valueOf(page.page()),
-                        "pages", String.valueOf(page.totalPages()),
-                        "size", String.valueOf(page.pageSize())))
+                .with("page", String.valueOf(page.page()))
+                .with("pages", String.valueOf(page.totalPages()))
+                .with("size", String.valueOf(page.pageSize()))
                 .forAudience(p)
                 .build());
     }

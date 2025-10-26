@@ -46,7 +46,7 @@ public class WarnCommand implements FeatureCommand{
             feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
                     .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
                             .getMessage("sanctions.notify.warn")
-                            .withPlaceholders(Map.of("reason", reason))
+                            .with("reason", reason)
                             .forAudience(pl).build()));
             feature.getDiscordService().sendWarn(target, reason, actorName);
         } catch (Throwable t) {

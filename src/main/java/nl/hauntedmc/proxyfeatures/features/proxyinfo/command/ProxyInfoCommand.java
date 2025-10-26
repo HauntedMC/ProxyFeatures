@@ -103,10 +103,8 @@ public class ProxyInfoCommand implements FeatureCommand{
     private void sendEntry(CommandSource src, String setting, String value) {
         src.sendMessage(feature.getLocalizationHandler()
                 .getMessage("proxyinfo.cmd_entry")
-                .withPlaceholders(Map.of(
-                        "setting", setting,
-                        "value",   value
-                ))
+                .with("setting", setting)
+                .with("value", value)
                 .forAudience(src)
                 .build());
     }

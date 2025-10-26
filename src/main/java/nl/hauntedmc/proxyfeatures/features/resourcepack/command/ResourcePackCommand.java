@@ -79,7 +79,7 @@ public class ResourcePackCommand implements FeatureCommand{
                 source.sendMessage(
                         feature.getLocalizationHandler()
                                 .getMessage("resourcepack.cmd_playerNotFound")
-                                .withPlaceholders(Map.of("player", name))
+                                .with("player", name)
                                 .forAudience(source)
                                 .build()
                 );
@@ -92,7 +92,7 @@ public class ResourcePackCommand implements FeatureCommand{
                 feature.getLocalizationHandler()
                         .getMessage("resourcepack.cmd_header")
                         .forAudience(source)
-                        .withPlaceholders(Map.of("player", targetPlayer.getUsername()))
+                        .with("player", targetPlayer.getUsername())
                         .build()
         );
 
@@ -105,10 +105,8 @@ public class ResourcePackCommand implements FeatureCommand{
             source.sendMessage(
                     feature.getLocalizationHandler()
                             .getMessage("resourcepack.cmd_entry")
-                            .withPlaceholders(Map.of(
-                                    "pack", packName,
-                                    "status", "Applied"
-                            ))
+                            .with("pack", packName)
+                            .with("status", "Applied")
                             .forAudience(source)
                             .build()
             );
@@ -120,10 +118,8 @@ public class ResourcePackCommand implements FeatureCommand{
             source.sendMessage(
                     feature.getLocalizationHandler()
                             .getMessage("resourcepack.cmd_entry")
-                            .withPlaceholders(Map.of(
-                                    "pack", packName,
-                                    "status", "Pending"
-                            ))
+                            .with("pack", packName)
+                            .with("status", "Pending")
                             .forAudience(source)
                             .build()
             );

@@ -90,10 +90,9 @@ public class PlayerListener {
             foundRecommendation = true;
             recommendationMessage.add(feature.getLocalizationHandler()
                     .getMessage("clientinfo.recommendation")
-                    .withPlaceholders(Map.of(
-                            "setting_name", "Render Distance",
-                            "setting_found", String.valueOf(settings.getViewDistance()),
-                            "setting_recommended", String.valueOf(idealViewDistance)))
+                    .with("setting_name", "Render Distance")
+                    .with("setting_found", String.valueOf(settings.getViewDistance()))
+                    .with("setting_recommended", String.valueOf(idealViewDistance))
                     .forAudience(player)
                     .build());
         }
@@ -103,10 +102,9 @@ public class PlayerListener {
             foundRecommendation = true;
             recommendationMessage.add(feature.getLocalizationHandler()
                     .getMessage("clientinfo.recommendation")
-                    .withPlaceholders(Map.of(
-                            "setting_name", "Chat Mode",
-                            "setting_found", settings.getChatMode().name(),
-                            "setting_recommended", idealChat.name()))
+                    .with("setting_name", "Chat Mode")
+                    .with("setting_found", settings.getChatMode().name())
+                    .with("setting_recommended", idealChat.name())
                     .forAudience(player)
                     .build());
         }
@@ -116,10 +114,9 @@ public class PlayerListener {
             foundRecommendation = true;
             recommendationMessage.add(feature.getLocalizationHandler()
                     .getMessage("clientinfo.recommendation")
-                    .withPlaceholders(Map.of(
-                            "setting_name", "Particles",
-                            "setting_found", settings.getParticleStatus().name(),
-                            "setting_recommended", idealParticles.name()))
+                    .with("setting_name", "Particles")
+                    .with("setting_found", settings.getParticleStatus().name())
+                    .with("setting_recommended", idealParticles.name())
                     .forAudience(player)
                     .build());
         }

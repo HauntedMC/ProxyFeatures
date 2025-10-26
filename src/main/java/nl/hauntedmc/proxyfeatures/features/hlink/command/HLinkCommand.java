@@ -60,7 +60,7 @@ public class HLinkCommand implements FeatureCommand {
             source.sendMessage(
                     feature.getLocalizationHandler()
                             .getMessage("hlink.syncNotOnline")
-                            .withPlaceholders(Map.of("player", targetName))
+                            .with("player", targetName)
                             .forAudience(source)
                             .build()
             );
@@ -73,7 +73,7 @@ public class HLinkCommand implements FeatureCommand {
         source.sendMessage(
                 feature.getLocalizationHandler()
                         .getMessage("hlink.syncSuccess")
-                        .withPlaceholders(Map.of("player", target.getUsername()))
+                        .with("player", target.getUsername())
                         .forAudience(source)
                         .build()
         );

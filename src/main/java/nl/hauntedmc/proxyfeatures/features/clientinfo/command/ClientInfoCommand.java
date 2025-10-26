@@ -52,7 +52,7 @@ public class ClientInfoCommand implements FeatureCommand {
             source.sendMessage(
                     feature.getLocalizationHandler()
                             .getMessage("clientinfo.cmd_playerNotFound")
-                            .withPlaceholders(Map.of("player", targetName))
+                            .with("player", targetName)
                             .forAudience(source)
                             .build()
             );
@@ -70,7 +70,7 @@ public class ClientInfoCommand implements FeatureCommand {
         source.sendMessage(
                 feature.getLocalizationHandler()
                         .getMessage("clientinfo.cmd_header")
-                        .withPlaceholders(Map.of("player", target.getUsername()))
+                        .with("player", target.getUsername())
                         .forAudience(source)
                         .build()
         );
@@ -79,50 +79,40 @@ public class ClientInfoCommand implements FeatureCommand {
         source.sendMessage(
                 feature.getLocalizationHandler()
                         .getMessage("clientinfo.cmd_entry")
-                        .withPlaceholders(Map.of(
-                                "setting", "Render Distance",
-                                "value", String.valueOf(settings.getViewDistance())
-                        ))
+                        .with("setting", "Render Distance")
+                        .with("value", settings.getViewDistance())
                         .forAudience(source)
                         .build()
         );
         source.sendMessage(
                 feature.getLocalizationHandler()
                         .getMessage("clientinfo.cmd_entry")
-                        .withPlaceholders(Map.of(
-                                "setting", "Chat Mode",
-                                "value", settings.getChatMode().name()
-                        ))
+                        .with("setting", "Chat Mode")
+                        .with("value", settings.getChatMode().name())
                         .forAudience(source)
                         .build()
         );
         source.sendMessage(
                 feature.getLocalizationHandler()
                         .getMessage("clientinfo.cmd_entry")
-                        .withPlaceholders(Map.of(
-                                "setting", "Particles",
-                                "value", settings.getParticleStatus().name()
-                        ))
+                        .with("setting", "Particles")
+                        .with("value", settings.getParticleStatus().name())
                         .forAudience(source)
                         .build()
         );
         source.sendMessage(
                 feature.getLocalizationHandler()
                         .getMessage("clientinfo.cmd_entry")
-                        .withPlaceholders(Map.of(
-                                "setting", "Language",
-                                "value", settings.getLocale().getDisplayCountry()
-                        ))
+                        .with("setting", "Language")
+                        .with("value", settings.getLocale().getDisplayCountry())
                         .forAudience(source)
                         .build()
         );
         source.sendMessage(
                 feature.getLocalizationHandler()
                         .getMessage("clientinfo.cmd_entry")
-                        .withPlaceholders(Map.of(
-                                "setting", "Client Version",
-                                "value", clientVersion
-                        ))
+                        .with("setting", "Client Version")
+                        .with("value", clientVersion)
                         .forAudience(source)
                         .build()
         );

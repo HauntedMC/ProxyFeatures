@@ -78,7 +78,7 @@ public class PlayerInfoCommand implements FeatureCommand{
         if (playerEntityOpt.isEmpty()) {
             source.sendMessage(feature.getLocalizationHandler()
                     .getMessage("playerinfo.cmd_playerNotFound")
-                    .withPlaceholders(Map.of("player", query))
+                    .with("player", query)
                     .forAudience(source)
                     .build());
             return;
@@ -99,7 +99,7 @@ public class PlayerInfoCommand implements FeatureCommand{
         // Header
         source.sendMessage(feature.getLocalizationHandler()
                 .getMessage("playerinfo.cmd_header")
-                .withPlaceholders(Map.of("player", playerEntity.getUsername()))
+                .with("player", playerEntity.getUsername())
                 .forAudience(source)
                 .build());
 
@@ -119,7 +119,7 @@ public class PlayerInfoCommand implements FeatureCommand{
         if (onlineStatus.online()) {
             Component onlineYes = feature.getLocalizationHandler()
                     .getMessage("playerinfo.online_yes")
-                    .withPlaceholders(Map.of("server", onlineStatus.serverName()))
+                    .with("server", onlineStatus.serverName())
                     .forAudience(source)
                     .build();
             sendEntry(source, lblOnline, onlineYes);
@@ -166,12 +166,10 @@ public class PlayerInfoCommand implements FeatureCommand{
 
                 source.sendMessage(feature.getLocalizationHandler()
                         .getMessage("playerinfo.punishment_item")
-                        .withPlaceholders(Map.of(
-                                "type", s.getType().name(),
-                                "reason", s.getReason(),
-                                "expires", expires,
-                                "created", created
-                        ))
+                        .with("type", s.getType().name())
+                        .with("reason", s.getReason())
+                        .with("expires", expires)
+                        .with("created", created)
                         .forAudience(source)
                         .build());
             }
@@ -181,7 +179,8 @@ public class PlayerInfoCommand implements FeatureCommand{
     private void sendEntry(CommandSource audience, String field, String value) {
         audience.sendMessage(feature.getLocalizationHandler()
                 .getMessage("playerinfo.entry")
-                .withPlaceholders(Map.of("field", field, "value", value))
+                .with("field", field)
+                .with("value", value)
                 .forAudience(audience)
                 .build());
     }
@@ -190,7 +189,8 @@ public class PlayerInfoCommand implements FeatureCommand{
         String rawMessage = LegacyComponentSerializer.legacyAmpersand().serialize(valueComponent);
         audience.sendMessage(feature.getLocalizationHandler()
                 .getMessage("playerinfo.entry")
-                .withPlaceholders(Map.of("field", field, "value", rawMessage))
+                .with("field", field)
+                .with("value", rawMessage)
                 .forAudience(audience)
                 .build());
     }

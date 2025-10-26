@@ -58,9 +58,8 @@ public final class FriendActivityListener {
         for (Player friend : onlineFriendsOf(subject)) {
             friend.sendMessage(feature.getLocalizationHandler()
                     .getMessage("friend.notify.online")
-                    .withPlaceholders(Map.of(
-                            "player", subject.getUsername(),
-                            "server", serverName))
+                    .with("player", subject.getUsername())
+                    .with("server", serverName)
                     .forAudience(friend)
                     .build());
         }
@@ -70,8 +69,7 @@ public final class FriendActivityListener {
         for (Player friend : onlineFriendsOf(subject)) {
             friend.sendMessage(feature.getLocalizationHandler()
                     .getMessage("friend.notify.offline")
-                    .withPlaceholders(Map.of(
-                            "player", subject.getUsername()))
+                    .with("player", subject.getUsername())
                     .forAudience(friend)
                     .build());
         }
@@ -81,10 +79,9 @@ public final class FriendActivityListener {
         for (Player friend : onlineFriendsOf(subject)) {
             friend.sendMessage(feature.getLocalizationHandler()
                     .getMessage("friend.notify.switch")
-                    .withPlaceholders(Map.of(
-                            "player", subject.getUsername(),
-                            "from", from,
-                            "to", to))
+                    .with("player", subject.getUsername())
+                    .with("from", from)
+                    .with("to", to)
                     .forAudience(friend)
                     .build());
         }
