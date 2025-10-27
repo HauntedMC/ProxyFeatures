@@ -46,6 +46,10 @@ public final class MessagePlaceholders {
         return values.get(key);
     }
 
+    @Override
+    public String toString() {
+        return values.toString();
+    }
     /**
      * Replaces literal tokens like "{key}" with their string values.
      * Keys are applied longest-first to avoid "{a}" interfering with "{ab}".
