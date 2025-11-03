@@ -33,11 +33,11 @@ public class AntiVPNListener {
         this.ipChecker = feature.getIPChecker();
         this.countryService = countryService;
 
-        this.whitelist = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("whitelist_ips"), String.class);
-        List<String> allowed = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("allowed_countries"), String.class);
+        this.whitelist = CastUtils.safeCastToList(feature.getConfigHandler().get("whitelist_ips"), String.class);
+        List<String> allowed = CastUtils.safeCastToList(feature.getConfigHandler().get("allowed_countries"), String.class);
         this.allowedCountriesUpper = allowed.stream().map(s -> s.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
-        this.useRegionCheck = (boolean) feature.getConfigHandler().getSetting("use_region_check");
-        this.useVpnCheck = (boolean) feature.getConfigHandler().getSetting("use_vpn_check");
+        this.useRegionCheck = (boolean) feature.getConfigHandler().get("use_region_check");
+        this.useVpnCheck = (boolean) feature.getConfigHandler().get("use_vpn_check");
     }
 
     @Subscribe

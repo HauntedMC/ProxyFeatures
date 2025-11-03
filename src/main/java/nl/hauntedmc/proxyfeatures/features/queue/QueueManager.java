@@ -47,7 +47,7 @@ public class QueueManager {
     }
 
     private void initializeQueuesFromConfig() {
-        Object list = feature.getConfigHandler().getSetting("servers-whitelist");
+        Object list = feature.getConfigHandler().get("servers-whitelist");
         if (list instanceof List<?> servers) {
             for (Object o : servers) {
                 String name = String.valueOf(o).toLowerCase(Locale.ROOT);
@@ -293,7 +293,7 @@ public class QueueManager {
                 .forAudience(player)
                 .build());
 
-        int grace = ((Number) feature.getConfigHandler().getSetting("grace-seconds")).intValue();
+        int grace = ((Number) feature.getConfigHandler().get("grace-seconds")).intValue();
         player.sendMessage(feature.getLocalizationHandler()
                 .getMessage("queue.grace.active")
                 .with("seconds", grace)
@@ -309,7 +309,7 @@ public class QueueManager {
     public void onDisconnect(UUID playerId) {
         findQueueOf(playerId).ifPresent(server -> queues.get(server).startGrace(
                 playerId,
-                Duration.ofSeconds(((Number) feature.getConfigHandler().getSetting("grace-seconds")).intValue())
+                Duration.ofSeconds(((Number) feature.getConfigHandler().get("grace-seconds")).intValue())
         ));
         advanceTickets.remove(playerId);
         actionbarCycle.remove(playerId);

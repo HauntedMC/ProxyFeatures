@@ -12,17 +12,12 @@ import java.util.Map;
  * - Converts Lists (with nested normalization) and Maps with typed values
  */
 public final class ConfigTypes {
-    private ConfigTypes() {
-    }
+    private ConfigTypes() {}
 
-    /**
-     * Deeply normalizes Map/List trees into LinkedHashMap/ArrayList; leaves scalars as-is.
-     */
+    /** Deeply normalizes Map/List trees into LinkedHashMap/ArrayList; leaves scalars as-is. */
     public static Object toPlain(Object value) {
         switch (value) {
-            case null -> {
-                return null;
-            }
+            case null -> { return null; }
             case Map<?, ?> map -> {
                 LinkedHashMap<String, Object> out = new LinkedHashMap<>();
                 for (Map.Entry<?, ?> e : map.entrySet()) {
@@ -35,9 +30,7 @@ public final class ConfigTypes {
                 for (Object el : list) out.add(toPlain(el));
                 return out;
             }
-            default -> {
-                return value;
-            }
+            default -> { return value; }
         }
     }
 
@@ -56,9 +49,8 @@ public final class ConfigTypes {
             if (plain instanceof List<?>) return (T) plain;
             throw typeError("List", value);
         }
-        if (type == String.class) {
-            return (T) String.valueOf(value);
-        }
+        if (type == String.class) return (T) String.valueOf(value);
+
         if (type == Boolean.class || type == boolean.class) {
             return switch (value) {
                 case Boolean b -> (T) b;
@@ -144,11 +136,8 @@ public final class ConfigTypes {
     }
 
     private static <T> T tryConvert(Object v, Class<T> type) {
-        try {
-            return convert(v, type);
-        } catch (Exception ignored) {
-            return null;
-        }
+        try { return convert(v, type); }
+        catch (Exception ignored) { return null; }
     }
 
     private static IllegalArgumentException typeError(String expected, Object got) {

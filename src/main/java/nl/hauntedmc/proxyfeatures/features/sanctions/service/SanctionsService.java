@@ -399,7 +399,7 @@ public class SanctionsService {
 
         String appealUrl = "-";
         try {
-            Object v = feature.getConfigHandler().getSetting("appealURL");
+            Object v = feature.getConfigHandler().get("appealURL");
             if (v != null) appealUrl = String.valueOf(v);
         } catch (Throwable ignored) {
         }

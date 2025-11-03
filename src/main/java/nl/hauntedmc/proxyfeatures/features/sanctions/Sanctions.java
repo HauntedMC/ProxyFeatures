@@ -207,7 +207,7 @@ public class Sanctions extends VelocityBaseFeature<Meta> {
         getLifecycleManager().getListenerManager().registerListener(new ConnectListener(this));
 
         // Expiry sweeper
-        int sweep = (int) getConfigHandler().getSetting("expirySweepSeconds");
+        int sweep = (int) getConfigHandler().get("expirySweepSeconds");
         getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> service.sweepExpiries(), Duration.ofSeconds(sweep));
     }
 

@@ -646,7 +646,7 @@ public class FriendCommand implements FeatureCommand {
 
     private int getListPageSize() {
         try {
-            Object raw = feature.getConfigHandler().getSetting("list_page_size");
+            Object raw = feature.getConfigHandler().get("list_page_size");
             int v;
             if (raw instanceof Number n) v = n.intValue();
             else if (raw instanceof String s) v = Integer.parseInt(s);

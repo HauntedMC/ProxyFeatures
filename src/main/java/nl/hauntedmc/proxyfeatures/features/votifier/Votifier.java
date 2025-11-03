@@ -129,15 +129,15 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         stopServer();
 
         // REQUIRED: direct casts from getSetting()
-        String host = (String) getConfigHandler().getSetting("host");
-        int port = (int) getConfigHandler().getSetting("port");
-        int timeoutMs = (int) getConfigHandler().getSetting("readTimeoutMillis");
-        int backlog = (int) getConfigHandler().getSetting("backlog");
-        int maxPacket = (int) getConfigHandler().getSetting("maxPacketBytes");
-        boolean generateKeys = (boolean) getConfigHandler().getSetting("generateKeys");
-        int keyBits = (int) getConfigHandler().getSetting("keyBits");
-        String publicKeyFile = (String) getConfigHandler().getSetting("publicKeyFile");
-        String privateKeyFile = (String) getConfigHandler().getSetting("privateKeyFile");
+        String host = (String) getConfigHandler().get("host");
+        int port = (int) getConfigHandler().get("port");
+        int timeoutMs = (int) getConfigHandler().get("readTimeoutMillis");
+        int backlog = (int) getConfigHandler().get("backlog");
+        int maxPacket = (int) getConfigHandler().get("maxPacketBytes");
+        boolean generateKeys = (boolean) getConfigHandler().get("generateKeys");
+        int keyBits = (int) getConfigHandler().get("keyBits");
+        String publicKeyFile = (String) getConfigHandler().get("publicKeyFile");
+        String privateKeyFile = (String) getConfigHandler().get("privateKeyFile");
 
         // File locations are always under <dataDir>/local/<file_name>
         Path baseDir = getPlugin().getDataDirectory().resolve("local");
@@ -224,20 +224,20 @@ public class Votifier extends VelocityBaseFeature<Meta> {
 
     public String currentHost() {
         if (server != null) return server.getHost();
-        return (String) getConfigHandler().getSetting("host");
+        return (String) getConfigHandler().get("host");
     }
 
     public int currentPort() {
         if (server != null) return server.getPort();
-        return (int) getConfigHandler().getSetting("port");
+        return (int) getConfigHandler().get("port");
     }
 
     public int currentTimeoutMs() {
-        return (int) getConfigHandler().getSetting("readTimeoutMillis");
+        return (int) getConfigHandler().get("readTimeoutMillis");
     }
 
     public int currentKeyBits() {
-        return (int) getConfigHandler().getSetting("keyBits");
+        return (int) getConfigHandler().get("keyBits");
     }
 
     /* =========================  Helpers  ========================= */

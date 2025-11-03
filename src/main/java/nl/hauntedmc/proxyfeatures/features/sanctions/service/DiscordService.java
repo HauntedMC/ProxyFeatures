@@ -165,7 +165,7 @@ public class DiscordService {
 
     private String getWebhookUrl() {
         try {
-            Object v = feature.getConfigHandler().getSetting("discordWebhookURL");
+            Object v = feature.getConfigHandler().get("discordWebhookURL");
             return v == null ? "" : String.valueOf(v);
         } catch (Throwable ignored) {
         }

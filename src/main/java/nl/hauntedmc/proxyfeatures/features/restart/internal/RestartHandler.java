@@ -37,18 +37,18 @@ public class RestartHandler {
     }
 
     private void reloadConfig() {
-        Object useChatObj = feature.getConfigHandler().getSetting("broadcast_use_chat");
-        Object useTitlesObj = feature.getConfigHandler().getSetting("broadcast_use_titles");
+        Object useChatObj = feature.getConfigHandler().get("broadcast_use_chat");
+        Object useTitlesObj = feature.getConfigHandler().get("broadcast_use_titles");
         this.useChat = !(useChatObj instanceof Boolean b) || b;
         this.useTitles = !(useTitlesObj instanceof Boolean b) || b;
 
-        Object finalDelayObj = feature.getConfigHandler().getSetting("final_delay_seconds");
+        Object finalDelayObj = feature.getConfigHandler().get("final_delay_seconds");
         this.finalDelaySeconds = asInt(finalDelayObj, 5);
         if (finalDelaySeconds < 0) finalDelaySeconds = 0;
 
-        int fadeIn = asInt(feature.getConfigHandler().getSetting("title_fade_in_ms"), 500);
-        int stay = asInt(feature.getConfigHandler().getSetting("title_stay_ms"), 2000);
-        int fadeOut = asInt(feature.getConfigHandler().getSetting("title_fade_out_ms"), 500);
+        int fadeIn = asInt(feature.getConfigHandler().get("title_fade_in_ms"), 500);
+        int stay = asInt(feature.getConfigHandler().get("title_stay_ms"), 2000);
+        int fadeOut = asInt(feature.getConfigHandler().get("title_fade_out_ms"), 500);
         if (fadeIn < 0) fadeIn = 0;
         if (stay < 0) stay = 0;
         if (fadeOut < 0) fadeOut = 0;
@@ -59,7 +59,7 @@ public class RestartHandler {
         );
 
         warnTimes.clear();
-        Object warnTimesObj = feature.getConfigHandler().getSetting("warn_times");
+        Object warnTimesObj = feature.getConfigHandler().get("warn_times");
         if (warnTimesObj instanceof List<?>) {
             for (Object o : (List<?>) warnTimesObj) {
                 int v = asInt(o, -1);
@@ -73,7 +73,7 @@ public class RestartHandler {
     public synchronized boolean startCountdown() {
         if (!running.compareAndSet(false, true)) return false;
         reloadConfig();
-        int start = asInt(feature.getConfigHandler().getSetting("countdown_seconds"), 60);
+        int start = asInt(feature.getConfigHandler().get("countdown_seconds"), 60);
         if (start < 0) start = 0;
         remainingSeconds.set(start);
 

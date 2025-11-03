@@ -241,7 +241,7 @@ public class SanctionListCommand implements FeatureCommand {
 
     private int getPageSize() {
         try {
-            Object raw = feature.getConfigHandler().getSetting("sanctionListPageSize");
+            Object raw = feature.getConfigHandler().get("sanctionListPageSize");
             int v;
             if (raw instanceof Number n) v = n.intValue();
             else if (raw instanceof String s) v = Integer.parseInt(s);

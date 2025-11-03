@@ -20,7 +20,7 @@ public class PlayerInfoService {
     public PlayerInfoService(PlayerInfo feature) {
         this.feature = feature;
 
-        String tz = Objects.toString(feature.getConfigHandler().getSetting("timezone"));
+        String tz = Objects.toString(feature.getConfigHandler().get("timezone"));
         ZoneId zoneId;
         if (tz == null || tz.isBlank()) {
             zoneId = ZoneId.systemDefault();
@@ -34,7 +34,7 @@ public class PlayerInfoService {
             zoneId = tmp;
         }
 
-        String pattern = Objects.toString(feature.getConfigHandler().getSetting("datetimeFormat"));
+        String pattern = Objects.toString(feature.getConfigHandler().get("datetimeFormat"));
         formatter = DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
     }
 

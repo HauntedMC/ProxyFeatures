@@ -55,7 +55,7 @@ public class MotdHandler {
     }
 
     private ServerPing.@NotNull Players getAdjustedPlayers(ServerPing unmodifiedPing) {
-        double playerCountAdjustment = (double) feature.getConfigHandler().getSetting("playerCountMultiplier");
+        double playerCountAdjustment = (double) feature.getConfigHandler().get("playerCountMultiplier");
 
         if (playerCountAdjustment < 0) {
             playerCountAdjustment = 0;
@@ -84,8 +84,8 @@ public class MotdHandler {
     }
 
     private Component readMOTDFromFile() {
-        String line1 = (String) feature.getConfigHandler().getSetting("motdline1");
-        List<String> words = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("motdline2"), String.class);
+        String line1 = (String) feature.getConfigHandler().get("motdline1");
+        List<String> words = CastUtils.safeCastToList(feature.getConfigHandler().get("motdline2"), String.class);
 
         int size = words.size();
         int index1 = ThreadLocalRandom.current().nextInt(size);

@@ -17,8 +17,8 @@ public class PingCommand implements FeatureCommand {
 
     public PingCommand(ConnectionInfo feature) {
         this.feature = feature;
-        greenThreshold = (int) feature.getConfigHandler().getSetting("ping_threshold_green");
-        yellowThreshold = (int) feature.getConfigHandler().getSetting("ping_threshold_yellow");
+        greenThreshold = (int) feature.getConfigHandler().get("ping_threshold_green");
+        yellowThreshold = (int) feature.getConfigHandler().get("ping_threshold_yellow");
     }
 
     public String getName() {

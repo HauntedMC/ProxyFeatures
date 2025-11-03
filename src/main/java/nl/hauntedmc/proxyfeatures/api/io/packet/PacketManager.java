@@ -42,7 +42,7 @@ public class PacketManager {
      * @param packets The packets to send.
      */
     public static void sendBroadcast(Packet... packets) {
-        for (Player player : ProxyFeatures.getAllPlayers()) {
+        for (Player player : ProxyFeatures.getProxy().getAllPlayers()) {
             for (Packet packet : packets) {
                 packet.sendTo(player);
             }

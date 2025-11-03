@@ -15,8 +15,8 @@ public class VersionHandler {
 
     public VersionHandler(VersionCheck feature) {
         this.feature = feature;
-        minimum_protocol_version = (int) feature.getConfigHandler().getSetting("minimum_protocol_version");
-        friendly_protocol_name = (String) feature.getConfigHandler().getSetting("friendly_protocol_name");
+        minimum_protocol_version = (int) feature.getConfigHandler().get("minimum_protocol_version");
+        friendly_protocol_name = (String) feature.getConfigHandler().get("friendly_protocol_name");
     }
 
     public void checkVersion(LoginEvent event) {

@@ -19,7 +19,7 @@ public class GlobalListCommand implements FeatureCommand {
 
     public GlobalListCommand(PlayerList feature) {
         this.feature = feature;
-        blacklist = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("blacklist"), String.class);
+        blacklist = CastUtils.safeCastToList(feature.getConfigHandler().get("blacklist"), String.class);
 
     }
 

@@ -24,8 +24,8 @@ public class IPChecker {
 
     public IPChecker(AntiVPN feature) {
         this.feature = feature;
-        this.apiKey = (String) feature.getConfigHandler().getSetting("ip2location_api_key");
-        this.timeout = (int) feature.getConfigHandler().getSetting("api_timeout");
+        this.apiKey = (String) feature.getConfigHandler().get("ip2location_api_key");
+        this.timeout = (int) feature.getConfigHandler().get("api_timeout");
     }
 
     /**

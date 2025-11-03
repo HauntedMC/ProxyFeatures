@@ -34,8 +34,8 @@ public class ResourcePackHandler {
      */
     private void initializePacks() {
         // Global pack
-        String globalUrl = feature.getConfigHandler().getSetting("url", String.class);
-        String globalHashHex = feature.getConfigHandler().getSetting("hash", String.class, "");
+        String globalUrl = feature.getConfigHandler().get("url", String.class);
+        String globalHashHex = feature.getConfigHandler().get("hash", String.class, "");
         byte[] globalHash = ResourceUtils.hexToBytes(globalHashHex);
 
         ResourcePackInfo globalInfo = buildPackInfo(globalUrl, globalHash);

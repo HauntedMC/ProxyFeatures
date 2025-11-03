@@ -21,7 +21,7 @@ public class ListCommand implements FeatureCommand {
 
     public ListCommand(PlayerList feature) {
         this.feature = feature;
-        this.blacklist = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("blacklist"), String.class);
+        this.blacklist = CastUtils.safeCastToList(feature.getConfigHandler().get("blacklist"), String.class);
     }
 
     public void execute(Invocation invocation) {

@@ -73,7 +73,7 @@ public class CommandRelay extends VelocityBaseFeature<Meta> {
         this.eventBusHandler = new EventBusHandler(this, redisBus);
 
         // Fetch settings
-        boolean listen = (Boolean) getConfigHandler().getSetting("listening");
+        boolean listen = (Boolean) getConfigHandler().get("listening");
 
         // If listening, subscribe to incoming commands for this server
         if (listen) {

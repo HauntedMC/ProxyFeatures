@@ -13,7 +13,6 @@ import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.scheduler.Scheduler;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
@@ -21,14 +20,12 @@ import nl.hauntedmc.proxyfeatures.framework.command.ProxyFeaturesCommand;
 import nl.hauntedmc.proxyfeatures.framework.config.MainConfigHandler;
 import nl.hauntedmc.proxyfeatures.framework.loader.FeatureLoadManager;
 import nl.hauntedmc.proxyfeatures.framework.localization.LocalizationHandler;
-import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.nio.file.Path;
-import java.util.Collection;
 
 @Plugin(id = "proxyfeatures",
         name = "ProxyFeatures",
-        version = "2.0.0",
+        version = "2.1.0",
         url = "https://www.hauntedmc.nl",
         description = "ProxyFeatures",
         authors = {"HauntedMC"},
@@ -135,10 +132,6 @@ public class ProxyFeatures {
         return dataDirectory;
     }
 
-    public CommentedConfigurationNode getConfig() {
-        return mainConfigHandler.getConfig();
-    }
-
     public PluginManager getPluginManager() {
         return proxy.getPluginManager();
     }
@@ -155,17 +148,8 @@ public class ProxyFeatures {
         return proxy.getScheduler();
     }
 
-    public ProxyServer getProxy() {
+    public static ProxyServer getProxy() {
         return proxy;
     }
 
-    /**
-     * Hack to get all players when we dont have an instance of getPlugin
-     * TODO: should be refactored in the final design
-     *
-     * @return All players on this proxy
-     */
-    public static Collection<Player> getAllPlayers() {
-        return proxy.getAllPlayers();
-    }
 }

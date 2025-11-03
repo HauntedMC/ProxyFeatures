@@ -19,7 +19,7 @@ public class AnnouncerHandler {
         this.feature = feature;
         this.taskManager = feature.getLifecycleManager().getTaskManager();
         this.announcerRegistry = new AnnouncerRegistry(feature);
-        this.messageInterval = feature.getConfigHandler().getSetting("message_interval", Integer.class, 200);
+        this.messageInterval = feature.getConfigHandler().get("message_interval", Integer.class, 200);
     }
 
     public void startAnnouncementCycle() {

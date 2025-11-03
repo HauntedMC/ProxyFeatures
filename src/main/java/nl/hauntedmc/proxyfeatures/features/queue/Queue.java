@@ -71,8 +71,8 @@ public class Queue extends VelocityBaseFeature<Meta> {
 
         getLifecycleManager().getCommandManager().registerFeatureCommand(new QueueCommand(this, manager));
 
-        int pollSec = ((Number) getConfigHandler().getSetting("poll-interval-seconds")).intValue();
-        int updateSec = ((Number) getConfigHandler().getSetting("update-interval-seconds")).intValue();
+        int pollSec = ((Number) getConfigHandler().get("poll-interval-seconds")).intValue();
+        int updateSec = ((Number) getConfigHandler().get("update-interval-seconds")).intValue();
 
         manager.startSchedulers(Duration.ofSeconds(pollSec), Duration.ofSeconds(updateSec));
     }

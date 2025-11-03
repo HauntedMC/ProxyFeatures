@@ -35,9 +35,9 @@ public class HLinkHandler {
 
     public HLinkHandler(HLink feature) {
         this.feature = feature;
-        this.apiKey = (String) feature.getConfigHandler().getSetting("api-key");
-        this.friendly = (boolean) feature.getConfigHandler().getSetting("full-friendly-urls-enabled");
-        this.websiteUrl = (String) feature.getConfigHandler().getSetting("website-url");
+        this.apiKey = (String) feature.getConfigHandler().get("api-key");
+        this.friendly = (boolean) feature.getConfigHandler().get("full-friendly-urls-enabled");
+        this.websiteUrl = (String) feature.getConfigHandler().get("website-url");
     }
 
     private String buildApiUrl() {

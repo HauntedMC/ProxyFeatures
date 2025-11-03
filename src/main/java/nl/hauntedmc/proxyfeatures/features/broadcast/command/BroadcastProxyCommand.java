@@ -131,9 +131,9 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
                 .expect(TextFormatter.InputFormat.MIXED_INPUT)
                 .features(ComponentFormatter.ALL_DEFAULTS()).toComponent();
 
-        int fadeIn = (int) feature.getConfigHandler().getSetting("title_fade_in");
-        int stay = (int) feature.getConfigHandler().getSetting("title_stay");
-        int fadeOut = (int) feature.getConfigHandler().getSetting("title_fade_out");
+        int fadeIn = (int) feature.getConfigHandler().get("title_fade_in");
+        int stay = (int) feature.getConfigHandler().get("title_stay");
+        int fadeOut = (int) feature.getConfigHandler().get("title_fade_out");
 
         Title.Times times = Title.Times.times(
                 Duration.ofMillis(fadeIn * 50L),

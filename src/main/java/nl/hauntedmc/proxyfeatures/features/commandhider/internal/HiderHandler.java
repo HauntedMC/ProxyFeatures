@@ -13,7 +13,7 @@ public class HiderHandler {
     private final List<String> hiddenCommands;
 
     public HiderHandler(CommandHider feature) {
-        this.hiddenCommands = CastUtils.safeCastToList(feature.getConfigHandler().getSetting("hidden-commands"), String.class);
+        this.hiddenCommands = CastUtils.safeCastToList(feature.getConfigHandler().get("hidden-commands"), String.class);
     }
 
     public Set<String> getHiddenCommands() {
