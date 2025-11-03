@@ -53,7 +53,7 @@ public class PingCommand implements FeatureCommand {
 
         if (other) {
             targetName = args[0];
-            optTarget = feature.getPlugin().getProxy().getPlayer(targetName);
+            optTarget = feature.getPlugin().getProxyInstance().getPlayer(targetName);
         } else {
             if (!(src instanceof Player)) {
                 src.sendMessage(feature.getLocalizationHandler().getMessage("connectioninfo.ping_usage").forAudience(src).build());
@@ -105,13 +105,13 @@ public class PingCommand implements FeatureCommand {
 
         // If no argument or empty, suggest all online players
         if (args.length == 0 || args[0].isEmpty()) {
-            List<String> allNames = feature.getPlugin().getProxy().getAllPlayers().stream().map(Player::getUsername).collect(Collectors.toList());
+            List<String> allNames = feature.getPlugin().getProxyInstance().getAllPlayers().stream().map(Player::getUsername).collect(Collectors.toList());
             return CompletableFuture.completedFuture(allNames);
         }
 
         // Otherwise, filter by what they've started typing
         String partial = args[0].toLowerCase();
-        List<String> matching = feature.getPlugin().getProxy().getAllPlayers().stream().map(Player::getUsername).filter(name -> name.toLowerCase().startsWith(partial)).collect(Collectors.toList());
+        List<String> matching = feature.getPlugin().getProxyInstance().getAllPlayers().stream().map(Player::getUsername).filter(name -> name.toLowerCase().startsWith(partial)).collect(Collectors.toList());
         return CompletableFuture.completedFuture(matching);
     }
 

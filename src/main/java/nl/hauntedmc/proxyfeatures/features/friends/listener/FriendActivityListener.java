@@ -103,7 +103,7 @@ public final class FriendActivityListener {
         for (FriendSnapshot s : snaps) {
             try {
                 UUID fid = UUID.fromString(s.uuid());
-                feature.getPlugin().getProxy().getPlayer(fid).ifPresent(result::add);
+                feature.getPlugin().getProxyInstance().getPlayer(fid).ifPresent(result::add);
             } catch (IllegalArgumentException ignored) {
             }
         }

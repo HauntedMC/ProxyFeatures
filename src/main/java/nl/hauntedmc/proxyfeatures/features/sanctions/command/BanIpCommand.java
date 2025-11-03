@@ -70,7 +70,7 @@ public class BanIpCommand implements FeatureCommand {
             var ph = feature.getService().placeholdersFor(s);
 
             // Immediately disconnect all online players from the banned IP
-            feature.getPlugin().getProxy().getAllPlayers().forEach(pl -> {
+            feature.getPlugin().getProxyInstance().getAllPlayers().forEach(pl -> {
                 try {
                     String pip = pl.getRemoteAddress().getAddress().getHostAddress();
                     if (normalizedIp.equals(pip)) {

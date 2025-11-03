@@ -32,7 +32,7 @@ public class GlobalListCommand implements FeatureCommand {
             return;
         }
 
-        Collection<RegisteredServer> servers = feature.getPlugin().getProxy().getAllServers().stream().toList();
+        Collection<RegisteredServer> servers = feature.getPlugin().getProxyInstance().getAllServers().stream().toList();
 
         var filteredServers = servers.stream()
                 .filter(server -> !blacklist.contains(server.getServerInfo().getName()))

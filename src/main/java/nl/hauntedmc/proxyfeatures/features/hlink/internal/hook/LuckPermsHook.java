@@ -30,7 +30,7 @@ public class LuckPermsHook {
                 NodeMutateEvent.class,
                 event -> {
                     String friendlyName = event.getTarget().getFriendlyName();
-                    Optional<Player> playerOpt = feature.getPlugin().getProxy().getPlayer(friendlyName);
+                    Optional<Player> playerOpt = feature.getPlugin().getProxyInstance().getPlayer(friendlyName);
                     playerOpt.ifPresent(player -> feature.getHLinkHandler().updatePlayerData(player));
                 }
         );

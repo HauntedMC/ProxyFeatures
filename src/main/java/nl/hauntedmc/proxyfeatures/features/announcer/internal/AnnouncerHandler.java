@@ -28,7 +28,7 @@ public class AnnouncerHandler {
         }
         taskManager.scheduleRepeatingTask(() -> {
             String messageKey = announcerRegistry.get(currentMessageIndex);
-            feature.getPlugin().getProxy().getAllPlayers().forEach(player -> {
+            feature.getPlugin().getProxyInstance().getAllPlayers().forEach(player -> {
                 Component message = feature.getLocalizationHandler()
                         .getMessage(messageKey).forAudience(player).build();
                 player.sendMessage(message);

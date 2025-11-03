@@ -116,7 +116,7 @@ public class AntiVPNListener {
     }
 
     private void notifyStaff(Component message) {
-        feature.getPlugin().getProxy().getAllPlayers().forEach(player -> {
+        feature.getPlugin().getProxyInstance().getAllPlayers().forEach(player -> {
             if (player.hasPermission("proxyfeatures.feature.antivpn.notify")) {
                 player.sendMessage(message);
             }

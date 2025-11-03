@@ -66,7 +66,7 @@ public class UnmuteCommand implements FeatureCommand {
         );
 
         // Notify player if online
-        feature.getPlugin().getProxy().getPlayer(java.util.UUID.fromString(target.getUuid()))
+        feature.getPlugin().getProxyInstance().getPlayer(java.util.UUID.fromString(target.getUuid()))
                 .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
                         .getMessage("sanctions.notify.unmuted")
                         .forAudience(pl).build()));

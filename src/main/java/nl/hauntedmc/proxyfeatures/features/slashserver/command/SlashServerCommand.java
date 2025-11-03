@@ -34,7 +34,7 @@ public class SlashServerCommand implements FeatureCommand {
             return;
         }
 
-        Optional<RegisteredServer> optionalServer = feature.getPlugin().getProxy().getServer(serverName);
+        Optional<RegisteredServer> optionalServer = feature.getPlugin().getProxyInstance().getServer(serverName);
         if (optionalServer.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("slash.not_available")

@@ -34,7 +34,7 @@ public class SlashServer extends VelocityBaseFeature<Meta> {
 
     @Override
     public void initialize() {
-        for (RegisteredServer server : getPlugin().getProxy().getAllServers()) {
+        for (RegisteredServer server : getPlugin().getProxyInstance().getAllServers()) {
             String serverName = server.getServerInfo().getName().toLowerCase();
             SlashServerCommand command = new SlashServerCommand(this, serverName);
             getLifecycleManager().getCommandManager().registerFeatureCommand(command);

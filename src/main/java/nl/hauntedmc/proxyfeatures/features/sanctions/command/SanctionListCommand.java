@@ -286,7 +286,7 @@ public class SanctionListCommand implements FeatureCommand {
 
         // For first arg: suggest online names or page numbers (stick to names)
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
-            List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
+            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .collect(Collectors.toList());
@@ -294,7 +294,7 @@ public class SanctionListCommand implements FeatureCommand {
         }
         if (a.length == 1) {
             String partial = a[0].toLowerCase(Locale.ROOT);
-            List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
+            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
                     .sorted(String.CASE_INSENSITIVE_ORDER)

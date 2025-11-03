@@ -35,7 +35,7 @@ public class HubCommand implements FeatureCommand {
             return;
         }
 
-        Optional<RegisteredServer> lobbyOptional = feature.getPlugin().getProxy().getServer(LOBBY_NAME);
+        Optional<RegisteredServer> lobbyOptional = feature.getPlugin().getProxyInstance().getServer(LOBBY_NAME);
         if (lobbyOptional.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("hub.not_available")

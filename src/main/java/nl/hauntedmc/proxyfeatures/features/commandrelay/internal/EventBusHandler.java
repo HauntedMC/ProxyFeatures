@@ -66,8 +66,8 @@ public class EventBusHandler {
         final String sendingCommand = full;
         // Execute the command in console in sync thread
         feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
-            ConsoleCommandSource console = feature.getPlugin().getProxy().getConsoleCommandSource();
-            feature.getPlugin().getProxy().getCommandManager()
+            ConsoleCommandSource console = feature.getPlugin().getProxyInstance().getConsoleCommandSource();
+            feature.getPlugin().getProxyInstance().getCommandManager()
                     .executeAsync(console, sendingCommand)
                     .whenComplete((success, ex) -> {
                         if (ex != null) {

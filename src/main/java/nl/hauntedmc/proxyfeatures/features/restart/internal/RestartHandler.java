@@ -31,7 +31,7 @@ public class RestartHandler {
 
     public RestartHandler(Restart feature) {
         this.feature = feature;
-        this.proxy = feature.getPlugin().getProxy();
+        this.proxy = feature.getPlugin().getProxyInstance();
         this.taskManager = feature.getLifecycleManager().getTaskManager();
         reloadConfig();
     }

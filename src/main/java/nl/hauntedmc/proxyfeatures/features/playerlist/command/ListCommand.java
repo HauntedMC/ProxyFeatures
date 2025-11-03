@@ -46,7 +46,7 @@ public class ListCommand implements FeatureCommand {
             player.sendMessage(message);
         } else if (args.length == 1) {
             String targetServer = args[0];
-            Optional<RegisteredServer> serverOpt = feature.getPlugin().getProxy().getServer(targetServer);
+            Optional<RegisteredServer> serverOpt = feature.getPlugin().getProxyInstance().getServer(targetServer);
             if (serverOpt.isEmpty() || blacklist.contains(targetServer)) {
                 player.sendMessage(feature.getLocalizationHandler().getMessage("playerlist.server_not_found").forAudience(player).build()
                         .replaceText(builder -> builder.matchLiteral("{server}").replacement(targetServer)));
@@ -71,7 +71,7 @@ public class ListCommand implements FeatureCommand {
 
         // If no argument is provided (or an empty string), return the full list.
         if (args.length == 0 || args[0].isEmpty()) {
-            List<String> suggestions = feature.getPlugin().getProxy().getAllServers().stream()
+            List<String> suggestions = feature.getPlugin().getProxyInstance().getAllServers().stream()
                     .map(server -> server.getServerInfo().getName())
                     .filter(name -> !blacklist.contains(name))
                     .collect(Collectors.toList());
@@ -80,7 +80,7 @@ public class ListCommand implements FeatureCommand {
 
         // Otherwise, filter based on the partial input.
         String partial = args[0].toLowerCase();
-        List<String> suggestions = feature.getPlugin().getProxy().getAllServers().stream()
+        List<String> suggestions = feature.getPlugin().getProxyInstance().getAllServers().stream()
                 .map(server -> server.getServerInfo().getName())
                 .filter(name -> !blacklist.contains(name))
                 .filter(name -> name.toLowerCase().startsWith(partial))

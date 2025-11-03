@@ -67,7 +67,7 @@ public class ConnectionInfoCommand implements FeatureCommand {
         }
 
         Optional<Player> optTarget = feature.getPlugin()
-                .getProxy()
+                .getProxyInstance()
                 .getPlayer(targetName);
 
         if (optTarget.isEmpty()) {
@@ -132,7 +132,7 @@ public class ConnectionInfoCommand implements FeatureCommand {
         String[] args = invocation.arguments();
         if (args.length == 0 || args[0].isEmpty()) {
             List<String> names = feature.getPlugin()
-                    .getProxy()
+                    .getProxyInstance()
                     .getAllPlayers()
                     .stream()
                     .map(Player::getUsername)
@@ -141,7 +141,7 @@ public class ConnectionInfoCommand implements FeatureCommand {
         }
         String partial = args[0].toLowerCase();
         List<String> matching = feature.getPlugin()
-                .getProxy()
+                .getProxyInstance()
                 .getAllPlayers()
                 .stream()
                 .map(Player::getUsername)

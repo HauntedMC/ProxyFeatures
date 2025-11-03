@@ -87,12 +87,12 @@ public class PlayerInfoService {
 
     public OnlineStatus getOnlineStatus(String nameOrUuid) {
         // Try by exact username
-        Optional<Player> opt = feature.getPlugin().getProxy().getPlayer(nameOrUuid);
+        Optional<Player> opt = feature.getPlugin().getProxyInstance().getPlayer(nameOrUuid);
         if (opt.isEmpty()) {
             // Try search by UUID string
             try {
                 UUID uuid = UUID.fromString(nameOrUuid);
-                opt = feature.getPlugin().getProxy().getPlayer(uuid);
+                opt = feature.getPlugin().getProxyInstance().getPlayer(uuid);
             } catch (Exception ignored) {
             }
         }

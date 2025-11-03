@@ -27,7 +27,7 @@ public class PlayerListHandler {
      */
     public Collection<Player> getPlayersOnServer(String serverName) {
         ProxyFeatures plugin = feature.getPlugin();
-        return plugin.getProxy().getServer(serverName)
+        return plugin.getProxyInstance().getServer(serverName)
                 .map(RegisteredServer::getPlayersConnected)
                 .orElseGet(Collections::emptyList);
     }
@@ -38,7 +38,7 @@ public class PlayerListHandler {
      */
     public Component formatGlobalList(Collection<RegisteredServer> servers, Player audience) {
         // Get all players from the proxy and filter out vanished ones.
-        List<Player> allPlayers = feature.getPlugin().getProxy().getAllPlayers().stream()
+        List<Player> allPlayers = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                 .filter(player -> !APIRegistry.get(VanishAPI.class)
                         .map(api -> api.isVanished(player.getUniqueId()))
                         .orElse(false))

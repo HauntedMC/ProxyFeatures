@@ -32,7 +32,7 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
 
     public BroadcastProxyCommand(Broadcast feature) {
         this.feature = feature;
-        this.proxy = feature.getPlugin().getProxy();
+        this.proxy = feature.getPlugin().getProxyInstance();
     }
 
     @Override

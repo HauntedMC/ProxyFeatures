@@ -54,7 +54,7 @@ public class WarnCommand implements FeatureCommand {
             var ph = Map.of("target", target.getUsername(), "reason", reason, "actor", actorName);
             feature.getService().broadcastToStaff("sanctions.announce.warn", MessagePlaceholders.of(ph));
 
-            feature.getPlugin().getProxy().getPlayer(UUID.fromString(target.getUuid()))
+            feature.getPlugin().getProxyInstance().getPlayer(UUID.fromString(target.getUuid()))
                     .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
                             .getMessage("sanctions.notify.warn")
                             .with("reason", reason)
@@ -84,7 +84,7 @@ public class WarnCommand implements FeatureCommand {
         String[] a = invocation.arguments();
 
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
-            List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
+            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .collect(Collectors.toList());
@@ -92,7 +92,7 @@ public class WarnCommand implements FeatureCommand {
         }
         if (a.length == 1) {
             String partial = a[0].toLowerCase(Locale.ROOT);
-            List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
+            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
                     .sorted(String.CASE_INSENSITIVE_ORDER)

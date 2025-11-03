@@ -148,8 +148,13 @@ public class ProxyFeatures {
         return proxy.getScheduler();
     }
 
-    public static ProxyServer getProxy() {
+    public ProxyServer getProxy() {
         return proxy;
     }
+
+    public static ProxyServer getProxyInstance() {
+        return proxy;
+    }
+
 
 }

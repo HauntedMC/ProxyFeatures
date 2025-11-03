@@ -34,7 +34,7 @@ public class KickCommand implements FeatureCommand {
         String targetName = a[0];
         String reason = feature.getService().sanitizeReason(joinAfter(a, 1));
 
-        var targetOnline = feature.getPlugin().getProxy().getPlayer(targetName).orElse(null);
+        var targetOnline = feature.getPlugin().getProxyInstance().getPlayer(targetName).orElse(null);
         PlayerEntity target = (targetOnline != null)
                 ? feature.getService().getPlayerByUuid(targetOnline.getUniqueId().toString()).orElse(null)
                 : feature.getServiceLookup().byName(targetName).orElse(null);
@@ -92,7 +92,7 @@ public class KickCommand implements FeatureCommand {
         String[] a = invocation.arguments();
 
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
-            List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
+            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .collect(Collectors.toList());
@@ -100,7 +100,7 @@ public class KickCommand implements FeatureCommand {
         }
         if (a.length == 1) {
             String partial = a[0].toLowerCase(Locale.ROOT);
-            List<String> names = feature.getPlugin().getProxy().getAllPlayers().stream()
+            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
                     .sorted(String.CASE_INSENSITIVE_ORDER)

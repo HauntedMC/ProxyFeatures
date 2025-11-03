@@ -4,63 +4,82 @@ import com.velocitypowered.api.event.Continuation;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigNode;
-import nl.hauntedmc.proxyfeatures.api.io.config.ConfigTypes;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigService;
+import nl.hauntedmc.proxyfeatures.api.io.config.ConfigView;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.ResourcePack;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Loads resource pack definitions from local/resourcepacks.yml using the unified ConfigView API
+ * and builds {@link ResourcePackInfo} instances for the global pack and per-gamemode packs.
+ */
 public class ResourcePackHandler {
+    private static final String RESOURCE_FILE = "local/resourcepacks.yml";
+
     private final ResourcePack feature;
     private final ProxyServer server;
+    private final Logger logger;
     private final Map<UUID, Continuation> configurationBlockMap;
     private final Map<String, ResourcePackInfo> packInfoMap;
 
     public ResourcePackHandler(ResourcePack feature) {
         this.feature = feature;
         this.server = feature.getPlugin().getProxy();
+        this.logger = feature.getPlugin().getLogger();
         this.configurationBlockMap = new HashMap<>();
         this.packInfoMap = new HashMap<>();
         initializePacks();
     }
 
     /**
-     * Load global and gamemode-specific packs from config and build ResourcePackInfo objects.
-     * Uses our own ConfigNode/ConfigTypes (no Jackson).
+     * Load global and per-mode packs from local/resourcepacks.yml (copied from JAR if missing).
      */
     private void initializePacks() {
-        // Global pack
-        String globalUrl = feature.getConfigHandler().get("url", String.class);
-        String globalHashHex = feature.getConfigHandler().get("hash", String.class, "");
-        byte[] globalHash = ResourceUtils.hexToBytes(globalHashHex);
+        packInfoMap.clear();
 
-        ResourcePackInfo globalInfo = buildPackInfo(globalUrl, globalHash);
-        packInfoMap.put("global", globalInfo);
+        // Open or create local/resourcepacks.yml with defaults copied from JAR if present
+        ConfigView store = new ConfigService(feature.getPlugin()).view(RESOURCE_FILE, /* copyDefaults */ true);
 
-        // Mode packs: Map<String, List<Map<?, ?>>>
-        ConfigNode modesNode = feature.getConfigHandler().node("mode-packs");
-        for (Map.Entry<String, ConfigNode> entry : modesNode.children().entrySet()) {
-            String mode = entry.getKey().toLowerCase();
-            ConfigNode modeNode = entry.getValue();
+        // ---- Global pack
+        ConfigNode global = store.node("global");
+        String globalUrl = global.get("url").as(String.class, null);
+        String globalHashHex = global.get("hash").as(String.class, "");
+        boolean globalForce = global.get("force").as(Boolean.class, true);
+        String globalPromptKey = global.get("prompt_key").as(String.class, "resourcepack.prompt");
 
-            // Use wildcard Map to avoid raw-type warnings
-            @SuppressWarnings("unchecked")
-            List<Map<?, ?>> defs = (List<Map<?, ?>>) (List<?>) modeNode.listOf(Map.class);
-            if (defs == null || defs.isEmpty()) continue;
+        if (isPresent(globalUrl)) {
+            byte[] hash = normalizedSha1(globalHashHex, "global");
+            ResourcePackInfo globalInfo = buildPackInfo(globalUrl, hash, globalForce, globalPromptKey);
+            packInfoMap.put("global", globalInfo);
+        } else {
+            logger.warn("[ProxyFeatures] ResourcePacks: no global.url set in {} — skipping global pack.", RESOURCE_FILE);
+        }
 
-            Map<?, ?> def0 = defs.getFirst(); // or defs.get(0)
-            String url = ConfigTypes.convertOrDefault(def0.get("url"), String.class, null);
-            String hashHex = ConfigTypes.convertOrDefault(def0.get("hash"), String.class, "");
+        // ---- Mode packs as a MAP (mode -> {url, hash, ...})
+        ConfigNode modes = store.node("resourcepacks");
+        for (Map.Entry<String, ConfigNode> e : modes.children().entrySet()) {
+            String mode = e.getKey();
+            ConfigNode def = e.getValue();
 
-            if (url == null || url.isBlank()) continue;
+            String url = def.get("url").as(String.class, null);
+            String hashHex = def.get("hash").as(String.class, "");
+            boolean force = def.get("force").as(Boolean.class, globalForce); // inherit global default
+            String promptKey = def.get("prompt_key").as(String.class, globalPromptKey);
 
-            byte[] hash = ResourceUtils.hexToBytes(hashHex);
-            ResourcePackInfo info = buildPackInfo(url, hash);
-            packInfoMap.put(mode, info);
+            if (!isPresent(url)) {
+                logger.warn("[ProxyFeatures] ResourcePacks: mode '{}' missing url — skipping.", mode);
+                continue;
+            }
+
+            byte[] hash = normalizedSha1(hashHex, "mode:" + mode);
+            ResourcePackInfo info = buildPackInfo(url, hash, force, promptKey);
+            packInfoMap.put(mode.toLowerCase(), info);
         }
     }
 
@@ -69,16 +88,19 @@ public class ResourcePackHandler {
         return packInfoMap.get(key.toLowerCase());
     }
 
-    /** Build a pack from arbitrary url+hash. */
-    public @NotNull ResourcePackInfo buildPackInfo(String url, byte[] hash) {
+    /** Build a pack from arbitrary url+hash with force + localized prompt key. */
+    public @NotNull ResourcePackInfo buildPackInfo(String url, byte[] hash, boolean force, String promptKey) {
         return server.createResourcePackBuilder(url)
                 .setHash(hash)
                 .setId(UUID.nameUUIDFromBytes(url.getBytes()))
-                .setPrompt(feature.getLocalizationHandler()
-                        .getMessage("resourcepack.prompt")
-                        .build())
-                .setShouldForce(true)
+                .setPrompt(feature.getLocalizationHandler().getMessage(promptKey).build())
+                .setShouldForce(force)
                 .build();
+    }
+
+    /** For legacy callers that didn’t specify force/prompt. Defaults: force=true, prompt_key=resourcepack.prompt */
+    public @NotNull ResourcePackInfo buildPackInfo(String url, byte[] hash) {
+        return buildPackInfo(url, hash, true, "resourcepack.prompt");
     }
 
     public void blockConfiguration(UUID uniqueId, Continuation continuation) {
@@ -88,5 +110,19 @@ public class ResourcePackHandler {
     public void unblockConfiguration(UUID uniqueId) {
         Continuation cont = configurationBlockMap.remove(uniqueId);
         if (cont != null) cont.resume();
+    }
+
+    /** Validate/normalize SHA-1 hex to 20-byte array, logging a warning and zero-filling if invalid. */
+    private byte[] normalizedSha1(String hex, String where) {
+        byte[] bytes = ResourceUtils.hexToBytes(hex == null ? "" : hex.trim());
+        if (bytes.length != 20) {
+            logger.warn("[ProxyFeatures] ResourcePacks: {} hash is missing or not SHA-1 (40 hex chars). Using zeros.", where);
+            return new byte[20];
+        }
+        return bytes;
+    }
+
+    private boolean isPresent(String s) {
+        return s != null && !s.isBlank();
     }
 }

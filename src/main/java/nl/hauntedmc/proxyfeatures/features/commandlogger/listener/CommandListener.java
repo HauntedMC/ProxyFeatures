@@ -28,7 +28,7 @@ public class CommandListener {
 
         String alias = trimmed.split("\\s+", 2)[0];
 
-        ProxyServer proxy = feature.getPlugin().getProxy();
+        ProxyServer proxy = feature.getPlugin().getProxyInstance();
         CommandManager cmdMgr = proxy.getCommandManager();
 
         CommandSource source = event.getCommandSource();

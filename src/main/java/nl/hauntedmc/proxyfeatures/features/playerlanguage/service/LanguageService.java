@@ -97,7 +97,7 @@ public class LanguageService implements nl.hauntedmc.proxyfeatures.features.play
 
         // 4) If we just created the default, notify the player (delayed)
         if (result.createdDefault()) {
-            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> feature.getPlugin().getProxy().getPlayer(playerUuid).ifPresent(player -> {
+            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> feature.getPlugin().getProxyInstance().getPlayer(playerUuid).ifPresent(player -> {
                 var msg = feature.getLocalizationHandler()
                         .getMessage("language.default_auto")
                         .with("language", resolved.name())
@@ -170,7 +170,7 @@ public class LanguageService implements nl.hauntedmc.proxyfeatures.features.play
         if (username == null || username.isBlank()) return Optional.empty();
 
         // Online (fast path)
-        var online = feature.getPlugin().getProxy().getAllPlayers().stream()
+        var online = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                 .filter(pl -> pl.getUsername().equalsIgnoreCase(username))
                 .map(Player::getUniqueId)
                 .findFirst();

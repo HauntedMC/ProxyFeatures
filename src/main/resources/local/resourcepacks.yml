@@ -1,0 +1,27 @@
+# =====================================================================
+# Resource pack configuration for ProxyFeatures (Velocity)
+# =====================================================================
+# GLOBAL PACK (applies everywhere by default)
+# resourcepacks.* entries can override it per gamemode.
+#
+# Fields:
+# - url: direct URL to the ZIP
+# - hash: SHA-1 of the ZIP (40 hex chars, lowercase)
+# - force: (optional) require clients to accept (default: true)
+# - prompt_key: (optional) localization key for the prompt
+# =====================================================================
+
+global:
+  url: "https://hauntedmc.nl/HauntedMC-GlobalPack.zip"
+  hash: "ed57344303ac884fab63c727acf2f1bc90272178"
+  force: true
+  prompt_key: "resourcepack.prompt"
+
+# Per-mode packs that override the global one.
+# Keys are your gamemode names.
+resourcepacks:
+  skyblock:
+    url: "https://hauntedmc.nl/HauntedMC-SkyblockPack.zip"
+    hash: "698b49bd7528fb6e04ed3d72789b32c188fc0da6"
+    force: true
+    prompt_key: "resourcepack.prompt"

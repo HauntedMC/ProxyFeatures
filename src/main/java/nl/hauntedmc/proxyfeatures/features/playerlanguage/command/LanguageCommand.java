@@ -141,7 +141,7 @@ public class LanguageCommand implements FeatureCommand {
 
         List<String> languages = Arrays.stream(Language.values()).map(Enum::name).sorted().toList();
         List<String> players = canOthers
-                ? feature.getPlugin().getProxy().getAllPlayers().stream()
+                ? feature.getPlugin().getProxyInstance().getAllPlayers().stream()
                 .map(Player::getUsername)
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList()

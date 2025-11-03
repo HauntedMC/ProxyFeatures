@@ -10,9 +10,6 @@ import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.PlayerListener;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.listener.ResourcePackStatusListener;
 import nl.hauntedmc.proxyfeatures.features.resourcepack.meta.Meta;
 
-import java.util.List;
-import java.util.Map;
-
 public class ResourcePack extends VelocityBaseFeature<Meta> {
 
     private ResourcePackHandler handler;
@@ -25,24 +22,6 @@ public class ResourcePack extends VelocityBaseFeature<Meta> {
     public ConfigMap getDefaultConfig() {
         ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
-        defaults.put("url", "https://hauntedmc.nl/HauntedMC-GlobalPack.zip");
-        // SHA-1 hash of the pack; clients will only redownload if this changes
-        defaults.put("hash", "");
-
-        defaults.put("mode-packs", Map.of(
-                "skyblock", List.of(
-                        Map.of(
-                                "url", "https://hauntedmc.nl/HauntedMC-SkyblockPack.zip",
-                                "hash", ""
-                        )
-                ),
-                "minigames", List.of(
-                        Map.of(
-                                "url", "HauntedMC-MinigamesPack.zip",
-                                "hash", ""
-                        )
-                )
-        ));
         return defaults;
     }
 

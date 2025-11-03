@@ -188,7 +188,7 @@ public class QueueCommand implements FeatureCommand {
     }
 
     private String managerNameOf(java.util.UUID id) {
-        return feature.getPlugin().getProxy().getPlayer(id).map(Player::getUsername).orElse(id.toString());
+        return feature.getPlugin().getProxyInstance().getPlayer(id).map(Player::getUsername).orElse(id.toString());
     }
 
 
@@ -205,7 +205,7 @@ public class QueueCommand implements FeatureCommand {
             return CompletableFuture.completedFuture(out);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("info")) {
-            List<String> servers = feature.getPlugin().getProxy().getAllServers().stream()
+            List<String> servers = feature.getPlugin().getProxyInstance().getAllServers().stream()
                     .map(s -> s.getServerInfo().getName())
                     .filter(manager::isServerQueued)
                     .collect(Collectors.toList());

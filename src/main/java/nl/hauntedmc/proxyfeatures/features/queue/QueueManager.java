@@ -40,7 +40,7 @@ public class QueueManager {
 
     public QueueManager(Queue feature, Logger logger) {
         this.feature = feature;
-        this.proxy = feature.getPlugin().getProxy();
+        this.proxy = feature.getPlugin().getProxyInstance();
         this.logger = logger;
         this.priorityResolver = new PriorityResolver();
         initializeQueuesFromConfig();

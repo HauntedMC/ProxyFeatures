@@ -447,7 +447,7 @@ public class SanctionsService {
     public void broadcastToStaff(String messageKey, MessagePlaceholders ph) {
         String notifyPerm = "proxyfeatures.feature.sanctions.notify";
 
-        feature.getPlugin().getProxy().getAllPlayers().forEach(pl -> {
+        feature.getPlugin().getProxyInstance().getAllPlayers().forEach(pl -> {
             if (pl.hasPermission(notifyPerm)) {
                 pl.sendMessage(feature.getLocalizationHandler()
                         .getMessage(messageKey).withPlaceholders(ph).forAudience(pl).build());
@@ -588,7 +588,7 @@ public class SanctionsService {
     public boolean isTargetExempt(String targetUuid) {
         try {
             UUID uuid = UUID.fromString(targetUuid);
-            return feature.getPlugin().getProxy().getPlayer(uuid)
+            return feature.getPlugin().getProxyInstance().getPlayer(uuid)
                     .map(p -> p.hasPermission("proxyfeatures.feature.sanctions.bypass"))
                     .orElse(false);
         } catch (Throwable ignored) {

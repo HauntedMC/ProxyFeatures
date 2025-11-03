@@ -56,7 +56,7 @@ public class PlayerInfoCommand implements FeatureCommand {
         String query = args[0];
 
         // Resolve via online player (for latest name/uuid), then DB fallback
-        Optional<Player> online = feature.getPlugin().getProxy().getPlayer(query);
+        Optional<Player> online = feature.getPlugin().getProxyInstance().getPlayer(query);
         Optional<PlayerEntity> playerEntityOpt;
 
         if (online.isPresent()) {
@@ -212,13 +212,13 @@ public class PlayerInfoCommand implements FeatureCommand {
 
         // No arg yet -> all online players
         if (args.length == 0 || args[0].isEmpty()) {
-            List<String> all = feature.getPlugin().getProxy().getAllPlayers()
+            List<String> all = feature.getPlugin().getProxyInstance().getAllPlayers()
                     .stream().map(Player::getUsername).collect(Collectors.toList());
             return CompletableFuture.completedFuture(all);
         }
 
         String partial = args[0].toLowerCase(Locale.ROOT);
-        List<String> matching = feature.getPlugin().getProxy().getAllPlayers()
+        List<String> matching = feature.getPlugin().getProxyInstance().getAllPlayers()
                 .stream()
                 .map(Player::getUsername)
                 .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))

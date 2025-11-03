@@ -21,7 +21,7 @@ public class MessagingHandler {
         this.settings = new MessagingSettingsService(feature);
 
         // Preload online players
-        feature.getPlugin().getProxy()
+        feature.getPlugin().getProxyInstance()
                 .getAllPlayers()
                 .forEach(this::loadPlayerSettings);
     }
@@ -109,7 +109,7 @@ public class MessagingHandler {
 
         spies.stream()
                 .filter(id -> !id.equals(s.getUniqueId()) && !id.equals(r.getUniqueId()))
-                .map(id -> feature.getPlugin().getProxy().getPlayer(id))
+                .map(id -> feature.getPlugin().getProxyInstance().getPlayer(id))
                 .flatMap(Optional::stream)
                 .forEach(p -> p.sendMessage(loc.getMessage("message.format.spy")
                         .with("sender", s.getUsername())

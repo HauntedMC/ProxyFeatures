@@ -54,7 +54,7 @@ public class HLinkCommand implements FeatureCommand {
 
         // 2) Find the target player
         String targetName = args.get(1);
-        Optional<Player> playerOpt = feature.getPlugin().getProxy().getPlayer(targetName);
+        Optional<Player> playerOpt = feature.getPlugin().getProxyInstance().getPlayer(targetName);
         if (playerOpt.isEmpty()) {
             source.sendMessage(
                     feature.getLocalizationHandler()
@@ -90,7 +90,7 @@ public class HLinkCommand implements FeatureCommand {
             String partial = args.get(1).toLowerCase();
             return CompletableFuture.completedFuture(
                     feature.getPlugin()
-                            .getProxy()
+                            .getProxyInstance()
                             .getAllPlayers()
                             .stream()
                             .map(Player::getUsername)

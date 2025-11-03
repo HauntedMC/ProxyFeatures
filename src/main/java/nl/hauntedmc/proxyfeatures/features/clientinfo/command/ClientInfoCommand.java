@@ -46,7 +46,7 @@ public class ClientInfoCommand implements FeatureCommand {
         }
 
         String targetName = args.getFirst();
-        Optional<Player> optPlayer = feature.getPlugin().getProxy().getPlayer(targetName);
+        Optional<Player> optPlayer = feature.getPlugin().getProxyInstance().getPlayer(targetName);
         if (optPlayer.isEmpty()) {
             source.sendMessage(
                     feature.getLocalizationHandler()
@@ -124,7 +124,7 @@ public class ClientInfoCommand implements FeatureCommand {
         // No arg yet (or they've just typed a space): show every online player
         if (args.length == 0 || args[0].isEmpty()) {
             List<String> allNames = feature.getPlugin()
-                    .getProxy()
+                    .getProxyInstance()
                     .getAllPlayers()
                     .stream()
                     .map(Player::getUsername)
@@ -135,7 +135,7 @@ public class ClientInfoCommand implements FeatureCommand {
         // Otherwise, filter by what they've started typing
         String partial = args[0].toLowerCase();
         List<String> matching = feature.getPlugin()
-                .getProxy()
+                .getProxyInstance()
                 .getAllPlayers()
                 .stream()
                 .map(Player::getUsername)

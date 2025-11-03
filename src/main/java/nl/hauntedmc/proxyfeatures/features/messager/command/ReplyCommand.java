@@ -19,7 +19,7 @@ public class ReplyCommand implements FeatureCommand {
 
     public ReplyCommand(Messenger feature) {
         this.feature = feature;
-        this.proxy = feature.getPlugin().getProxy();
+        this.proxy = feature.getPlugin().getProxyInstance();
         this.handler = feature.getHandler();
     }
 
