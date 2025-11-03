@@ -19,9 +19,6 @@ public class Announcer extends VelocityBaseFeature<Meta> {
     public ConfigMap getDefaultConfig() {
         ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
-        defaults.put("message_interval", 200);
-
-        defaults.put("messages", List.of("text1"));
         return defaults;
     }
 
