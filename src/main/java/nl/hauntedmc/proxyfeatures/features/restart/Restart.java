@@ -32,6 +32,10 @@ public class Restart extends VelocityBaseFeature<Meta> {
         defaults.put("title_fade_in_ms", 500);
         defaults.put("title_stay_ms", 2000);
         defaults.put("title_fade_out_ms", 500);
+        defaults.put("schedule_time_zone", "system");
+        defaults.put("schedule_check_interval_seconds", 5);
+        defaults.put("schedule_announce_hours_before", 5);
+
         return defaults;
     }
 
@@ -50,6 +54,20 @@ public class Restart extends VelocityBaseFeature<Meta> {
         m.add("restart.final_title", "<red><bold>PROXY RESTART</bold></red>");
         m.add("restart.final_subtitle", "<gray>Je wordt nu gekickt.</gray>");
         m.add("restart.kick", "<red>De proxy wordt herstart. Je kunt zo weer joinen.</red>");
+        m.add("restart.schedule.cmd_usage", "&eGebruik: /proxyrestart schedule &7<datum of dag> <tijd> &8of &7<datumTtijd>");
+        m.add("restart.schedule.invalid_datetime", "&cOngeldige datum of tijd. Voorbeelden: &f2026-01-28 18:00&c, &f28-01-2026 18:00&c, &fmonday 18:00&c, &f2026-01-28T18:00");
+        m.add("restart.schedule.time_must_be_future", "&cDe opgegeven tijd moet in de toekomst liggen.");
+        m.add("restart.schedule.already_scheduled", "&cEr staat al een restart ingepland op &f{datetime}&c. Gebruik &f/proxyrestart cancel&c om dit te annuleren.");
+        m.add("restart.schedule.blocked_by_running", "&cEr is al een restart bezig. Inplannen kan nu niet.");
+        m.add("restart.schedule.set", "&aProxy restart ingepland voor &f{datetime}&a.");
+        m.add("restart.schedule.announce_chat", "&f&l[PROXY RESTART] &cEr staat een proxy restart ingepland op &f{datetime}&c.");
+        m.add("restart.cancel.cmd_usage", "&eGebruik: /proxyrestart cancel");
+        m.add("restart.cancel.none", "&eEr staat geen restart ingepland.");
+        m.add("restart.cancel.ok", "&aDe ingeplande restart is geannuleerd.");
+        m.add("restart.status.cmd_usage", "&eGebruik: /proxyrestart status");
+        m.add("restart.status.none", "&eEr staat geen restart ingepland.");
+        m.add("restart.status.scheduled", "&aIngepland: &f{datetime}&a.");
+
         return m;
     }
 
@@ -61,6 +79,9 @@ public class Restart extends VelocityBaseFeature<Meta> {
 
     @Override
     public void disable() {
+        if (this.handler != null) {
+            this.handler.shutdown();
+        }
     }
 
     public RestartHandler getHandler() {
