@@ -9,8 +9,7 @@ target/
 *.iml
 *.ipr
 
-### Eclipse ###
-.apt_generated
+### Eclipse ###.apt_generated
 .classpath
 .factorypath
 .project
@@ -38,3 +37,9 @@ comments.txt
 /dependency-reduced-pom.xml.versionsBackup
 /settings.xml
 /pom.xml.versionsBackup
+
+# Python scripts
+*.py
+
+# Raw txt files
+*.txt

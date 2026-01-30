@@ -4,30 +4,41 @@ import nl.hauntedmc.proxyfeatures.api.io.config.ConfigNode;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigService;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigView;
 import nl.hauntedmc.proxyfeatures.features.announcer.Announcer;
-import org.slf4j.Logger;
+import nl.hauntedmc.proxyfeatures.framework.log.FeatureLogger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-/**
- * Loads announcer message keys from local/announcer.yml using the unified ConfigView API.
- */
-public class AnnouncerRegistry {
+public final class AnnouncerRegistry {
 
     private static final String RESOURCE_FILE = "local/announcer.yml";
+    public static final String FALLBACK_KEY = "announcer.text1";
+
+    public record Announcement(String key, int weight) {
+    }
 
     private final Announcer feature;
-    private final Logger logger;
-    private final List<String> messageKeys = new ArrayList<>();
+    private final FeatureLogger logger;
+
+    private final List<Announcement> announcements = new ArrayList<>();
+    private long totalWeight = 0;
 
     public AnnouncerRegistry(Announcer feature) {
         this.feature = feature;
-        this.logger = feature.getPlugin().getLogger();
+        this.logger = feature.getLogger(); // ✅ requested change
         loadMessagesFromConfig();
     }
 
     public void reload() {
-        messageKeys.clear();
+        announcements.clear();
+        totalWeight = 0;
         loadMessagesFromConfig();
+    }
+
+    public List<Announcement> announcements() {
+        return Collections.unmodifiableList(announcements);
     }
 
     private void loadMessagesFromConfig() {
@@ -35,11 +46,11 @@ public class AnnouncerRegistry {
                 .view(RESOURCE_FILE, /* copyDefaultsFromJar */ true);
 
         ConfigNode msgsNode = store.node("messages");
-        Map<String, ConfigNode> defs = msgsNode.children(); // <-- type-safe, avoids raw Map
+        Map<String, ConfigNode> defs = msgsNode.children();
 
         if (defs.isEmpty()) {
-            logger.warn("[ProxyFeatures] Announcer: no messages found in {}. Using 'announcer.default'.", RESOURCE_FILE);
-            messageKeys.add("announcer.default");
+            logger.warn("No messages found in " + RESOURCE_FILE + ". Using fallback '" + FALLBACK_KEY + "'.");
+            addFallback();
             return;
         }
 
@@ -48,6 +59,7 @@ public class AnnouncerRegistry {
             if (idKey == null || idKey.isBlank()) continue;
 
             ConfigNode spec = e.getValue();
+
             String explicitKey = spec.get("key").as(String.class, null);
             int weight = spec.get("weight").as(Integer.class, 1);
             if (weight < 1) weight = 1;
@@ -56,28 +68,24 @@ public class AnnouncerRegistry {
             if (explicitKey != null && !explicitKey.isBlank()) {
                 finalKey = explicitKey.trim();
             } else {
-                finalKey = idKey.contains(".") ? idKey.trim() : "announcer." + idKey.trim();
+                String trimmed = idKey.trim();
+                finalKey = trimmed.contains(".") ? trimmed : "announcer." + trimmed;
             }
 
-            for (int i = 0; i < weight; i++) {
-                messageKeys.add(finalKey);
-            }
+            announcements.add(new Announcement(finalKey, weight));
+            totalWeight += weight;
         }
 
-        if (messageKeys.isEmpty()) {
-            logger.warn("[ProxyFeatures] Announcer: all messages invalid/empty in {}. Using 'announcer.default'.", RESOURCE_FILE);
-            messageKeys.add("announcer.default");
-        } else {
-            Collections.shuffle(messageKeys); // shuffle after weight expansion
+        if (announcements.isEmpty() || totalWeight <= 0) {
+            logger.warn("All messages invalid/empty in " + RESOURCE_FILE + ". Using fallback '" + FALLBACK_KEY + "'.");
+            announcements.clear();
+            totalWeight = 0;
+            addFallback();
         }
     }
 
-    public String get(int index) {
-        if (messageKeys.isEmpty()) return "announcer.default";
-        return messageKeys.get(Math.floorMod(index, messageKeys.size()));
-    }
-
-    public int getTotalMessages() {
-        return messageKeys.size();
+    private void addFallback() {
+        announcements.add(new Announcement(FALLBACK_KEY, 1));
+        totalWeight = 1;
     }
 }
