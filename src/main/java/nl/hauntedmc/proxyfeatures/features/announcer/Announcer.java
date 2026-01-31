@@ -23,8 +23,8 @@ public class Announcer extends VelocityBaseFeature<Meta> {
         defaults.put("enabled", false);
 
         // Timing
-        defaults.put("message_interval", 200);     // seconds
-        defaults.put("initial_delay", 30);         // seconds (prevents instant spam on enable/reload)
+        defaults.put("message_interval", 180);     // seconds
+        defaults.put("initial_delay", 10);         // seconds (prevents instant spam on enable/reload)
 
         // Mode: SEQUENTIAL | SHUFFLE | WEIGHTED_RANDOM
         defaults.put("mode", "SHUFFLE");

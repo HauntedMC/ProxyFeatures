@@ -1,50 +1,53 @@
 package nl.hauntedmc.proxyfeatures.features.antivpn.internal;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import nl.hauntedmc.proxyfeatures.features.antivpn.api.CountryAPI;
 
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Thread-safe in-memory storage of country codes.
+ * Thread-safe storage of country codes.
+ * Fix #6: username staging is TTL-based so it can't leak indefinitely when login is denied later in the pipeline.
  */
-public class CountryService implements CountryAPI {
+public final class CountryService implements CountryAPI {
 
-    // Final mapping by UUID -> ISO country code (uppercased)
     private final ConcurrentHashMap<UUID, String> byUuid = new ConcurrentHashMap<>();
-    // Temporary mapping during login: username(lowercase) -> ISO code
-    private final ConcurrentHashMap<String, String> byUsername = new ConcurrentHashMap<>();
+    private final Cache<String, String> stagedByUsernameLower;
+
+    public CountryService(Duration usernameTtl) {
+        this.stagedByUsernameLower = Caffeine.newBuilder()
+                .expireAfterWrite(usernameTtl)
+                .maximumSize(50_000)
+                .build();
+    }
 
     @Override
     public Optional<String> getCountry(UUID uuid) {
         String v = byUuid.get(uuid);
-        return v == null || v.isBlank() ? Optional.empty() : Optional.of(v);
+        return (v == null || v.isBlank()) ? Optional.empty() : Optional.of(v);
     }
 
-    /**
-     * Stage the detected country for a username during PreLogin.
-     */
     public void stageForUsername(String username, String countryCode) {
-        if (username == null || username.isBlank() || countryCode == null || countryCode.isBlank()) return;
-        byUsername.put(username.toLowerCase(Locale.ROOT), normalize(countryCode));
+        if (username == null || username.isBlank()) return;
+        if (countryCode == null || countryCode.isBlank()) return;
+        stagedByUsernameLower.put(username.toLowerCase(Locale.ROOT), normalize(countryCode));
     }
 
-    /**
-     * Promote staged username mapping to UUID after successful login.
-     */
     public void promoteToUuid(String username, UUID uuid) {
         if (username == null || uuid == null) return;
-        String code = byUsername.remove(username.toLowerCase(Locale.ROOT));
+        String key = username.toLowerCase(Locale.ROOT);
+        String code = stagedByUsernameLower.getIfPresent(key);
+        stagedByUsernameLower.invalidate(key);
         if (code != null && !code.isBlank()) {
             byUuid.put(uuid, code);
         }
     }
 
-    /**
-     * Cleanup on disconnect (optional; keep if you don't want to persist across sessions).
-     */
     public void clear(UUID uuid) {
         if (uuid != null) byUuid.remove(uuid);
     }
