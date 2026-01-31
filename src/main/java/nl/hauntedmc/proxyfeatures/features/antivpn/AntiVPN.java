@@ -55,10 +55,20 @@ public class AntiVPN extends VelocityBaseFeature<Meta> {
         defaults.put("whitelist.entries", List.of());
 
         // Providers - ordered chain
-        defaults.put("providers.order", List.of("ip2location"));
+        defaults.put("providers.order", List.of("proxycheck", "ip2location"));
         defaults.put("providers.ip2location.enabled", true);
         defaults.put("providers.ip2location.api_key", "");
         defaults.put("providers.ip2location.timeout_millis", 2500);
+
+        defaults.put("providers.proxycheck.enabled", true);
+        defaults.put("providers.proxycheck.api_key", "");
+        defaults.put("providers.proxycheck.base_url", "https://proxycheck.io/v3/");
+        defaults.put("providers.proxycheck.api_version", "20-November-2025"); // optional pin
+        defaults.put("providers.proxycheck.days", 0); // optional, 0 = no &days flag
+        defaults.put("providers.proxycheck.timeout_millis", 2500);
+        defaults.put("providers.proxycheck.strict", true);
+        defaults.put("providers.proxycheck.risk_threshold", 1); // 1 = any risk > 0 blocks
+        defaults.put("providers.proxycheck.min_confidence", 0); // 0 = ignore confidence
 
         // Cache
         defaults.put("cache.enabled", true);

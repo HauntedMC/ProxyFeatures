@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.antivpn.internal.provider;
 
 import nl.hauntedmc.proxyfeatures.features.antivpn.AntiVPN;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.provider.ip2location.IP2LocationProvider;
+import nl.hauntedmc.proxyfeatures.features.antivpn.internal.provider.proxycheck.ProxyCheckProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,8 @@ public final class ProviderRegistry {
 
     public static ProviderChain buildChain(AntiVPN feature) {
         List<String> order = feature.getConfigHandler().node("providers").get("order").listOf(String.class);
-        if (order == null) order = List.of("ip2location");
+        if (order == null) order = List.of("proxycheck", "ip2location");
+
 
         List<IPIntelligenceProvider> out = new ArrayList<>();
 
@@ -34,7 +36,12 @@ public final class ProviderRegistry {
                 case "ip2location" -> {
                     IP2LocationProvider p = IP2LocationProvider.fromConfig(feature);
                     if (p != null) out.add(p);
+                }// inside the switch (id)
+                case "proxycheck" -> {
+                    ProxyCheckProvider p = ProxyCheckProvider.fromConfig(feature);
+                    if (p != null) out.add(p);
                 }
+
                 default -> feature.getLogger().warn("Unknown provider id in providers.order: " + id);
             }
         }
