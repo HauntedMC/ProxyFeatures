@@ -28,12 +28,23 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class BroadcastProxyCommand implements BrigadierCommand {
 
+    private static final long TICK_MILLIS = 50L;
+
     private final Broadcast feature;
     private final ProxyServer proxy;
+
+    /**
+     * Cached title timings (computed once on init).
+     * Note: if you change config and run /proxyfeatures softreload, the framework reloads the YAML in memory,
+     * but it will NOT re-create this command. If you want these values to update on softreload too,
+     * you need a small hook to call {@link #reloadTitleTimesCache()} after config reload.
+     */
+    private volatile Title.Times cachedTitleTimes;
 
     public BroadcastProxyCommand(Broadcast feature) {
         this.feature = feature;
         this.proxy = ProxyFeatures.getProxyInstance();
+        reloadTitleTimesCache();
     }
 
     @Override
@@ -107,7 +118,10 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
     private void broadcastChat(String msg, CommandSource src) {
         Component comp = ComponentFormatter.deserialize(msg)
                 .expect(TextFormatter.InputFormat.MIXED_INPUT)
-                .features(ComponentFormatter.ALL_DEFAULTS()).autoLinkUrls(true).toComponent();
+                .features(ComponentFormatter.ALL_DEFAULTS())
+                .autoLinkUrls(true)
+                .toComponent();
+
         proxy.getAllPlayers().forEach(p -> p.sendMessage(comp));
         acknowledge(src);
     }
@@ -127,27 +141,46 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
 
         Component titleComp = ComponentFormatter.deserialize(titlePart)
                 .expect(TextFormatter.InputFormat.MIXED_INPUT)
-                .features(ComponentFormatter.ALL_DEFAULTS()).toComponent();
+                .features(ComponentFormatter.ALL_DEFAULTS())
+                .toComponent();
+
         Component subComp = ComponentFormatter.deserialize(subPart)
                 .expect(TextFormatter.InputFormat.MIXED_INPUT)
-                .features(ComponentFormatter.ALL_DEFAULTS()).toComponent();
+                .features(ComponentFormatter.ALL_DEFAULTS())
+                .toComponent();
 
-        int fadeIn = (int) feature.getConfigHandler().get("title_fade_in");
-        int stay = (int) feature.getConfigHandler().get("title_stay");
-        int fadeOut = (int) feature.getConfigHandler().get("title_fade_out");
-
-        Title.Times times = Title.Times.times(
-                Duration.ofMillis(fadeIn * 50L),
-                Duration.ofMillis(stay * 50L),
-                Duration.ofMillis(fadeOut * 50L));
-
+        Title.Times times = this.cachedTitleTimes; // volatile read
         Title title = Title.title(titleComp, subComp, times);
 
         proxy.getAllPlayers().forEach(p -> p.showTitle(title));
         acknowledge(src);
     }
 
+    /* ============================ Cache ============================ */
+
+    /**
+     * Recomputes the cached title timings from config.
+     * Call this if you ever add a softreload hook for this feature/command.
+     */
+    public void reloadTitleTimesCache() {
+        var root = feature.getConfigHandler().node();
+
+        int fadeInTicks = clampNonNegative(root.get("title_fade_in").as(Integer.class, 20));
+        int stayTicks = clampNonNegative(root.get("title_stay").as(Integer.class, 100));
+        int fadeOutTicks = clampNonNegative(root.get("title_fade_out").as(Integer.class, 20));
+
+        this.cachedTitleTimes = Title.Times.times(
+                Duration.ofMillis(fadeInTicks * TICK_MILLIS),
+                Duration.ofMillis(stayTicks * TICK_MILLIS),
+                Duration.ofMillis(fadeOutTicks * TICK_MILLIS)
+        );
+    }
+
     /* ============================ Helpers ============================ */
+
+    private static int clampNonNegative(int v) {
+        return Math.max(0, v);
+    }
 
     private void acknowledge(CommandSource src) {
         src.sendMessage(feature.getLocalizationHandler()

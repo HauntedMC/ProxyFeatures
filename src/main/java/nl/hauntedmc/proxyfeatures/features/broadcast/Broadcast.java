@@ -28,7 +28,6 @@ public class Broadcast extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
         m.add("broadcast.usage", "&eGebruik: /broadcastproxy <title|chat> <bericht>");
         m.add("broadcast.sent", "&aBroadcast verstuurd.");
-        m.add("broadcast.noMode", "&cOngeldige optie. Gebruik 'title' of 'chat'.");
         return m;
     }
 
