@@ -149,7 +149,7 @@ public final class ClientInfoAdvisor {
         long cooldown = Math.max(0L, config.notifyCooldownMillis());
         long last = lastNotifyAtMillis.getOrDefault(uuid, 0L);
 
-        // Key change: if recommendations changed (e.g. due to player adjusting settings),
+        // If recommendations changed (e.g. due to player adjusting settings),
         // notify immediately even if cooldown has not passed.
         if (!changed && cooldown > 0 && now - last < cooldown) {
             return;
@@ -212,10 +212,12 @@ public final class ClientInfoAdvisor {
 
         List<Component> lines = new ArrayList<>();
         lines.add(feature.getLocalizationHandler()
-                .getMessage("clientinfo.header")
+                .getMessage("clientinfo.recommend_block_header")
                 .forAudience(viewer)
                 .build());
+
         lines.addAll(formatRecommendationLines(viewer, recs, false));
+
         lines.add(feature.getLocalizationHandler()
                 .getMessage("clientinfo.footer_help_hint")
                 .forAudience(viewer)
@@ -332,9 +334,19 @@ public final class ClientInfoAdvisor {
 
     private Component buildPushRecommendations(Player player, List<Recommendation> recs) {
         List<Component> lines = new ArrayList<>();
-        lines.add(feature.getLocalizationHandler().getMessage("clientinfo.header").forAudience(player).build());
+
+        lines.add(feature.getLocalizationHandler()
+                .getMessage("clientinfo.recommend_block_header")
+                .forAudience(player)
+                .build());
+
         lines.addAll(formatRecommendationLines(player, recs, false));
-        lines.add(feature.getLocalizationHandler().getMessage("clientinfo.footer_help_hint").forAudience(player).build());
+
+        lines.add(feature.getLocalizationHandler()
+                .getMessage("clientinfo.footer_help_hint")
+                .forAudience(player)
+                .build());
+
         return Component.join(JoinConfiguration.newlines(), lines);
     }
 
