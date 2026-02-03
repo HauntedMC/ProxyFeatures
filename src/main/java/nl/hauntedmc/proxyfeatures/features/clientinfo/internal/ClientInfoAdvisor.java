@@ -12,12 +12,19 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.clientinfo.ClientInfo;
 
-import java.util.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ClientInfoAdvisor {
 
-    private static final String PERM_NOTIFY_BYPASS = "proxyfeatures.feature.clientinfo.notify.bypass";
+    private static final String FP_NONE = "<none>";
 
     private final ClientInfo feature;
     private final ClientInfoSettingsService settingsService;
@@ -59,20 +66,45 @@ public final class ClientInfoAdvisor {
         notifyEnabledCache.remove(uuid);
     }
 
-    public void loadPlayerSettings(Player player) {
+    /**
+     * Ensures the DB-backed toggle is loaded once per session.
+     *
+     * @return true if loaded or already cached; false if loading failed (fail-closed: no notifications).
+     */
+    public boolean ensurePlayerSettingsLoaded(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (notifyEnabledCache.containsKey(uuid)) return true;
+        return loadPlayerSettings(player);
+    }
+
+    /**
+     * Loads settings (once) and stores them in-memory for the session.
+     *
+     * @return true when cache has a value afterwards; false on failure.
+     */
+    public boolean loadPlayerSettings(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (notifyEnabledCache.containsKey(uuid)) return true;
+
         try {
-            boolean enabled = settingsService.isNotificationsEnabled(player.getUniqueId(), player.getUsername());
-            notifyEnabledCache.put(player.getUniqueId(), enabled);
+            boolean enabled = settingsService.isNotificationsEnabled(uuid, player.getUsername());
+            notifyEnabledCache.put(uuid, enabled);
+            return true;
         } catch (Exception e) {
-            feature.getLogger().warn(Component.text("Failed to load ClientInfo settings for " + player.getUsername()));
+            feature.getLogger().warn("Failed to load ClientInfo settings for " + player.getUsername()
+                    + " (" + e.getClass().getSimpleName() + "): " + e.getMessage());
+            feature.getLogger().debug(stackTrace(e));
+            return false;
         }
     }
 
     public void toggleNotifications(Player player) {
         UUID uuid = player.getUniqueId();
+
         boolean nowEnabled = !notifyEnabledCache.getOrDefault(uuid, true);
         notifyEnabledCache.put(uuid, nowEnabled);
 
+        // Persist (DB-backed), but the in-memory value is authoritative during this session.
         settingsService.setNotificationsEnabled(uuid, player.getUsername(), nowEnabled);
 
         String key = nowEnabled ? "clientinfo.toggle.enabled" : "clientinfo.toggle.disabled";
@@ -87,34 +119,48 @@ public final class ClientInfoAdvisor {
 
         Player player = opt.get();
 
-        if (!player.hasPermission(PERM_NOTIFY_BYPASS)) {
-            boolean enabled = notifyEnabledCache.getOrDefault(uuid, true);
-            if (!enabled) return;
-        }
+        // Respect toggle always: if we cannot determine the value, do not notify.
+        if (!ensurePlayerSettingsLoaded(player)) return;
 
-        if (config.notifyOnlyOncePerSession() && sentThisSession.putIfAbsent(uuid, Boolean.TRUE) != null) {
+        boolean enabled = notifyEnabledCache.getOrDefault(uuid, true);
+        if (!enabled) return;
+
+        if (config.notifyOnlyOncePerSession() && sentThisSession.containsKey(uuid)) {
             return;
         }
 
         List<Recommendation> recs = evaluate(player);
-        if (recs.isEmpty()) return;
+
+        // Track "no recommendations" state, so re-triggering the same set later counts as a change.
+        if (recs.isEmpty()) {
+            lastFingerprint.put(uuid, FP_NONE);
+            return;
+        }
 
         String fp = fingerprint(recs);
-        if (config.notifyOnlyIfChanged()) {
-            String prev = lastFingerprint.put(uuid, fp);
-            if (prev != null && prev.equals(fp)) return;
-        } else {
-            lastFingerprint.put(uuid, fp);
+        String prev = lastFingerprint.put(uuid, fp);
+        boolean changed = prev == null || !prev.equals(fp);
+
+        if (config.notifyOnlyIfChanged() && !changed) {
+            return;
         }
 
         long now = System.currentTimeMillis();
         long cooldown = Math.max(0L, config.notifyCooldownMillis());
         long last = lastNotifyAtMillis.getOrDefault(uuid, 0L);
-        if (cooldown > 0 && now - last < cooldown) return;
+
+        // Key change: if recommendations changed (e.g. due to player adjusting settings),
+        // notify immediately even if cooldown has not passed.
+        if (!changed && cooldown > 0 && now - last < cooldown) {
+            return;
+        }
 
         lastNotifyAtMillis.put(uuid, now);
-
         player.sendMessage(buildPushRecommendations(player, recs));
+
+        if (config.notifyOnlyOncePerSession()) {
+            sentThisSession.put(uuid, Boolean.TRUE);
+        }
     }
 
     public Component buildFullView(CommandSource viewer, Player target) {
@@ -300,7 +346,6 @@ public final class ClientInfoAdvisor {
                 ? "Unknown"
                 : proto + " (protocol " + proto.getProtocol() + ")";
 
-        // stable locale representation
         String locale = (s.getLocale() == null) ? "unknown" : s.getLocale().toLanguageTag();
 
         List<Map.Entry<String, String>> pairs = List.of(
@@ -330,11 +375,26 @@ public final class ClientInfoAdvisor {
     }
 
     private static String fingerprint(List<Recommendation> recs) {
-        return recs.stream()
-                .sorted(Comparator.comparing(Recommendation::id, String.CASE_INSENSITIVE_ORDER))
-                .map(r -> r.id() + "=" + r.found() + "->" + r.recommended())
-                .reduce((a, b) -> a + "|" + b)
-                .orElse("");
+        if (recs.isEmpty()) return FP_NONE;
+
+        List<Recommendation> sorted = new ArrayList<>(recs);
+        sorted.sort(Comparator.comparing(Recommendation::id, String.CASE_INSENSITIVE_ORDER));
+
+        StringBuilder sb = new StringBuilder(sorted.size() * 32);
+        for (int i = 0; i < sorted.size(); i++) {
+            Recommendation r = sorted.get(i);
+            if (i > 0) sb.append('|');
+            sb.append(r.id()).append('=').append(r.found()).append("->").append(r.recommended());
+        }
+        return sb.toString();
+    }
+
+    private static String stackTrace(Throwable t) {
+        StringWriter sw = new StringWriter(1024);
+        PrintWriter pw = new PrintWriter(sw);
+        t.printStackTrace(pw);
+        pw.flush();
+        return sw.toString();
     }
 
     /* ============================== Models ============================== */

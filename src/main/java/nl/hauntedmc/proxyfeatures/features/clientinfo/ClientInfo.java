@@ -64,6 +64,7 @@ public class ClientInfo extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
 
         // Push recommendations
+        m.add("clientinfo.recommend_block_header", "&6&lClient instellingen aanbevelingen:");
         m.add("clientinfo.header", "  &fEr zijn aanbevelingen voor je client instellingen:");
         m.add("clientinfo.recommendation", "    • &f{setting_name}: &c{setting_found} &7-> &a{setting_recommended}{help}");
         m.add("clientinfo.no_recommendations", "  &aJe client instellingen zien er goed uit!");
@@ -87,11 +88,11 @@ public class ClientInfo extends VelocityBaseFeature<Meta> {
         m.add("clientinfo.toggle.disabled", "&7Client aanbevelingen staan nu &cuit&7.");
 
         // Help
-        m.add("clientinfo.help.header", "&eClient instellingen aanpassen:");
+        m.add("clientinfo.help.header", "&6&lClient instellingen aanpassen:");
         m.add("clientinfo.help.render_distance", "  • &fRender Distance&7: &aOpties &8-> &aVideo Settings &8-> &aRender Distance");
         m.add("clientinfo.help.chat_mode", "  • &fChat Mode&7: &aOpties &8-> &aChat Settings &8-> &aChat");
         m.add("clientinfo.help.particles", "  • &fParticles&7: &aOpties &8-> &aVideo Settings &8-> &aParticles");
-        m.add("clientinfo.help.footer", "&7Je kunt de meldingen uitzetten met &6/clientinfo toggle");
+        m.add("clientinfo.help.footer", "&7Je kunt de meldingen uitzetten met &f/clientinfo toggle");
 
         return m;
     }
