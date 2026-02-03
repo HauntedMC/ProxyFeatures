@@ -3,125 +3,70 @@ package nl.hauntedmc.proxyfeatures.features.clientinfo.listener;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.player.PlayerSettingsChangedEvent;
-import com.velocitypowered.api.event.player.ServerConnectedEvent;
+import com.velocitypowered.api.event.player.ServerPostConnectEvent;
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.scheduler.ScheduledTask;
-import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.features.clientinfo.ClientInfo;
+import nl.hauntedmc.proxyfeatures.features.clientinfo.internal.ClientInfoAdvisor;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerListener {
 
     private final ClientInfo feature;
-    private final ConcurrentHashMap<UUID, ScheduledTask> pendingTasks = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<UUID, ScheduledTask> switchTasks = new ConcurrentHashMap<>();
+    private final ClientInfoAdvisor advisor;
 
-    public PlayerListener(ClientInfo feature) {
+    private final ConcurrentHashMap<UUID, ScheduledTask> pendingTasks = new ConcurrentHashMap<>();
+
+    public PlayerListener(ClientInfo feature, ClientInfoAdvisor advisor) {
         this.feature = feature;
+        this.advisor = advisor;
     }
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         Player player = event.getPlayer();
-        ScheduledTask task = pendingTasks.remove(player.getUniqueId());
+        UUID uuid = player.getUniqueId();
+
+        ScheduledTask task = pendingTasks.remove(uuid);
         if (task != null) {
             feature.getLifecycleManager().getTaskManager().cancelTask(task);
         }
+
+        advisor.onDisconnect(uuid);
     }
 
-    /**
-     * On gamemode switch, wait 10 seconds then run recommendations.
-     */
     @Subscribe
-    public void onServerConnected(ServerConnectedEvent event) {
+    public void onServerPostConnect(ServerPostConnectEvent event) {
         Player player = event.getPlayer();
-        scheduleSettingCheck(player, 5000);
+
+        // Ensure DB-backed toggle is loaded once per session
+        advisor.loadPlayerSettings(player);
+
+        // Debounced check after server change
+        scheduleSettingCheck(player.getUniqueId());
     }
 
-    /**
-     * Debounce settings changes: wait 5 seconds after last change before checking.
-     */
     @Subscribe
     public void onSettingsChanged(PlayerSettingsChangedEvent event) {
         Player player = event.getPlayer();
-        scheduleSettingCheck(player, 5000);
+        scheduleSettingCheck(player.getUniqueId());
     }
 
-    private void scheduleSettingCheck(Player player, int delay) {
-        UUID uuid = player.getUniqueId();
-        // Cancel any previous switch task
+    private void scheduleSettingCheck(UUID uuid) {
+        // Cancel previous pending
         ScheduledTask pending = pendingTasks.remove(uuid);
         if (pending != null) {
             feature.getLifecycleManager().getTaskManager().cancelTask(pending);
         }
-        // Schedule recommendation after 10 seconds (10000 ms)
+
+        long delayMillis = advisor.config().notifyDebounceMillis();
         ScheduledTask task = feature.getLifecycleManager()
                 .getTaskManager()
-                .scheduleDelayedTask(() -> runRecommendationCheck(player), Duration.ofMillis(delay));
+                .scheduleDelayedTask(() -> advisor.maybeNotify(uuid), Duration.ofMillis(delayMillis));
+
         pendingTasks.put(uuid, task);
-    }
-
-    /**
-     * Performs the same recommendation logic after debounce delay.
-     */
-    private void runRecommendationCheck(Player player) {
-        UUID uuid = player.getUniqueId();
-        pendingTasks.remove(uuid);
-
-        PlayerSettings settings = player.getPlayerSettings();
-        int idealViewDistance = 5;
-        PlayerSettings.ChatMode idealChat = PlayerSettings.ChatMode.SHOWN;
-        PlayerSettings.ParticleStatus idealParticles = PlayerSettings.ParticleStatus.ALL;
-
-        boolean foundRecommendation = false;
-        List<Component> recommendationMessage = new ArrayList<>();
-        recommendationMessage.add(feature.getLocalizationHandler()
-                .getMessage("clientinfo.header").forAudience(player).build());
-
-        // Check view distance
-        if (settings.getViewDistance() < idealViewDistance) {
-            foundRecommendation = true;
-            recommendationMessage.add(feature.getLocalizationHandler()
-                    .getMessage("clientinfo.recommendation")
-                    .with("setting_name", "Render Distance")
-                    .with("setting_found", String.valueOf(settings.getViewDistance()))
-                    .with("setting_recommended", String.valueOf(idealViewDistance))
-                    .forAudience(player)
-                    .build());
-        }
-
-        // Check chat mode
-        if (settings.getChatMode() != idealChat) {
-            foundRecommendation = true;
-            recommendationMessage.add(feature.getLocalizationHandler()
-                    .getMessage("clientinfo.recommendation")
-                    .with("setting_name", "Chat Mode")
-                    .with("setting_found", settings.getChatMode().name())
-                    .with("setting_recommended", idealChat.name())
-                    .forAudience(player)
-                    .build());
-        }
-
-        // Check particle setting
-        if (settings.getParticleStatus() != idealParticles) {
-            foundRecommendation = true;
-            recommendationMessage.add(feature.getLocalizationHandler()
-                    .getMessage("clientinfo.recommendation")
-                    .with("setting_name", "Particles")
-                    .with("setting_found", settings.getParticleStatus().name())
-                    .with("setting_recommended", idealParticles.name())
-                    .forAudience(player)
-                    .build());
-        }
-
-        if (foundRecommendation) {
-            recommendationMessage.forEach(player::sendMessage);
-        }
     }
 }
