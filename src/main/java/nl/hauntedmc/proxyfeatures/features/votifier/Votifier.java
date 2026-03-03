@@ -1,5 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.votifier;
 
+import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
@@ -9,63 +10,66 @@ import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.votifier.command.VotifierCommand;
-import nl.hauntedmc.proxyfeatures.features.votifier.messaging.EventBusHandler;
+import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
+import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
 import nl.hauntedmc.proxyfeatures.features.votifier.meta.Meta;
-import nl.hauntedmc.proxyfeatures.features.votifier.model.Vote;
-import nl.hauntedmc.proxyfeatures.features.votifier.server.VotifierServer;
-import nl.hauntedmc.proxyfeatures.features.votifier.util.RSAUtil;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.file.FileSystemException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.GeneralSecurityException;
-import java.security.PrivateKey;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Votifier extends VelocityBaseFeature<Meta> {
 
-    private VotifierServer server;
+    private static final AtomicBoolean MESSAGE_TYPE_REGISTERED = new AtomicBoolean(false);
 
-    private EventBusHandler eventBusHandler;
-    private static final String VOTE_CHANNEL = "vote";
+    private volatile VotifierService service;
 
     public Votifier(ProxyFeatures plugin) {
         super(plugin, new Meta());
     }
 
-    /* =========================  Defaults  ========================= */
-
     @Override
     public ConfigMap getDefaultConfig() {
         ConfigMap cfg = new ConfigMap();
 
-        // Core
         cfg.put("enabled", false);
 
         // Network
         cfg.put("host", "0.0.0.0");
-        cfg.put("port", 8199);
+        cfg.put("port", 8249);
         cfg.put("readTimeoutMillis", 5000);
         cfg.put("backlog", 50);
 
-        // Security / files — always under <dataDir>/local/<file_name>
+        // Security and files under <dataDir>/local/<file_name>
         cfg.put("generateKeys", true);
         cfg.put("keyBits", 2048);
-        cfg.put("publicKeyFile", "public.key");   // PEM (X.509)
-        cfg.put("privateKeyFile", "private.key"); // PEM (PKCS#8)
+        cfg.put("publicKeyFile", "public.key");
+        cfg.put("privateKeyFile", "private.key");
 
-        // Allow/Deny as comma-separated strings
+        // Inbound IP filtering (CSV string). Empty allowlist means allow all unless denied.
         cfg.put("allowlist", "");
         cfg.put("denylist", "");
 
         // Safety
         cfg.put("maxPacketBytes", 8192);
+
+        // Redis publish settings
+        cfg.put("redis.enabled", true);
+        cfg.put("redis.channel", "proxy.votifier.vote");
+        cfg.put("redis.publish_legacy_channel", true);
+        cfg.put("redis.legacy_channel", "vote");
+
+        // Vote stats and rollover
+        cfg.put("stats.enabled", true);
+        cfg.put("stats.timezone", "Europe/Amsterdam");
+        cfg.put("stats.reset_check_minutes", 5);
+        cfg.put("stats.streak_gap_hours", 36);
+        cfg.put("stats.dump_top_n", 100);
+        cfg.put("stats.dump_file_prefix", "votifier-top100");
+
+        // Logging
+        cfg.put("logging.log_votes", true);
 
         return cfg;
     }
@@ -73,163 +77,110 @@ public class Votifier extends VelocityBaseFeature<Meta> {
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap m = new MessageMap();
-        m.add("votifier.usage", "[Votifier] Gebruik: /votifier <status");
-        m.add("votifier.status",
-                "[Votifier] Status={status}, Host={host}, Port={port}, Timeout={timeout}ms, KeyBits={keybits}");
+
+        m.add("votifier.command.usage",
+                "&7Gebruik: &f/votifier &7<status|reload|top|dump>");
+        m.add("votifier.command.status",
+                "&7[&aVotifier&7] status=&f{status}&7 host=&f{host}&7 port=&f{port}&7 timeout=&f{timeout}ms&7 keyBits=&f{keybits}&7 redis=&f{redis}&7 db=&f{db}");
+
+        m.add("votifier.command.top.header",
+                "&7[&aVotifier&7] Top &f{limit}&7 voor maand &f{month}&7:");
+        m.add("votifier.command.top.entry",
+                "  &8#&f{rank}&8: &f{player}&7 votes=&f{votes}&7 totaal=&f{total}");
+        m.add("votifier.command.top.empty",
+                "&7[&aVotifier&7] &7Geen votes gevonden voor maand &f{month}&7.");
+
+        m.add("votifier.command.dump.ok",
+                "&7[&aVotifier&7] &aDump geschreven: &f{file}");
+        m.add("votifier.command.dump.fail",
+                "&7[&aVotifier&7] &cDump mislukt: &f{error}");
 
         return m;
     }
 
-    /* =========================  Lifecycle  ========================= */
-
     @Override
     public void initialize() {
-        getLifecycleManager().getCommandManager().registerFeatureCommand(new VotifierCommand(this));
+        // Commands
+        getLifecycleManager().getCommandManager().registerBrigadierCommand(new VotifierCommand(this));
 
-        getLifecycleManager()
+        // Data provider init
+        getLifecycleManager().getDataManager().initDataProvider(getFeatureName());
+
+        // Redis messaging (optional)
+        Optional<DatabaseProvider> redisOpt = getLifecycleManager()
                 .getDataManager()
-                .initDataProvider(getFeatureName());
+                .registerConnection("redis", DatabaseType.REDIS_MESSAGING, "default");
 
-
-        Optional<DatabaseProvider> opt = getLifecycleManager()
-                .getDataManager()
-                .registerConnection(
-                        "redis",
-                        DatabaseType.REDIS_MESSAGING,
-                        "default"
-                );
-
-
-        if (opt.isEmpty()) {
-            getLogger().warn("Redis messaging provider not available; votes will NOT be distributed.");
-        } else {
-            DatabaseProvider dbp = opt.get();
-            MessagingDataAccess redisBus;
+        MessagingDataAccess redisBus = null;
+        if (redisOpt.isPresent()) {
             try {
-                redisBus = (MessagingDataAccess) dbp.getDataAccess();
-                // Registreer ons berichttype één keer
-                MessageRegistry.register("votifier", VoteMessage.class);
-                this.eventBusHandler = new EventBusHandler(this, redisBus);
+                redisBus = (MessagingDataAccess) redisOpt.get().getDataAccess();
             } catch (ClassCastException e) {
-                getLogger().warn("DataAccess is not MessagingDataAccess; votes will NOT be distributed.");
+                getLogger().warn("Redis DataAccess is not MessagingDataAccess, vote publish disabled.");
+            }
+        } else {
+            getLogger().warn("Redis messaging provider not available, vote publish disabled.");
+        }
+
+        // ORM for player lookup and vote stats (optional but recommended)
+        Optional<DatabaseProvider> ormOpt = getLifecycleManager()
+                .getDataManager()
+                .registerConnection("orm", DatabaseType.MYSQL, "player_data_rw");
+
+        ORMContext orm = null;
+        if (ormOpt.isPresent()) {
+            orm = getLifecycleManager().getDataManager()
+                    .createORMContext("orm", PlayerEntity.class, PlayerVoteStatsEntity.class)
+                    .orElse(null);
+            if (orm == null) {
+                getLogger().warn("Failed to create ORMContext, vote stats disabled.");
+            }
+        } else {
+            getLogger().warn("MySQL provider not available, vote stats disabled.");
+        }
+
+        // Register message type once
+        if (MESSAGE_TYPE_REGISTERED.compareAndSet(false, true)) {
+            try {
+                MessageRegistry.register("votifier", VoteMessage.class);
+            } catch (Throwable t) {
+                getLogger().warn("Failed to register VoteMessage type: " + t.getMessage());
             }
         }
 
-        startOrReloadServer();
+        // Service orchestration
+        VotifierService svc = new VotifierService(this, redisBus, orm);
+        this.service = svc;
+        svc.start();
     }
 
     @Override
     public void disable() {
-        stopServer();
-    }
-
-    /* =========================  Control  ========================= */
-
-    public synchronized void startOrReloadServer() {
-        stopServer();
-
-        // REQUIRED: direct casts from getSetting()
-        String host = (String) getConfigHandler().get("host");
-        int port = (int) getConfigHandler().get("port");
-        int timeoutMs = (int) getConfigHandler().get("readTimeoutMillis");
-        int backlog = (int) getConfigHandler().get("backlog");
-        int maxPacket = (int) getConfigHandler().get("maxPacketBytes");
-        boolean generateKeys = (boolean) getConfigHandler().get("generateKeys");
-        int keyBits = (int) getConfigHandler().get("keyBits");
-        String publicKeyFile = (String) getConfigHandler().get("publicKeyFile");
-        String privateKeyFile = (String) getConfigHandler().get("privateKeyFile");
-
-        // File locations are always under <dataDir>/local/<file_name>
-        Path baseDir = getPlugin().getDataDirectory().resolve("local");
-        Path pubPath = baseDir.resolve(publicKeyFile);
-        Path privPath = baseDir.resolve(privateKeyFile);
-
-        try {
-            // Host sanity
-            try {
-                InetAddress.getByName(host);
-            } catch (UnknownHostException uhe) {
-                getLogger().error("Invalid host '" + host + "'");
-                return;
-            }
-
-            // Keys
-            if (!Files.exists(baseDir)) Files.createDirectories(baseDir);
-            if (generateKeys && (!Files.exists(pubPath) || !Files.exists(privPath))) {
-                RSAUtil.generateAndSaveKeyPair(pubPath, privPath, keyBits);
-                getLogger().info("Generated RSA keypair in " + baseDir.toAbsolutePath());
-            }
-
-            PrivateKey privateKey = RSAUtil.readPrivateKeyPem(privPath)
-                    .orElseThrow(() -> new GeneralSecurityException("Missing/invalid private key: " + privPath));
-
-            server = new VotifierServer(
-                    host,
-                    port,
-                    timeoutMs,
-                    backlog,
-                    maxPacket,
-                    privateKey,
-                    this::handleVote,
-                    getLogger()
-            );
-            server.start();
-        } catch (FileSystemException fse) {
-            getLogger().error("File access error\n" + stackTrace(fse));
-        } catch (GeneralSecurityException gse) {
-            getLogger().error("Key error\n" + stackTrace(gse));
-        } catch (IOException ioe) {
-            getLogger().error("Bind/start error\n" + stackTrace(ioe));
-        } catch (Throwable t) {
-            getLogger().error("Unexpected error during start\n" + stackTrace(t));
+        VotifierService svc = this.service;
+        this.service = null;
+        if (svc != null) {
+            svc.shutdown();
         }
     }
 
-    public synchronized void stopServer() {
-        if (server != null) {
-            try {
-                server.stop();
-            } catch (Throwable t) {
-                getLogger().warn("Error while stopping server\n" + stackTrace(t));
-            } finally {
-                server = null;
-            }
-        }
+    public VotifierService getService() {
+        return service;
     }
 
-    private void handleVote(Vote vote) {
-        getLogger().info(
-                "Vote service=" + vote.serviceName()
-                        + " user=" + vote.username()
-                        + " ip=" + vote.address()
-                        + " ts=" + vote.timestamp()
-        );
-
-        if (eventBusHandler != null) {
-            VoteMessage msg = new VoteMessage(
-                    vote.serviceName(),
-                    vote.username(),
-                    vote.address(),
-                    vote.timestamp()
-            );
-            eventBusHandler.publishVote(msg, VOTE_CHANNEL);
-        }
-    }
-
-    /* =========================  Introspection for command  ========================= */
-
+    // Compatibility helpers used by commands
     public boolean isRunning() {
-        return server != null && server.isRunning();
+        VotifierService svc = service;
+        return svc != null && svc.isRunning();
     }
 
     public String currentHost() {
-        if (server != null) return server.getHost();
-        return (String) getConfigHandler().get("host");
+        VotifierService svc = service;
+        return svc != null ? svc.currentHost() : String.valueOf(getConfigHandler().get("host"));
     }
 
     public int currentPort() {
-        if (server != null) return server.getPort();
-        return (int) getConfigHandler().get("port");
+        VotifierService svc = service;
+        return svc != null ? svc.currentPort() : (int) getConfigHandler().get("port");
     }
 
     public int currentTimeoutMs() {
@@ -238,13 +189,5 @@ public class Votifier extends VelocityBaseFeature<Meta> {
 
     public int currentKeyBits() {
         return (int) getConfigHandler().get("keyBits");
-    }
-
-    /* =========================  Helpers  ========================= */
-
-    private static String stackTrace(Throwable t) {
-        StringWriter sw = new StringWriter();
-        t.printStackTrace(new PrintWriter(sw));
-        return sw.toString();
     }
 }

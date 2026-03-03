@@ -1,17 +1,34 @@
 package nl.hauntedmc.proxyfeatures.features.votifier.command;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.CommandSource;
-import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
-import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
+import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
+import nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteLeaderboardEntry;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class VotifierCommand implements FeatureCommand {
+public final class VotifierCommand implements BrigadierCommand {
+
+    private static final String PERM_BASE = "proxyfeatures.feature.votifier.command";
+    private static final String PERM_STATUS = "proxyfeatures.feature.votifier.command.status";
+    private static final String PERM_TOP = "proxyfeatures.feature.votifier.command.top";
+    private static final String PERM_DUMP = "proxyfeatures.feature.votifier.command.dump";
+
+    private static final DateTimeFormatter DISPLAY_MONTH = DateTimeFormatter.ofPattern("MM-uuuu");
+    private static final DateTimeFormatter INPUT_MONTH_EU = DateTimeFormatter.ofPattern("MM-uuuu");
 
     private final Votifier feature;
 
@@ -19,65 +36,187 @@ public class VotifierCommand implements FeatureCommand {
         this.feature = feature;
     }
 
-
-    public void execute(Invocation inv) {
-        CommandSource src = inv.source();
-        String[] a = inv.arguments();
-
-        if (!hasPermission(inv)) {
-            src.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("general.no_permission")
-                    .forAudience(src).build());
-            return;
-        }
-
-        if (a.length == 0) {
-            sendUsage(src);
-            return;
-        }
-
-        if (a[0].toLowerCase(Locale.ROOT).equals("status")) {
-            Map<String, String> ph = Map.of(
-                    "status", feature.isRunning() ? "running" : "stopped",
-                    "host", feature.currentHost(),
-                    "port", String.valueOf(feature.currentPort()),
-                    "timeout", String.valueOf(feature.currentTimeoutMs()),
-                    "keybits", String.valueOf(feature.currentKeyBits())
-            );
-            src.sendMessage(feature.getLocalizationHandler()
-                    .getMessage("votifier.status")
-                    .withPlaceholders(MessagePlaceholders.of(ph))
-                    .forAudience(src).build());
-        } else {
-            sendUsage(src);
-        }
-    }
-
-
-    public boolean hasPermission(Invocation inv) {
-        return inv.source().hasPermission("proxyfeatures.feature.votifier.command");
-    }
-
-    public String getName() {
+    @Override
+    public @NotNull String name() {
         return "votifier";
     }
 
-    public String[] getAliases() {
-        return new String[0];
+    @Override
+    public String description() {
+        return "Votifier admin commands.";
     }
 
+    @Override
+    public @NotNull LiteralCommandNode<CommandSource> buildTree() {
+        LiteralArgumentBuilder<CommandSource> root =
+                LiteralArgumentBuilder.<CommandSource>literal(name())
+                        .requires(src -> src.hasPermission(PERM_BASE))
+                        .executes(ctx -> {
+                            ctx.getSource().sendMessage(feature.getLocalizationHandler()
+                                    .getMessage("votifier.command.usage")
+                                    .forAudience(ctx.getSource())
+                                    .build());
+                            return 1;
+                        });
 
-    public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        String[] a = invocation.arguments();
-        if (a.length <= 1) {
-            return CompletableFuture.completedFuture(List.of("status"));
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("status")
+                .requires(src -> src.hasPermission(PERM_STATUS))
+                .executes(ctx -> {
+                    String status = feature.isRunning() ? "running" : "stopped";
+                    String redis = feature.getService() != null && feature.getService().isRedisEnabled() ? "on" : "off";
+                    String db = feature.getService() != null && feature.getService().isStatsEnabled() ? "on" : "off";
+
+                    ctx.getSource().sendMessage(feature.getLocalizationHandler()
+                            .getMessage("votifier.command.status")
+                            .with("status", status)
+                            .with("host", feature.currentHost())
+                            .with("port", String.valueOf(feature.currentPort()))
+                            .with("timeout", String.valueOf(feature.currentTimeoutMs()))
+                            .with("keybits", String.valueOf(feature.currentKeyBits()))
+                            .with("redis", redis)
+                            .with("db", db)
+                            .forAudience(ctx.getSource())
+                            .build());
+                    return 1;
+                }));
+
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("top")
+                .requires(src -> src.hasPermission(PERM_TOP))
+                .executes(ctx -> top(ctx.getSource(), currentYearMonth(), 10))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("month", StringArgumentType.word())
+                        .suggests((c, b) -> suggestRelativeMonths(b))
+                        .executes(ctx -> {
+                            YearMonth ym = parseMonth(StringArgumentType.getString(ctx, "month"));
+                            return top(ctx.getSource(), ym, 10);
+                        })
+                        .then(RequiredArgumentBuilder.<CommandSource, Integer>argument("limit", IntegerArgumentType.integer(1, 50))
+                                .executes(ctx -> {
+                                    YearMonth ym = parseMonth(StringArgumentType.getString(ctx, "month"));
+                                    int limit = IntegerArgumentType.getInteger(ctx, "limit");
+                                    return top(ctx.getSource(), ym, limit);
+                                }))));
+
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("dump")
+                .requires(src -> src.hasPermission(PERM_DUMP))
+                .executes(ctx -> dump(ctx.getSource(), previousYearMonth()))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("month", StringArgumentType.word())
+                        .suggests((c, b) -> suggestRelativeMonths(b))
+                        .executes(ctx -> {
+                            YearMonth ym = parseMonth(StringArgumentType.getString(ctx, "month"));
+                            return dump(ctx.getSource(), ym);
+                        })));
+
+        return root.build();
+    }
+
+    private int dump(CommandSource src, YearMonth ym) {
+        try {
+            if (feature.getService() == null) throw new IllegalStateException("service not running");
+            String file = feature.getService().dumpTopForMonth(ym);
+
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.dump.ok")
+                    .with("file", file)
+                    .forAudience(src)
+                    .build());
+        } catch (Throwable t) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.dump.fail")
+                    .with("error", safeMsg(t))
+                    .forAudience(src)
+                    .build());
         }
-        return CompletableFuture.completedFuture(Collections.emptyList());
+        return 1;
     }
 
-    private void sendUsage(CommandSource src) {
+    private int top(CommandSource src, YearMonth ym, int limit) {
+        if (feature.getService() == null || !feature.getService().isStatsEnabled()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.top.empty")
+                    .with("month", formatMonth(ym))
+                    .forAudience(src)
+                    .build());
+            return 1;
+        }
+
+        List<VoteLeaderboardEntry> list = feature.getService().topForMonth(ym, limit);
+        if (list.isEmpty()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.top.empty")
+                    .with("month", formatMonth(ym))
+                    .forAudience(src)
+                    .build());
+            return 1;
+        }
+
         src.sendMessage(feature.getLocalizationHandler()
-                .getMessage("votifier.usage")
-                .forAudience(src).build());
+                .getMessage("votifier.command.top.header")
+                .with("limit", String.valueOf(limit))
+                .with("month", formatMonth(ym))
+                .forAudience(src)
+                .build());
+
+        int rank = 1;
+        for (VoteLeaderboardEntry e : list) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.top.entry")
+                    .with("rank", String.valueOf(rank))
+                    .with("player", e.username())
+                    .with("votes", String.valueOf(e.monthVotes()))
+                    .with("total", String.valueOf(e.totalVotes()))
+                    .forAudience(src)
+                    .build());
+            rank++;
+        }
+
+        return 1;
+    }
+
+    private CompletableFuture<Suggestions> suggestRelativeMonths(SuggestionsBuilder b) {
+        b.suggest("current");
+        b.suggest("previous");
+        return b.buildFuture();
+    }
+
+    private YearMonth parseMonth(String raw) {
+        YearMonth now = currentYearMonth();
+
+        if (raw == null || raw.isBlank()) return now;
+
+        String s = raw.trim().toLowerCase(Locale.ROOT);
+        if (s.equals("current")) return now;
+        if (s.equals("previous")) return now.minusMonths(1);
+
+        // Accept ISO input: 2026-02
+        try {
+            return YearMonth.parse(raw.trim());
+        } catch (DateTimeParseException ignored) {
+        }
+
+        // Accept EU input: 02-2026
+        try {
+            return YearMonth.parse(raw.trim(), INPUT_MONTH_EU);
+        } catch (DateTimeParseException ignored) {
+        }
+
+        return now;
+    }
+
+    private YearMonth currentYearMonth() {
+        return feature.getService() != null ? feature.getService().currentYearMonth() : YearMonth.now();
+    }
+
+    private YearMonth previousYearMonth() {
+        YearMonth cur = currentYearMonth();
+        return cur.minusMonths(1);
+    }
+
+    private static String formatMonth(YearMonth ym) {
+        if (ym == null) return "";
+        return DISPLAY_MONTH.format(ym);
+    }
+
+    private static String safeMsg(Throwable t) {
+        return (t == null || t.getMessage() == null) ? "unknown" : t.getMessage();
     }
 }

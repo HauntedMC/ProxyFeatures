@@ -1,11 +1,22 @@
 package nl.hauntedmc.proxyfeatures.features.votifier.server;
 
 import nl.hauntedmc.proxyfeatures.features.votifier.model.Vote;
+import nl.hauntedmc.proxyfeatures.features.votifier.util.IpAccessList;
 import nl.hauntedmc.proxyfeatures.framework.log.FeatureLogger;
 
 import javax.crypto.Cipher;
-import java.io.*;
-import java.net.*;
+import java.io.EOFException;
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
@@ -28,6 +39,7 @@ public final class VotifierServer {
     private final int maxPacketBytes;
 
     private final PrivateKey privateKey;
+    private final IpAccessList accessList;
     private final VoteHandler handler;
     private final FeatureLogger logger;
 
@@ -37,20 +49,24 @@ public final class VotifierServer {
     private ServerSocket server;
     private ExecutorService pool;
 
-    public VotifierServer(String host,
-                          int port,
-                          int readTimeoutMillis,
-                          int backlog,
-                          int maxPacketBytes,
-                          PrivateKey privateKey,
-                          VoteHandler handler,
-                          FeatureLogger logger) {
+    public VotifierServer(
+            String host,
+            int port,
+            int readTimeoutMillis,
+            int backlog,
+            int maxPacketBytes,
+            PrivateKey privateKey,
+            IpAccessList accessList,
+            VoteHandler handler,
+            FeatureLogger logger
+    ) {
         this.host = Objects.requireNonNull(host);
         this.port = port;
         this.readTimeoutMillis = Math.max(1000, readTimeoutMillis);
         this.backlog = Math.max(10, backlog);
         this.maxPacketBytes = Math.max(256, maxPacketBytes);
         this.privateKey = Objects.requireNonNull(privateKey);
+        this.accessList = Objects.requireNonNull(accessList);
         this.handler = Objects.requireNonNull(handler);
         this.logger = Objects.requireNonNull(logger);
 
@@ -63,7 +79,7 @@ public final class VotifierServer {
         }
         if (keyBytes <= 0) {
             keyBytes = 256;
-            logger.warn("Unable to introspect RSA modulus; defaulting block size to " + keyBytes + " bytes.");
+            logger.warn("Unable to introspect RSA modulus, defaulting block size to " + keyBytes + " bytes.");
         }
         this.rsaBlockBytes = keyBytes;
     }
@@ -132,26 +148,27 @@ public final class VotifierServer {
         SocketAddress remote = s.getRemoteSocketAddress();
         String ip;
         try {
-            // Use small step timeout and enforce our own overall deadline.
             final int stepTimeoutMs = Math.min(300, Math.max(100, readTimeoutMillis / 10));
             s.setSoTimeout(stepTimeoutMs);
 
             InetAddress addr = s.getInetAddress();
             ip = addr != null ? addr.getHostAddress() : "-";
 
-            // 1) Send a tiny banner/hello – some senders wait for any server output before writing.
-            try {
-                OutputStream os = s.getOutputStream();
-                os.write("VOTIFIER 1\n".getBytes(StandardCharsets.US_ASCII));
-                os.flush();
-            } catch (Throwable ignored) {
-                // Non-fatal; continue reading even if banner can't be sent
+            if (addr != null && !accessList.allows(addr)) {
+                logger.warn("Denied votifier connection from " + ip);
+                return;
             }
 
-            // 2) Read exactly one RSA block, tolerating slow/bursty senders until global deadline.
+            // Send a tiny banner. Some senders wait for any server output before writing.
+            try {
+                s.getOutputStream().write("VOTIFIER 1\n".getBytes(StandardCharsets.US_ASCII));
+                s.getOutputStream().flush();
+            } catch (Throwable ignored) {
+            }
+
             byte[] enc = readExactWithDeadline(s.getInputStream(), rsaBlockBytes, maxPacketBytes, readTimeoutMillis);
             if (enc.length != rsaBlockBytes) {
-                logger.warn("Invalid block size from " + ip + ": " + enc.length + "B (expected " + rsaBlockBytes + "B)");
+                logger.warn("Invalid block size from " + ip + ": " + enc.length + "B expected " + rsaBlockBytes + "B");
                 return;
             }
 
@@ -169,6 +186,7 @@ public final class VotifierServer {
             String user = sanitize(parts[2]);
             String addrStr = sanitize(parts[3]);
             String tsStr = sanitize(parts[4]);
+
             long ts;
             try {
                 ts = Long.parseLong(tsStr);
@@ -177,6 +195,7 @@ public final class VotifierServer {
             }
 
             handler.onVote(new Vote(service, user, addrStr, ts));
+
         } catch (EOFException eof) {
             logger.warn("Incomplete RSA block from " + safeRemote(remote) + ": " + safeMsg(eof));
         } catch (SocketTimeoutException ste) {
@@ -196,14 +215,9 @@ public final class VotifierServer {
         return cipher.doFinal(enc);
     }
 
-    /**
-     * Reads exactly expectedBytes, using a short per-read timeout and a global deadline equal
-     * to totalTimeoutMs. Avoids waiting for EOF and tolerates slow/bursty senders.
-     */
     private byte[] readExactWithDeadline(InputStream in, int expectedBytes, int cap, int totalTimeoutMs) throws IOException {
         if (expectedBytes <= 0) throw new IOException("Expected bytes must be > 0");
-        if (expectedBytes > cap)
-            throw new IOException("Expected block (" + expectedBytes + "B) exceeds cap " + cap + "B");
+        if (expectedBytes > cap) throw new IOException("Expected block " + expectedBytes + "B exceeds cap " + cap + "B");
 
         byte[] out = new byte[expectedBytes];
         int off = 0;
@@ -217,14 +231,12 @@ public final class VotifierServer {
             if (r > 0) {
                 System.arraycopy(buf, 0, out, off, r);
                 off += r;
-            } else if (r == 0) {
-                // Shouldn't happen on InputStream; just check deadline.
             } else if (r == -1) {
-                break; // early EOF
+                break;
             }
 
             if (off < expectedBytes && System.nanoTime() > deadline) {
-                throw new SocketTimeoutException("Global deadline exceeded while reading RSA block (got " + off + "B of " + expectedBytes + "B)");
+                throw new SocketTimeoutException("Deadline exceeded while reading RSA block (got " + off + "B of " + expectedBytes + "B)");
             }
         }
 
@@ -232,7 +244,6 @@ public final class VotifierServer {
             throw new EOFException("Incomplete RSA block: got " + off + "B, expected " + expectedBytes + "B");
         }
 
-        // Best-effort drain of any trailing garbage/newlines without blocking
         try {
             int avail = Math.min(in.available(), Math.max(0, cap - expectedBytes));
             if (avail > 0) in.skipNBytes(avail);
@@ -249,19 +260,17 @@ public final class VotifierServer {
         }
     }
 
-    private String sanitize(String s) {
-        if (s == null) return "-";
+    private static String sanitize(String s) {
+        if (s == null) return "";
         String t = s.trim();
         if (t.length() > 128) t = t.substring(0, 128);
         return t;
     }
 
-    private String shorten(String s) {
+    private static String shorten(String s) {
         if (s == null) return "(null)";
         return s.length() <= 160 ? s : s.substring(0, 160) + "...";
     }
-
-    /* =========================  Helpers  ========================= */
 
     private static String safeRemote(SocketAddress remote) {
         return remote == null ? "(unknown)" : remote.toString();
