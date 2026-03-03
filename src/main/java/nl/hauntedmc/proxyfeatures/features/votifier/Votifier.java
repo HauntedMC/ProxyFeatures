@@ -10,6 +10,7 @@ import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.votifier.command.VotifierCommand;
+import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
@@ -79,14 +80,14 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
 
         m.add("votifier.command.usage",
-                "&7Gebruik: &f/votifier &7<status|reload|top|dump>");
+                "&7Gebruik: &f/votifier &7<status|reload|top|dump|stats>");
         m.add("votifier.command.status",
                 "&7[&aVotifier&7] status=&f{status}&7 host=&f{host}&7 port=&f{port}&7 timeout=&f{timeout}ms&7 keyBits=&f{keybits}&7 redis=&f{redis}&7 db=&f{db}");
 
         m.add("votifier.command.top.header",
                 "&7[&aVotifier&7] Top &f{limit}&7 voor maand &f{month}&7:");
         m.add("votifier.command.top.entry",
-                "  &8#&f{rank}&8: &f{player}&7 votes=&f{votes}&7 totaal=&f{total}");
+                "  &8#&f{rank}&8: &f{player} &8- &e{votes} &fvotes");
         m.add("votifier.command.top.empty",
                 "&7[&aVotifier&7] &7Geen votes gevonden voor maand &f{month}&7.");
 
@@ -94,6 +95,18 @@ public class Votifier extends VelocityBaseFeature<Meta> {
                 "&7[&aVotifier&7] &aDump geschreven: &f{file}");
         m.add("votifier.command.dump.fail",
                 "&7[&aVotifier&7] &cDump mislukt: &f{error}");
+
+        // Stats
+        m.add("votifier.command.stats.header",
+                "&7[&aVotifier&7] Stats van &f{player}&7:");
+        m.add("votifier.command.stats.line1",
+                "  &8• &7Maand votes: &f{month_votes} &8| &7Beste maand: &f{best_month_votes} &8| &7Totaal: &f{total_votes}");
+        m.add("votifier.command.stats.line2",
+                "  &8• &7Streak: &f{streak} &8| &7Beste streak: &f{best_streak}");
+        m.add("votifier.command.stats.not_found",
+                "&7[&aVotifier&7] &cSpeler niet gevonden: &f{player}");
+        m.add("votifier.command.stats.player_only",
+                "&7[&aVotifier&7] &cAlleen spelers kunnen dit zonder speler argument gebruiken.");
 
         return m;
     }
@@ -130,7 +143,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         ORMContext orm = null;
         if (ormOpt.isPresent()) {
             orm = getLifecycleManager().getDataManager()
-                    .createORMContext("orm", PlayerEntity.class, PlayerVoteStatsEntity.class)
+                    .createORMContext("orm", PlayerEntity.class, PlayerVoteStatsEntity.class, PlayerVoteMonthlyEntity.class)
                     .orElse(null);
             if (orm == null) {
                 getLogger().warn("Failed to create ORMContext, vote stats disabled.");
@@ -190,4 +203,5 @@ public class Votifier extends VelocityBaseFeature<Meta> {
     public int currentKeyBits() {
         return (int) getConfigHandler().get("keyBits");
     }
+
 }

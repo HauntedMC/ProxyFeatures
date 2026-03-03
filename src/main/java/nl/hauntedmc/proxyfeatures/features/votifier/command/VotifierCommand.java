@@ -8,9 +8,12 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteLeaderboardEntry;
+import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotePlayerStatsView;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.YearMonth;
@@ -18,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public final class VotifierCommand implements BrigadierCommand {
@@ -26,6 +30,8 @@ public final class VotifierCommand implements BrigadierCommand {
     private static final String PERM_STATUS = "proxyfeatures.feature.votifier.command.status";
     private static final String PERM_TOP = "proxyfeatures.feature.votifier.command.top";
     private static final String PERM_DUMP = "proxyfeatures.feature.votifier.command.dump";
+    private static final String PERM_STATS = "proxyfeatures.feature.votifier.command.stats";
+    private static final String PERM_OTHER = "proxyfeatures.feature.votifier.command.stats.other";
 
     private static final DateTimeFormatter DISPLAY_MONTH = DateTimeFormatter.ofPattern("MM-uuuu");
     private static final DateTimeFormatter INPUT_MONTH_EU = DateTimeFormatter.ofPattern("MM-uuuu");
@@ -106,7 +112,76 @@ public final class VotifierCommand implements BrigadierCommand {
                             return dump(ctx.getSource(), ym);
                         })));
 
+        // /votifier stats [player]
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("stats")
+                .requires(src -> src.hasPermission(PERM_STATS))
+                .executes(ctx -> statsSelfOrFail(ctx.getSource()))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("player", StringArgumentType.word())
+                        .suggests((c, b) -> suggestOnlinePlayers(b))
+                        .requires(src -> src.hasPermission(PERM_STATS) && src.hasPermission(PERM_OTHER))
+                        .executes(ctx -> {
+                            String target = StringArgumentType.getString(ctx, "player");
+                            return statsFor(ctx.getSource(), target);
+                        })));
+
         return root.build();
+    }
+
+    private int statsSelfOrFail(CommandSource src) {
+        if (!(src instanceof Player p)) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.stats.player_only")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+        return statsFor(src, p.getUsername());
+    }
+
+    private int statsFor(CommandSource src, String username) {
+        if (feature.getService() == null || !feature.getService().isStatsEnabled()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.stats.not_found")
+                    .with("player", username == null ? "" : username)
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        Optional<VotePlayerStatsView> opt = feature.getService().getPlayerStats(username);
+        if (opt.isEmpty()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.stats.not_found")
+                    .with("player", username == null ? "" : username)
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        var s = opt.get();
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.command.stats.header")
+                .with("player", s.username())
+                .forAudience(src)
+                .build());
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.command.stats.line1")
+                .with("month_votes", String.valueOf(s.monthVotes()))
+                .with("best_month_votes", String.valueOf(s.highestMonthVotes()))
+                .with("total_votes", String.valueOf(s.totalVotes()))
+                .forAudience(src)
+                .build());
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.command.stats.line2")
+                .with("streak", String.valueOf(s.voteStreak()))
+                .with("best_streak", String.valueOf(s.bestVoteStreak()))
+                .forAudience(src)
+                .build());
+
+        return 1;
     }
 
     private int dump(CommandSource src, YearMonth ym) {
@@ -163,7 +238,6 @@ public final class VotifierCommand implements BrigadierCommand {
                     .with("rank", String.valueOf(rank))
                     .with("player", e.username())
                     .with("votes", String.valueOf(e.monthVotes()))
-                    .with("total", String.valueOf(e.totalVotes()))
                     .forAudience(src)
                     .build());
             rank++;
@@ -175,6 +249,19 @@ public final class VotifierCommand implements BrigadierCommand {
     private CompletableFuture<Suggestions> suggestRelativeMonths(SuggestionsBuilder b) {
         b.suggest("current");
         b.suggest("previous");
+        return b.buildFuture();
+    }
+
+    private CompletableFuture<Suggestions> suggestOnlinePlayers(SuggestionsBuilder b) {
+        final Locale L = Locale.ROOT;
+        String prefix = b.getRemaining().toLowerCase(L);
+
+        ProxyFeatures.getProxyInstance().getAllPlayers().stream()
+                .map(Player::getUsername)
+                .filter(n -> n != null && n.toLowerCase(L).startsWith(prefix))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .forEach(b::suggest);
+
         return b.buildFuture();
     }
 

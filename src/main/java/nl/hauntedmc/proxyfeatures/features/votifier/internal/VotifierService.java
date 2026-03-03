@@ -3,14 +3,15 @@ package nl.hauntedmc.proxyfeatures.features.votifier.internal;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
+import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
+import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.EventBusHandler;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
 import nl.hauntedmc.proxyfeatures.features.votifier.model.Vote;
 import nl.hauntedmc.proxyfeatures.features.votifier.server.VotifierServer;
 import nl.hauntedmc.proxyfeatures.features.votifier.util.IpAccessList;
 import nl.hauntedmc.proxyfeatures.features.votifier.util.RSAUtil;
-import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -61,7 +62,6 @@ public final class VotifierService {
     public void start() {
         reloadInternal();
     }
-
 
     private void reloadInternal() {
         VotifierConfig cfg = VotifierConfig.load(feature);
@@ -114,8 +114,15 @@ public final class VotifierService {
 
     public List<VoteLeaderboardEntry> topForMonth(YearMonth month, int limit) {
         if (stats == null) return List.of();
-        int yyyymm = toYearMonthInt(month);
-        return stats.topForMonth(yyyymm, limit);
+
+        VotifierConfig cfg = configRef.get();
+        int requested = toYearMonthInt(month);
+        int current = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+
+        if (requested == current) {
+            return stats.topForCurrentMonth(current, limit);
+        }
+        return stats.topForHistoricalMonth(requested, limit);
     }
 
     public String dumpTopForMonth(YearMonth month) {
@@ -123,8 +130,56 @@ public final class VotifierService {
         if (stats == null) throw new IllegalStateException("stats disabled");
 
         YearMonth ym = (month == null) ? YearMonth.now(cfg.statsZone()).minusMonths(1) : month;
-        Path f = stats.dumpTopForMonth(ym, cfg.dumpTopN(), cfg.dumpFilePrefix());
+        int current = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+
+        Path f = stats.dumpTopForMonth(ym, current, cfg.dumpTopN(), cfg.dumpFilePrefix());
         return f.toString();
+    }
+
+    public Optional<VotePlayerStatsView> getPlayerStats(String username) {
+        if (stats == null || username == null || username.isBlank()) return Optional.empty();
+
+        VotifierConfig cfg = configRef.get();
+        int currentYm = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+
+        Optional<PlayerEntity> playerOpt = stats.findPlayerByUsername(username);
+        if (playerOpt.isEmpty()) {
+            // Player truly does not exist in player_entity
+            return Optional.empty();
+        }
+
+        PlayerEntity p = playerOpt.get();
+        long playerId = p.getId() == null ? 0L : p.getId();
+        if (playerId <= 0) return Optional.empty();
+
+        String displayName = (p.getUsername() == null || p.getUsername().isBlank()) ? username.trim() : p.getUsername();
+
+        Optional<PlayerVoteStatsEntity> statsOpt = stats.findStats(playerId);
+        if (statsOpt.isEmpty()) {
+            // Player exists but has never voted. Return all zeros.
+            return Optional.of(new VotePlayerStatsView(
+                    playerId,
+                    displayName,
+                    0,
+                    0,
+                    0L,
+                    0,
+                    0
+            ));
+        }
+
+        PlayerVoteStatsEntity s = statsOpt.get();
+        int monthVotes = (s.getMonthYearMonth() == currentYm) ? s.getMonthVotes() : 0;
+
+        return Optional.of(new VotePlayerStatsView(
+                playerId,
+                displayName,
+                monthVotes,
+                s.getHighestMonthVotes(),
+                s.getTotalVotes(),
+                s.getVoteStreak(),
+                s.getBestVoteStreak()
+        ));
     }
 
     private void startServer(VotifierConfig cfg) {
@@ -226,7 +281,6 @@ public final class VotifierService {
                 feature.getLogger().error("Failed to record vote stats for " + username + ": " + safeMsg(t));
             }
         } else {
-            // Stats disabled. To avoid breaking critical vote distribution, publish anyway.
             feature.getLogger().warn("Vote stats disabled, skipping unknown player discard for " + username);
         }
 
@@ -287,20 +341,15 @@ public final class VotifierService {
         int lastReset = localState.lastResetYearMonth();
         if (lastReset == current) return;
 
-        // Only run once we are in the current month, persisted marker prevents repeats across restarts.
         worker.execute(() -> {
-            YearMonth ym = YearMonth.now(cfg.statsZone());
-            int cur = toYearMonthInt(ym);
-            int prev = toYearMonthInt(ym.minusMonths(1));
-
             try {
-                Path dumpFile = stats.dumpTopForMonth(ym.minusMonths(1), cfg.dumpTopN(), cfg.dumpFilePrefix());
-                stats.rolloverMonth(prev, cur);
+                YearMonth prev = YearMonth.now(cfg.statsZone()).minusMonths(1);
+                int cur = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+                Path dumpFile = stats.dumpTopForMonth(prev, cur, cfg.dumpTopN(), cfg.dumpFilePrefix());
                 localState.setLastResetYearMonth(cur);
-
-                feature.getLogger().info("Monthly vote rollover completed. Dump=" + dumpFile);
+                feature.getLogger().info("Monthly vote dump completed. Dump=" + dumpFile);
             } catch (Throwable t) {
-                feature.getLogger().error("Monthly vote rollover failed: " + safeMsg(t));
+                feature.getLogger().error("Monthly vote dump failed: " + safeMsg(t));
             }
         });
     }
@@ -322,10 +371,8 @@ public final class VotifierService {
         long now = System.currentTimeMillis();
         if (raw <= 0) return now;
 
-        // Heuristic: if it looks like seconds, convert to millis.
         if (raw < 100_000_000_000L) raw *= 1000L;
 
-        // Clamp extreme future timestamps
         if (raw > now + Duration.ofDays(7).toMillis()) return now;
 
         return raw;

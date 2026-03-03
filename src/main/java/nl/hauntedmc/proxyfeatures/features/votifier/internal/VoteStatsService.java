@@ -3,6 +3,8 @@ package nl.hauntedmc.proxyfeatures.features.votifier.internal;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
+import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEntity;
+import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyKey;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.model.Vote;
 
@@ -40,6 +42,19 @@ public final class VoteStatsService {
         );
     }
 
+    public Optional<PlayerVoteStatsEntity> findStats(long playerId) {
+        if (playerId <= 0) return Optional.empty();
+        return orm.runInTransaction(session -> Optional.ofNullable(session.get(PlayerVoteStatsEntity.class, playerId)));
+    }
+
+    public int monthVotesFromMonthly(long playerId, int yyyymm) {
+        if (playerId <= 0 || yyyymm <= 0) return 0;
+        return orm.runInTransaction(session -> {
+            PlayerVoteMonthlyEntity row = session.get(PlayerVoteMonthlyEntity.class, new PlayerVoteMonthlyKey(playerId, yyyymm));
+            return row == null ? 0 : row.getMonthVotes();
+        });
+    }
+
     public void recordVote(PlayerEntity player, Vote vote, VotifierConfig cfg) {
         if (player == null) return;
 
@@ -48,21 +63,13 @@ public final class VoteStatsService {
 
         orm.runInTransaction(session -> {
             Long playerId = player.getId();
-            PlayerVoteStatsEntity stats = session.get(PlayerVoteStatsEntity.class, playerId);
 
+            PlayerVoteStatsEntity stats = session.get(PlayerVoteStatsEntity.class, playerId);
             if (stats == null) {
                 PlayerEntity managedPlayer = session.get(PlayerEntity.class, playerId);
                 stats = new PlayerVoteStatsEntity(managedPlayer);
                 stats.setMonthYearMonth(currentYm);
                 session.persist(stats);
-            }
-
-            // Month rollover for this row if needed
-            if (stats.getMonthYearMonth() != currentYm) {
-                int highest = Math.max(stats.getHighestMonthVotes(), stats.getMonthVotes());
-                stats.setHighestMonthVotes(highest);
-                stats.setMonthVotes(0);
-                stats.setMonthYearMonth(currentYm);
             }
 
             // Streak
@@ -77,21 +84,41 @@ public final class VoteStatsService {
             stats.setVoteStreak(newStreak);
             stats.setBestVoteStreak(Math.max(stats.getBestVoteStreak(), newStreak));
 
-            // Counters
+            // Totals
             stats.setTotalVotes(stats.getTotalVotes() + 1);
-            stats.setMonthVotes(stats.getMonthVotes() + 1);
 
             // Last vote data
             stats.setLastVoteAt(nowMillis);
             stats.setLastVoteService(sanitize(vote.serviceName(), 64));
             stats.setLastVoteAddress(sanitize(vote.address(), 64));
 
+            // Monthly history table
+            PlayerVoteMonthlyKey key = new PlayerVoteMonthlyKey(playerId, currentYm);
+            PlayerVoteMonthlyEntity month = session.get(PlayerVoteMonthlyEntity.class, key);
+            if (month == null) {
+                month = new PlayerVoteMonthlyEntity(playerId, currentYm);
+                session.persist(month);
+            }
+            int newMonthVotes = month.getMonthVotes() + 1;
+            month.setMonthVotes(newMonthVotes);
+            session.merge(month);
+
+            // Current month table for fast reads
+            stats.setMonthYearMonth(currentYm);
+            stats.setMonthVotes(newMonthVotes);
+
+            // Fix: always keep highest_month_votes up to date using the value stored in player_vote_stats
+            int curMonthVotes = stats.getMonthVotes();
+            if (curMonthVotes > stats.getHighestMonthVotes()) {
+                stats.setHighestMonthVotes(curMonthVotes);
+            }
+
             session.merge(stats);
             return null;
         });
     }
 
-    public List<VoteLeaderboardEntry> topForMonth(int yyyymm, int limit) {
+    public List<VoteLeaderboardEntry> topForCurrentMonth(int currentYyyymm, int limit) {
         int lim = Math.max(1, Math.min(1000, limit));
         return orm.runInTransaction(session ->
                 session.createQuery(
@@ -102,18 +129,40 @@ public final class VoteStatsService {
                                         "order by s.monthVotes desc",
                                 VoteLeaderboardEntry.class
                         )
+                        .setParameter("m", currentYyyymm)
+                        .setMaxResults(lim)
+                        .list()
+        );
+    }
+
+    public List<VoteLeaderboardEntry> topForHistoricalMonth(int yyyymm, int limit) {
+        int lim = Math.max(1, Math.min(1000, limit));
+        return orm.runInTransaction(session ->
+                session.createQuery(
+                                "select new nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteLeaderboardEntry(" +
+                                        "m.id.playerId, p.username, m.monthVotes, s.totalVotes) " +
+                                        "from PlayerVoteMonthlyEntity m, PlayerVoteStatsEntity s " +
+                                        "join m.player p " +
+                                        "where m.id.monthYearMonth = :m " +
+                                        "and s.playerId = m.id.playerId " +
+                                        "and m.monthVotes > 0 " +
+                                        "order by m.monthVotes desc",
+                                VoteLeaderboardEntry.class
+                        )
                         .setParameter("m", yyyymm)
                         .setMaxResults(lim)
                         .list()
         );
     }
 
-    public Path dumpTopForMonth(YearMonth month, int topN, String prefix) {
+    public Path dumpTopForMonth(YearMonth month, int currentYyyymm, int topN, String prefix) {
         YearMonth ym = month == null ? YearMonth.now() : month;
         int yyyymm = toYearMonthInt(ym);
         int lim = Math.max(1, Math.min(1000, topN));
 
-        List<VoteLeaderboardEntry> top = topForMonth(yyyymm, lim);
+        List<VoteLeaderboardEntry> top = (yyyymm == currentYyyymm)
+                ? topForCurrentMonth(currentYyyymm, lim)
+                : topForHistoricalMonth(yyyymm, lim);
 
         Path baseDir = feature.getPlugin().getDataDirectory().resolve("local");
         try {
@@ -147,25 +196,6 @@ public final class VoteStatsService {
         }
 
         return out;
-    }
-
-    public void rolloverMonth(int prevYyyymm, int currentYyyymm) {
-        orm.runInTransaction(session -> {
-            // Update highest month before reset, then reset monthVotes and set new month marker
-            int updated = session.createQuery(
-                            "update PlayerVoteStatsEntity s " +
-                                    "set s.highestMonthVotes = case when s.monthVotes > s.highestMonthVotes then s.monthVotes else s.highestMonthVotes end, " +
-                                    "s.monthVotes = 0, " +
-                                    "s.monthYearMonth = :cur " +
-                                    "where s.monthYearMonth = :prev"
-                    )
-                    .setParameter("cur", currentYyyymm)
-                    .setParameter("prev", prevYyyymm)
-                    .executeUpdate();
-
-            feature.getLogger().info("Monthly rollover updated rows=" + updated);
-            return null;
-        });
     }
 
     private static int toYearMonthInt(YearMonth ym) {
