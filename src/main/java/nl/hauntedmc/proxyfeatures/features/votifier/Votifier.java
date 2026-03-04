@@ -73,6 +73,9 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         // Shows on: /vote and /vote links
         cfg.put("vote.url", "https://hauntedmc.nl/vote");
 
+        // New: /vote leaderboard link
+        cfg.put("vote.leaderboard_url", "https://www.hauntedmc.nl/leaderboard/votes/");
+
         // Logging
         cfg.put("logging.log_votes", true);
 
@@ -84,7 +87,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
 
         m.add("votifier.command.usage",
-                "&7Gebruik: &f/vote &7<status|top|dump|stats|links>");
+                "&7Gebruik: &f/vote &7<status|top|dump|stats|links|leaderboard>");
         m.add("votifier.command.status",
                 "&7[&aVotifier&7] status=&f{status}&7 host=&f{host}&7 port=&f{port}&7 timeout=&f{timeout}ms&7 keyBits=&f{keybits}&7 redis=&f{redis}&7 db=&f{db}");
 
@@ -119,6 +122,12 @@ public class Votifier extends VelocityBaseFeature<Meta> {
                 "  &8• &7Klik om te openen: {url}");
         m.add("votifier.vote.not_configured",
                 "&8[&aVote&8] &cVote link is niet ingesteld.");
+
+        // /vote leaderboard output
+        m.add("votifier.vote.leaderboard.header",
+                "&8[&aVote&8] &7Live leaderboard:");
+        m.add("votifier.vote.leaderboard.not_configured",
+                "&8[&aVote&8] &cLeaderboard link is niet ingesteld.");
 
         return m;
     }

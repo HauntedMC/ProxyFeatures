@@ -73,6 +73,13 @@ public final class VotifierCommand implements BrigadierCommand {
                     return 1;
                 }));
 
+        // /vote leaderboard
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("leaderboard")
+                .executes(ctx -> {
+                    sendVoteLeaderboard(ctx.getSource());
+                    return 1;
+                }));
+
         // /vote status
         root.then(LiteralArgumentBuilder.<CommandSource>literal("status")
                 .requires(src -> src.hasPermission(PERM_STATUS))
@@ -155,6 +162,35 @@ public final class VotifierCommand implements BrigadierCommand {
 
         src.sendMessage(feature.getLocalizationHandler()
                 .getMessage("votifier.vote.header")
+                .forAudience(src)
+                .build());
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.vote.line")
+                .with("url", urlComp)
+                .forAudience(src)
+                .build());
+    }
+
+    private void sendVoteLeaderboard(CommandSource src) {
+        String url = feature.getConfigHandler().node("vote").get("leaderboard_url").as(String.class, "");
+        if (url == null || url.isBlank()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.vote.leaderboard.not_configured")
+                    .forAudience(src)
+                    .build());
+            return;
+        }
+
+        String cleanUrl = url.trim();
+
+        Component urlComp = Component.text(cleanUrl, NamedTextColor.AQUA)
+                .decorate(TextDecoration.UNDERLINED)
+                .clickEvent(ClickEvent.openUrl(cleanUrl))
+                .hoverEvent(HoverEvent.showText(Component.text("Open leaderboard", NamedTextColor.GRAY)));
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.vote.leaderboard.header")
                 .forAudience(src)
                 .build());
 
@@ -312,13 +348,11 @@ public final class VotifierCommand implements BrigadierCommand {
         if (s.equals("current")) return now;
         if (s.equals("previous")) return now.minusMonths(1);
 
-        // Accept ISO input: 2026-02
         try {
             return YearMonth.parse(raw.trim());
         } catch (DateTimeParseException ignored) {
         }
 
-        // Accept EU input: 02-2026
         try {
             return YearMonth.parse(raw.trim(), INPUT_MONTH_EU);
         } catch (DateTimeParseException ignored) {
