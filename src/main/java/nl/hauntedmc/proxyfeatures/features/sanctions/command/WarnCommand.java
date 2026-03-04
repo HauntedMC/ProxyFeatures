@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
@@ -54,7 +55,7 @@ public class WarnCommand implements FeatureCommand {
             var ph = Map.of("target", target.getUsername(), "reason", reason, "actor", actorName);
             feature.getService().broadcastToStaff("sanctions.announce.warn", MessagePlaceholders.of(ph));
 
-            feature.getPlugin().getProxyInstance().getPlayer(UUID.fromString(target.getUuid()))
+            ProxyFeatures.getProxyInstance().getPlayer(UUID.fromString(target.getUuid()))
                     .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
                             .getMessage("sanctions.notify.warn")
                             .with("reason", reason)
@@ -84,7 +85,7 @@ public class WarnCommand implements FeatureCommand {
         String[] a = invocation.arguments();
 
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
-            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+            List<String> names = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .collect(Collectors.toList());
@@ -92,7 +93,7 @@ public class WarnCommand implements FeatureCommand {
         }
         if (a.length == 1) {
             String partial = a[0].toLowerCase(Locale.ROOT);
-            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+            List<String> names = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
                     .sorted(String.CASE_INSENSITIVE_ORDER)

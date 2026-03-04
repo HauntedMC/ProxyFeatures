@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.playerlanguage.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
@@ -141,7 +142,7 @@ public class LanguageCommand implements FeatureCommand {
 
         List<String> languages = Arrays.stream(Language.values()).map(Enum::name).sorted().toList();
         List<String> players = canOthers
-                ? feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+                ? ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                 .map(Player::getUsername)
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList()

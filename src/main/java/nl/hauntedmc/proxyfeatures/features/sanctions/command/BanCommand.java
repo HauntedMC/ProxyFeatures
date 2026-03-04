@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
@@ -89,7 +90,7 @@ public class BanCommand implements FeatureCommand {
                     s.isPermanent() ? "sanctions.announce.ban.perm" : "sanctions.announce.ban.temp",
                     ph);
 
-            feature.getPlugin().getProxyInstance().getPlayer(UUID.fromString(target.getUuid()))
+            ProxyFeatures.getProxyInstance().getPlayer(UUID.fromString(target.getUuid()))
                     .ifPresent(pl -> {
                         String key = s.isPermanent() ? "sanctions.disconnect.banned.perm" : "sanctions.disconnect.banned.temp";
                         pl.disconnect(feature.getLocalizationHandler().getMessage(key)
@@ -125,7 +126,7 @@ public class BanCommand implements FeatureCommand {
         List<String> durations = List.of("7d", "30d", "p");
 
         if (a.length == 0 || (a.length == 1 && a[0].isEmpty())) {
-            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+            List<String> names = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .collect(Collectors.toList());
@@ -133,7 +134,7 @@ public class BanCommand implements FeatureCommand {
         }
         if (a.length == 1) {
             String partial = a[0].toLowerCase(Locale.ROOT);
-            List<String> names = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+            List<String> names = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
                     .sorted(String.CASE_INSENSITIVE_ORDER)

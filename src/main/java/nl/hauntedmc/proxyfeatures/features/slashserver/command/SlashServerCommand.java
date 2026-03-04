@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.slashserver.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.slashserver.SlashServer;
 
@@ -34,7 +35,7 @@ public class SlashServerCommand implements FeatureCommand {
             return;
         }
 
-        Optional<RegisteredServer> optionalServer = feature.getPlugin().getProxyInstance().getServer(serverName);
+        Optional<RegisteredServer> optionalServer = ProxyFeatures.getProxyInstance().getServer(serverName);
         if (optionalServer.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("slash.not_available")

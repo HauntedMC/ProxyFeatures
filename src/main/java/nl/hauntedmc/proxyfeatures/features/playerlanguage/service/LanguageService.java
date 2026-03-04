@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerLanguageEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 import nl.hauntedmc.proxyfeatures.api.player.LanguageAPI;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
@@ -97,7 +98,7 @@ public class LanguageService implements nl.hauntedmc.proxyfeatures.features.play
 
         // 4) If we just created the default, notify the player (delayed)
         if (result.createdDefault()) {
-            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> feature.getPlugin().getProxyInstance().getPlayer(playerUuid).ifPresent(player -> {
+            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> ProxyFeatures.getProxyInstance().getPlayer(playerUuid).ifPresent(player -> {
                 var msg = feature.getLocalizationHandler()
                         .getMessage("language.default_auto")
                         .with("language", resolved.name())
@@ -170,7 +171,7 @@ public class LanguageService implements nl.hauntedmc.proxyfeatures.features.play
         if (username == null || username.isBlank()) return Optional.empty();
 
         // Online (fast path)
-        var online = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+        var online = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                 .filter(pl -> pl.getUsername().equalsIgnoreCase(username))
                 .map(Player::getUniqueId)
                 .findFirst();

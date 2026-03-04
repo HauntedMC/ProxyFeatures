@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataprovider.database.messaging.api.Subscription;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.CommandRelay;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.messaging.CommandRelayMessage;
@@ -66,8 +67,8 @@ public class EventBusHandler {
         final String sendingCommand = full;
         // Execute the command in console in sync thread
         feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
-            ConsoleCommandSource console = feature.getPlugin().getProxyInstance().getConsoleCommandSource();
-            feature.getPlugin().getProxyInstance().getCommandManager()
+            ConsoleCommandSource console = ProxyFeatures.getProxyInstance().getConsoleCommandSource();
+            ProxyFeatures.getProxyInstance().getCommandManager()
                     .executeAsync(console, sendingCommand)
                     .whenComplete((success, ex) -> {
                         if (ex != null) {

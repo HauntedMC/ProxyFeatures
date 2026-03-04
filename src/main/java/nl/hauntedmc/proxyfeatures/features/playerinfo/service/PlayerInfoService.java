@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.PlayerInfo;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 
@@ -87,12 +88,12 @@ public class PlayerInfoService {
 
     public OnlineStatus getOnlineStatus(String nameOrUuid) {
         // Try by exact username
-        Optional<Player> opt = feature.getPlugin().getProxyInstance().getPlayer(nameOrUuid);
+        Optional<Player> opt = ProxyFeatures.getProxyInstance().getPlayer(nameOrUuid);
         if (opt.isEmpty()) {
             // Try search by UUID string
             try {
                 UUID uuid = UUID.fromString(nameOrUuid);
-                opt = feature.getPlugin().getProxyInstance().getPlayer(uuid);
+                opt = ProxyFeatures.getProxyInstance().getPlayer(uuid);
             } catch (Exception ignored) {
             }
         }

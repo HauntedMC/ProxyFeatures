@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.PlayerInfo;
@@ -56,7 +57,7 @@ public class PlayerInfoCommand implements FeatureCommand {
         String query = args[0];
 
         // Resolve via online player (for latest name/uuid), then DB fallback
-        Optional<Player> online = feature.getPlugin().getProxyInstance().getPlayer(query);
+        Optional<Player> online = ProxyFeatures.getProxyInstance().getPlayer(query);
         Optional<PlayerEntity> playerEntityOpt;
 
         if (online.isPresent()) {
@@ -212,13 +213,13 @@ public class PlayerInfoCommand implements FeatureCommand {
 
         // No arg yet -> all online players
         if (args.length == 0 || args[0].isEmpty()) {
-            List<String> all = feature.getPlugin().getProxyInstance().getAllPlayers()
+            List<String> all = ProxyFeatures.getProxyInstance().getAllPlayers()
                     .stream().map(Player::getUsername).collect(Collectors.toList());
             return CompletableFuture.completedFuture(all);
         }
 
         String partial = args[0].toLowerCase(Locale.ROOT);
-        List<String> matching = feature.getPlugin().getProxyInstance().getAllPlayers()
+        List<String> matching = ProxyFeatures.getProxyInstance().getAllPlayers()
                 .stream()
                 .map(Player::getUsername)
                 .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))

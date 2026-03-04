@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.hub.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.hub.Hub;
 
@@ -35,7 +36,7 @@ public class HubCommand implements FeatureCommand {
             return;
         }
 
-        Optional<RegisteredServer> lobbyOptional = feature.getPlugin().getProxyInstance().getServer(LOBBY_NAME);
+        Optional<RegisteredServer> lobbyOptional = ProxyFeatures.getProxyInstance().getServer(LOBBY_NAME);
         if (lobbyOptional.isEmpty()) {
             player.sendMessage(feature.getLocalizationHandler()
                     .getMessage("hub.not_available")

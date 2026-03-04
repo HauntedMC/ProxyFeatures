@@ -4,6 +4,7 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
@@ -32,7 +33,7 @@ public class GlobalListCommand implements FeatureCommand {
             return;
         }
 
-        Collection<RegisteredServer> servers = feature.getPlugin().getProxyInstance().getAllServers().stream().toList();
+        Collection<RegisteredServer> servers = ProxyFeatures.getProxyInstance().getAllServers().stream().toList();
 
         var filteredServers = servers.stream()
                 .filter(server -> !blacklist.contains(server.getServerInfo().getName()))

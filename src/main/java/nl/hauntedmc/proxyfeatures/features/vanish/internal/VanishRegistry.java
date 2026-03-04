@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.vanish.internal;
 
 import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.vanish.Vanish;
 
 import java.util.*;
@@ -29,7 +30,7 @@ public class VanishRegistry {
         if (uuid == null) return;
 
         // Only track online players to keep "currently vanished" semantics exact.
-        Optional<Player> online = feature.getPlugin().getProxyInstance().getPlayer(uuid);
+        Optional<Player> online = ProxyFeatures.getProxyInstance().getPlayer(uuid);
         if (online.isEmpty()) {
             // Ensure it's not left behind if the player is offline
             vanishedOnline.remove(uuid);
@@ -71,7 +72,7 @@ public class VanishRegistry {
      */
     public int getVanishedOnlineCount() {
         // Defensive intersect with real online players to be extra safe
-        Set<UUID> onlineUuids = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+        Set<UUID> onlineUuids = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                 .map(Player::getUniqueId).collect(Collectors.toSet());
         return (int) vanishedOnline.keySet().stream().filter(onlineUuids::contains).count();
     }
@@ -81,7 +82,7 @@ public class VanishRegistry {
      */
     public List<Player> getVanishedOnlinePlayers() {
         Set<UUID> vanished = new HashSet<>(vanishedOnline.keySet());
-        return feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+        return ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                 .filter(p -> vanished.contains(p.getUniqueId()))
                 .toList();
     }
@@ -91,7 +92,7 @@ public class VanishRegistry {
      */
     public List<Player> getAdjustedOnlinePlayers() {
         Set<UUID> vanished = new HashSet<>(vanishedOnline.keySet());
-        return feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+        return ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                 .filter(p -> !vanished.contains(p.getUniqueId()))
                 .toList();
     }
@@ -100,7 +101,7 @@ public class VanishRegistry {
      * Adjusted count = all online - vanished online
      */
     public int getAdjustedOnlineCount() {
-        int all = feature.getPlugin().getProxyInstance().getAllPlayers().size();
+        int all = ProxyFeatures.getProxyInstance().getAllPlayers().size();
         return Math.max(0, all - getVanishedOnlineCount());
     }
 }

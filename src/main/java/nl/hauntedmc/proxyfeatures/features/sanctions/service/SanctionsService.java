@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.sanctions.service;
 
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
@@ -447,7 +448,7 @@ public class SanctionsService {
     public void broadcastToStaff(String messageKey, MessagePlaceholders ph) {
         String notifyPerm = "proxyfeatures.feature.sanctions.notify";
 
-        feature.getPlugin().getProxyInstance().getAllPlayers().forEach(pl -> {
+        ProxyFeatures.getProxyInstance().getAllPlayers().forEach(pl -> {
             if (pl.hasPermission(notifyPerm)) {
                 pl.sendMessage(feature.getLocalizationHandler()
                         .getMessage(messageKey).withPlaceholders(ph).forAudience(pl).build());
@@ -588,7 +589,7 @@ public class SanctionsService {
     public boolean isTargetExempt(String targetUuid) {
         try {
             UUID uuid = UUID.fromString(targetUuid);
-            return feature.getPlugin().getProxyInstance().getPlayer(uuid)
+            return ProxyFeatures.getProxyInstance().getPlayer(uuid)
                     .map(p -> p.hasPermission("proxyfeatures.feature.sanctions.bypass"))
                     .orElse(false);
         } catch (Throwable ignored) {

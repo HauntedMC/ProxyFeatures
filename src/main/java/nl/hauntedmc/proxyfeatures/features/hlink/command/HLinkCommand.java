@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.features.hlink.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
 import nl.hauntedmc.proxyfeatures.features.hlink.internal.HLinkHandler;
@@ -54,7 +55,7 @@ public class HLinkCommand implements FeatureCommand {
 
         // 2) Find the target player
         String targetName = args.get(1);
-        Optional<Player> playerOpt = feature.getPlugin().getProxyInstance().getPlayer(targetName);
+        Optional<Player> playerOpt = ProxyFeatures.getProxyInstance().getPlayer(targetName);
         if (playerOpt.isEmpty()) {
             source.sendMessage(
                     feature.getLocalizationHandler()

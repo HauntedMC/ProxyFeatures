@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
@@ -66,7 +67,7 @@ public class UnmuteCommand implements FeatureCommand {
         );
 
         // Notify player if online
-        feature.getPlugin().getProxyInstance().getPlayer(java.util.UUID.fromString(target.getUuid()))
+        ProxyFeatures.getProxyInstance().getPlayer(java.util.UUID.fromString(target.getUuid()))
                 .ifPresent(pl -> pl.sendMessage(feature.getLocalizationHandler()
                         .getMessage("sanctions.notify.unmuted")
                         .forAudience(pl).build()));

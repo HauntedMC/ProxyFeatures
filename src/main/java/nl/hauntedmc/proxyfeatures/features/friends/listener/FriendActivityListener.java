@@ -5,6 +5,7 @@ import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.friends.Friends;
 import nl.hauntedmc.proxyfeatures.features.friends.entity.FriendSnapshot;
@@ -103,7 +104,7 @@ public final class FriendActivityListener {
         for (FriendSnapshot s : snaps) {
             try {
                 UUID fid = UUID.fromString(s.uuid());
-                feature.getPlugin().getProxyInstance().getPlayer(fid).ifPresent(result::add);
+                ProxyFeatures.getProxyInstance().getPlayer(fid).ifPresent(result::add);
             } catch (IllegalArgumentException ignored) {
             }
         }

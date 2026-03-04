@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.APIRegistry;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.util.text.placeholder.MessagePlaceholders;
@@ -94,7 +95,7 @@ public class FriendCommand implements FeatureCommand {
 
         for (var snap : friendSnaps) {
             UUID fid = UUID.fromString(snap.uuid());
-            feature.getPlugin().getProxyInstance().getPlayer(fid)
+            ProxyFeatures.getProxyInstance().getPlayer(fid)
                     .filter(this::notVanished)
                     .ifPresent(pl -> {
                         String name = pl.getUsername();
@@ -164,7 +165,7 @@ public class FriendCommand implements FeatureCommand {
 
         for (var snap : friends) {
             UUID fid = UUID.fromString(snap.uuid());
-            feature.getPlugin().getProxyInstance().getPlayer(fid)
+            ProxyFeatures.getProxyInstance().getPlayer(fid)
                     .filter(this::notVanished)
                     .ifPresentOrElse(pl -> {
                         String name = pl.getUsername();
@@ -307,7 +308,7 @@ public class FriendCommand implements FeatureCommand {
                 boolean ok = svc.acceptPending(target, me);
                 if (ok) {
                     sendMsg(p, "friend.accepted", Map.of("player", target.username()));
-                    feature.getPlugin().getProxyInstance().getPlayer(UUID.fromString(target.uuid()))
+                    ProxyFeatures.getProxyInstance().getPlayer(UUID.fromString(target.uuid()))
                             .filter(this::notVanished)
                             .ifPresent(t -> sendMsg(t, "friend.accepted",
                                     Map.of("player", p.getUsername())));
@@ -327,7 +328,7 @@ public class FriendCommand implements FeatureCommand {
 
         sendMsg(p, "friend.add.sent", Map.of("player", target.username()));
 
-        feature.getPlugin().getProxyInstance().getPlayer(UUID.fromString(target.uuid()))
+        ProxyFeatures.getProxyInstance().getPlayer(UUID.fromString(target.uuid()))
                 .filter(this::notVanished)
                 .ifPresent(t -> sendMsg(t, "friend.add.received",
                         Map.of("player", p.getUsername())));
@@ -386,7 +387,7 @@ public class FriendCommand implements FeatureCommand {
         boolean ok = svc.acceptPending(from, me);
         if (ok) {
             sendMsg(p, "friend.accepted", Map.of("player", from.username()));
-            feature.getPlugin().getProxyInstance().getPlayer(UUID.fromString(from.uuid()))
+            ProxyFeatures.getProxyInstance().getPlayer(UUID.fromString(from.uuid()))
                     .filter(this::notVanished)
                     .ifPresent(t -> sendMsg(t, "friend.accepted",
                             Map.of("player", p.getUsername())));
@@ -495,7 +496,7 @@ public class FriendCommand implements FeatureCommand {
             return;
         }
 
-        feature.getPlugin().getProxyInstance().getPlayer(UUID.fromString(target.uuid()))
+        ProxyFeatures.getProxyInstance().getPlayer(UUID.fromString(target.uuid()))
                 .filter(this::notVanished)
                 .ifPresentOrElse(t -> t.getCurrentServer().ifPresent(conn -> {
                     RegisteredServer srv = conn.getServer();
@@ -736,7 +737,7 @@ public class FriendCommand implements FeatureCommand {
         }
 
         // Online & non-vanished players (usernames), excluding self
-        List<Player> onlineNonVanished = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+        List<Player> onlineNonVanished = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                 .filter(this::notVanished)
                 .filter(pl -> !pl.getUniqueId().equals(p.getUniqueId()))
                 .toList();

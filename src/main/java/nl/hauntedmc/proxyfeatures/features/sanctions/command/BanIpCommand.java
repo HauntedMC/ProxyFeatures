@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.features.sanctions.command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.sanctions.Sanctions;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
@@ -70,7 +71,7 @@ public class BanIpCommand implements FeatureCommand {
             var ph = feature.getService().placeholdersFor(s);
 
             // Immediately disconnect all online players from the banned IP
-            feature.getPlugin().getProxyInstance().getAllPlayers().forEach(pl -> {
+            ProxyFeatures.getProxyInstance().getAllPlayers().forEach(pl -> {
                 try {
                     String pip = pl.getRemoteAddress().getAddress().getHostAddress();
                     if (normalizedIp.equals(pip)) {

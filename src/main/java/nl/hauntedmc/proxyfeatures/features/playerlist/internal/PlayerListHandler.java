@@ -38,7 +38,7 @@ public class PlayerListHandler {
      */
     public Component formatGlobalList(Collection<RegisteredServer> servers, Player audience) {
         // Get all players from the proxy and filter out vanished ones.
-        List<Player> allPlayers = feature.getPlugin().getProxyInstance().getAllPlayers().stream()
+        List<Player> allPlayers = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
                 .filter(player -> !APIRegistry.get(VanishAPI.class)
                         .map(api -> api.isVanished(player.getUniqueId()))
                         .orElse(false))
