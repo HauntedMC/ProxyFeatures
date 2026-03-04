@@ -13,6 +13,7 @@ import nl.hauntedmc.proxyfeatures.features.votifier.command.VotifierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
+import nl.hauntedmc.proxyfeatures.features.votifier.listener.VotifierWinnerListener;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
 import nl.hauntedmc.proxyfeatures.features.votifier.meta.Meta;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
@@ -73,7 +74,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         // Shows on: /vote and /vote links
         cfg.put("vote.url", "https://hauntedmc.nl/vote");
 
-        // New: /vote leaderboard link
+        // /vote leaderboard link
         cfg.put("vote.leaderboard_url", "https://www.hauntedmc.nl/leaderboard/votes/");
 
         // Logging
@@ -87,7 +88,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
 
         m.add("votifier.command.usage",
-                "&7Gebruik: &f/vote &7<status|top|dump|stats|links|leaderboard>");
+                "&7Gebruik: &f/vote &7<status|top|dump|stats|winners|links|leaderboard>");
         m.add("votifier.command.status",
                 "&7[&aVotifier&7] status=&f{status}&7 host=&f{host}&7 port=&f{port}&7 timeout=&f{timeout}ms&7 keyBits=&f{keybits}&7 redis=&f{redis}&7 db=&f{db}");
 
@@ -115,6 +116,18 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         m.add("votifier.command.stats.player_only",
                 "&7[&aVote&7] &cAlleen spelers kunnen dit zonder speler argument gebruiken.");
 
+        // Winners medal ranking
+        m.add("votifier.command.winners.header",
+                "&7[&aVote&7] Winners ranking (medals) &8| &fmax {limit}");
+        m.add("votifier.command.winners.entry",
+                "  &8#&f{rank}&8: &f{player} &8| &6{gold}&7 &8/ &7{silver}&7 &8/ &c{bronze}");
+        m.add("votifier.command.winners.empty",
+                "&7[&aVote&7] &7Nog geen winners gevonden.");
+
+        // Winner congrats (one time per winning month)
+        m.add("votifier.winner.congrats",
+                "&8[&aVote&8] &aGefeliciteerd&7! Je eindigde als &f#{rank}&7 in de vote top 3 van &f{month}&7 met &e{votes}&7 votes.");
+
         // /vote link output
         m.add("votifier.vote.header",
                 "&8[&aVote&8] &7Stem op &fHauntedMC&7:");
@@ -136,6 +149,9 @@ public class Votifier extends VelocityBaseFeature<Meta> {
     public void initialize() {
         // Commands
         getLifecycleManager().getCommandManager().registerBrigadierCommand(new VotifierCommand(this));
+
+        // Listener: winner congrats on login
+        getLifecycleManager().getListenerManager().registerListener(new VotifierWinnerListener(this));
 
         // Data provider init
         getLifecycleManager().getDataManager().initDataProvider(getFeatureName());
@@ -201,7 +217,6 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         return service;
     }
 
-    // Compatibility helpers used by commands
     public boolean isRunning() {
         VotifierService svc = service;
         return svc != null && svc.isRunning();

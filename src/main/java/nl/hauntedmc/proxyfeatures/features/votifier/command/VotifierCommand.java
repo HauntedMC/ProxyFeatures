@@ -19,6 +19,7 @@ import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteLeaderboardEntry;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotePlayerStatsView;
+import nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteWinnersEntry;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.YearMonth;
@@ -36,6 +37,7 @@ public final class VotifierCommand implements BrigadierCommand {
     private static final String PERM_DUMP = "proxyfeatures.feature.votifier.command.dump";
     private static final String PERM_STATS = "proxyfeatures.feature.votifier.command.stats";
     private static final String PERM_OTHER = "proxyfeatures.feature.votifier.command.stats.other";
+    private static final String PERM_WINNERS = "proxyfeatures.feature.votifier.command.winners";
 
     private static final DateTimeFormatter DISPLAY_MONTH = DateTimeFormatter.ofPattern("MM-uuuu");
     private static final DateTimeFormatter INPUT_MONTH_EU = DateTimeFormatter.ofPattern("MM-uuuu");
@@ -138,6 +140,16 @@ public final class VotifierCommand implements BrigadierCommand {
                         .executes(ctx -> {
                             String target = StringArgumentType.getString(ctx, "player");
                             return statsFor(ctx.getSource(), target);
+                        })));
+
+        // /vote winners [limit]
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("winners")
+                .requires(src -> src.hasPermission(PERM_WINNERS))
+                .executes(ctx -> winners(ctx.getSource(), 10))
+                .then(RequiredArgumentBuilder.<CommandSource, Integer>argument("limit", IntegerArgumentType.integer(1, 50))
+                        .executes(ctx -> {
+                            int limit = IntegerArgumentType.getInteger(ctx, "limit");
+                            return winners(ctx.getSource(), limit);
                         })));
 
         return root.build();
@@ -312,6 +324,49 @@ public final class VotifierCommand implements BrigadierCommand {
                     .with("rank", String.valueOf(rank))
                     .with("player", e.username())
                     .with("votes", String.valueOf(e.monthVotes()))
+                    .forAudience(src)
+                    .build());
+            rank++;
+        }
+
+        return 1;
+    }
+
+    private int winners(CommandSource src, int limit) {
+        if (feature.getService() == null || !feature.getService().isStatsEnabled()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.winners.empty")
+                    .forAudience(src)
+                    .build());
+            return 1;
+        }
+
+        int lim = Math.max(1, Math.min(50, limit));
+        List<VoteWinnersEntry> list = feature.getService().winnersLeaderboard(lim);
+
+        if (list.isEmpty()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.winners.empty")
+                    .forAudience(src)
+                    .build());
+            return 1;
+        }
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.command.winners.header")
+                .with("limit", String.valueOf(lim))
+                .forAudience(src)
+                .build());
+
+        int rank = 1;
+        for (VoteWinnersEntry e : list) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.winners.entry")
+                    .with("rank", String.valueOf(rank))
+                    .with("player", e.username())
+                    .with("gold", String.valueOf(e.firstPlaces()))
+                    .with("silver", String.valueOf(e.secondPlaces()))
+                    .with("bronze", String.valueOf(e.thirdPlaces()))
                     .forAudience(src)
                     .build());
             rank++;

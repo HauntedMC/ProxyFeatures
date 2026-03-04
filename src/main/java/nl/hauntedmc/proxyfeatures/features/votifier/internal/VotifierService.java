@@ -1,9 +1,11 @@
 package nl.hauntedmc.proxyfeatures.features.votifier.internal;
 
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
+import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.EventBusHandler;
@@ -23,14 +25,18 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.time.Duration;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class VotifierService {
+
+    private static final DateTimeFormatter DISPLAY_MONTH = DateTimeFormatter.ofPattern("MM-uuuu");
 
     private final Votifier feature;
 
@@ -125,6 +131,12 @@ public final class VotifierService {
         return stats.topForHistoricalMonth(requested, limit);
     }
 
+    public List<VoteWinnersEntry> winnersLeaderboard(int limit) {
+        if (stats == null) return List.of();
+        int lim = Math.max(1, Math.min(1000, limit));
+        return stats.winnersLeaderboard(lim);
+    }
+
     public String dumpTopForMonth(YearMonth month) {
         VotifierConfig cfg = configRef.get();
         if (stats == null) throw new IllegalStateException("stats disabled");
@@ -144,7 +156,6 @@ public final class VotifierService {
 
         Optional<PlayerEntity> playerOpt = stats.findPlayerByUsername(username);
         if (playerOpt.isEmpty()) {
-            // Player truly does not exist in player_entity
             return Optional.empty();
         }
 
@@ -156,7 +167,6 @@ public final class VotifierService {
 
         Optional<PlayerVoteStatsEntity> statsOpt = stats.findStats(playerId);
         if (statsOpt.isEmpty()) {
-            // Player exists but has never voted. Return all zeros.
             return Optional.of(new VotePlayerStatsView(
                     playerId,
                     displayName,
@@ -180,6 +190,90 @@ public final class VotifierService {
                 s.getVoteStreak(),
                 s.getBestVoteStreak()
         ));
+    }
+
+    public void onPlayerPostLogin(Player player) {
+        if (player == null) return;
+        if (stats == null || !configRef.get().statsEnabled()) return;
+
+        String username = player.getUsername();
+        UUID uuid = player.getUniqueId();
+
+        worker.execute(() -> {
+            try {
+                Optional<VoteWinnerNotification> notifOpt = stats.claimPendingWinnerByUsername(username);
+                if (notifOpt.isEmpty()) return;
+
+                VoteWinnerNotification notif = notifOpt.get();
+
+                feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
+                    Optional<Player> live = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+                    if (live.isEmpty()) {
+                        worker.execute(() -> stats.releaseWinnerProcessing(notif.playerId(), notif.winnerMonthYearMonth()));
+                        return;
+                    }
+
+                    Player target = live.get();
+
+                    boolean congratsOk = false;
+                    boolean rewardOk = false;
+
+                    try {
+                        if (notif.needsCongrats()) {
+                            sendWinnerCongrats(target, notif);
+                        }
+                        congratsOk = true;
+                    } catch (Throwable t) {
+                        feature.getLogger().warn("Winner congrats failed: " + safeMsg(t));
+                    }
+
+                    try {
+                        if (notif.needsReward()) {
+                            grantMonthlyWinnerReward(target, notif);
+                        }
+                        rewardOk = true;
+                    } catch (Throwable t) {
+                        feature.getLogger().warn("Winner reward failed: " + safeMsg(t));
+                    }
+
+                    boolean finalCongrats = notif.needsCongrats() && congratsOk;
+                    boolean finalReward = notif.needsReward() && rewardOk;
+
+                    worker.execute(() -> stats.completeWinnerProcessing(
+                            notif.playerId(),
+                            notif.winnerMonthYearMonth(),
+                            finalCongrats,
+                            finalReward
+                    ));
+                });
+
+            } catch (Throwable t) {
+                feature.getLogger().warn("Winner login handler failed: " + safeMsg(t));
+            }
+        });
+    }
+
+    private void sendWinnerCongrats(Player player, VoteWinnerNotification notif) {
+        String month = formatYearMonthInt(notif.winnerMonthYearMonth());
+        player.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.winner.congrats")
+                .with("rank", String.valueOf(notif.winnerRank()))
+                .with("month", month)
+                .with("votes", String.valueOf(Math.max(0, notif.monthVotes())))
+                .forAudience(player)
+                .build());
+    }
+
+    /**
+     * Reward hook for monthly winners.
+     * Implement your own reward logic here later.
+     *
+     * This is called when the winner row is claimed for processing.
+     * The monthly table tracks if the reward was granted successfully.
+     */
+    private void grantMonthlyWinnerReward(Player player, VoteWinnerNotification notif) {
+        // Intentionally empty.
+        // Implement later.
     }
 
     private void startServer(VotifierConfig cfg) {
@@ -335,28 +429,86 @@ public final class VotifierService {
         VotifierConfig cfg = configRef.get();
         if (stats == null || !cfg.statsEnabled()) return;
 
-        YearMonth nowYm = YearMonth.now(cfg.statsZone());
-        int current = toYearMonthInt(nowYm);
+        YearMonth currentYm = YearMonth.now(cfg.statsZone());
+        int currentInt = toYearMonthInt(currentYm);
 
-        int lastReset = localState.lastResetYearMonth();
-        if (lastReset == current) return;
+        int lastResetInt = localState.lastResetYearMonth();
+        YearMonth lastResetYm = fromYearMonthInt(lastResetInt);
 
-        worker.execute(() -> {
-            try {
-                YearMonth prev = YearMonth.now(cfg.statsZone()).minusMonths(1);
-                int cur = toYearMonthInt(YearMonth.now(cfg.statsZone()));
-                Path dumpFile = stats.dumpTopForMonth(prev, cur, cfg.dumpTopN(), cfg.dumpFilePrefix());
-                localState.setLastResetYearMonth(cur);
-                feature.getLogger().info("Monthly vote dump completed. Dump=" + dumpFile);
-            } catch (Throwable t) {
-                feature.getLogger().error("Monthly vote dump failed: " + safeMsg(t));
+        // First run safety: only process previous month once
+        if (lastResetYm == null) {
+            worker.execute(() -> processMonthMarker(cfg, currentYm, null));
+            return;
+        }
+
+        // Clock issues or config change safety
+        if (lastResetYm.isAfter(currentYm)) {
+            localState.setLastResetYearMonth(currentInt);
+            return;
+        }
+
+        if (lastResetYm.equals(currentYm)) return;
+
+        worker.execute(() -> processMonthMarker(cfg, currentYm, lastResetYm));
+    }
+
+    private void processMonthMarker(VotifierConfig cfg, YearMonth currentYm, YearMonth lastResetYm) {
+        try {
+            int currentInt = toYearMonthInt(currentYm);
+
+            if (lastResetYm == null) {
+                YearMonth prev = currentYm.minusMonths(1);
+                finalizeFinishedMonth(cfg, prev);
+                localState.setLastResetYearMonth(currentInt);
+                return;
             }
-        });
+
+            // Catch up: for each missing month marker, finalize its previous month
+            YearMonth marker = lastResetYm.plusMonths(1);
+            while (!marker.isAfter(currentYm)) {
+                YearMonth prev = marker.minusMonths(1);
+
+                finalizeFinishedMonth(cfg, prev);
+
+                // Mark progress after each successful month, so restarts do not redo already completed work
+                localState.setLastResetYearMonth(toYearMonthInt(marker));
+
+                marker = marker.plusMonths(1);
+            }
+
+        } catch (Throwable t) {
+            feature.getLogger().error("Monthly processing failed: " + safeMsg(t));
+        }
+    }
+
+    private void finalizeFinishedMonth(VotifierConfig cfg, YearMonth finishedMonth) {
+        int finishedInt = toYearMonthInt(finishedMonth);
+        int currentInt = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+
+        // 1) Dump top list for finished month (historical dump)
+        Path dumpFile = stats.dumpTopForMonth(finishedMonth, currentInt, cfg.dumpTopN(), cfg.dumpFilePrefix());
+
+        // 2) Finalize winners and apply medals exactly once
+        int medalsApplied = stats.applyMonthlyWinners(finishedInt);
+
+        feature.getLogger().info("Monthly finalize completed. Month=" + finishedMonth + " dump=" + dumpFile + " medalsApplied=" + medalsApplied);
     }
 
     private static int toYearMonthInt(YearMonth ym) {
         if (ym == null) return 0;
         return ym.getYear() * 100 + ym.getMonthValue();
+    }
+
+    private static YearMonth fromYearMonthInt(int yyyymm) {
+        if (yyyymm <= 0) return null;
+        int year = yyyymm / 100;
+        int month = yyyymm % 100;
+        if (year < 1970 || month < 1 || month > 12) return null;
+        try {
+            return YearMonth.of(year, month);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     private static String sanitizeUsername(String s) {
@@ -376,6 +528,12 @@ public final class VotifierService {
         if (raw > now + Duration.ofDays(7).toMillis()) return now;
 
         return raw;
+    }
+
+    private static String formatYearMonthInt(int yyyymm) {
+        YearMonth ym = fromYearMonthInt(yyyymm);
+        if (ym == null) return "";
+        return DISPLAY_MONTH.format(ym);
     }
 
     private static String safeMsg(Throwable t) {

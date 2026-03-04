@@ -16,7 +16,8 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
         name = "player_vote_stats",
         indexes = {
                 @Index(name = "idx_vote_month", columnList = "month_year_month"),
-                @Index(name = "idx_vote_month_votes", columnList = "month_year_month, month_votes")
+                @Index(name = "idx_vote_month_votes", columnList = "month_year_month, month_votes"),
+                @Index(name = "idx_vote_medals", columnList = "first_places, second_places, third_places")
         }
 )
 public class PlayerVoteStatsEntity {
@@ -57,6 +58,16 @@ public class PlayerVoteStatsEntity {
     @Column(name = "best_vote_streak", nullable = false)
     private int bestVoteStreak;
 
+    // Lifetime medals
+    @Column(name = "first_places", nullable = false)
+    private int firstPlaces;
+
+    @Column(name = "second_places", nullable = false)
+    private int secondPlaces;
+
+    @Column(name = "third_places", nullable = false)
+    private int thirdPlaces;
+
     public PlayerVoteStatsEntity() {
     }
 
@@ -70,6 +81,10 @@ public class PlayerVoteStatsEntity {
         this.lastVoteAt = 0;
         this.voteStreak = 0;
         this.bestVoteStreak = 0;
+
+        this.firstPlaces = 0;
+        this.secondPlaces = 0;
+        this.thirdPlaces = 0;
     }
 
     public Long getPlayerId() {
@@ -150,5 +165,29 @@ public class PlayerVoteStatsEntity {
 
     public void setBestVoteStreak(int bestVoteStreak) {
         this.bestVoteStreak = bestVoteStreak;
+    }
+
+    public int getFirstPlaces() {
+        return firstPlaces;
+    }
+
+    public void setFirstPlaces(int firstPlaces) {
+        this.firstPlaces = firstPlaces;
+    }
+
+    public int getSecondPlaces() {
+        return secondPlaces;
+    }
+
+    public void setSecondPlaces(int secondPlaces) {
+        this.secondPlaces = secondPlaces;
+    }
+
+    public int getThirdPlaces() {
+        return thirdPlaces;
+    }
+
+    public void setThirdPlaces(int thirdPlaces) {
+        this.thirdPlaces = thirdPlaces;
     }
 }
