@@ -9,6 +9,11 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
@@ -26,7 +31,6 @@ import java.util.concurrent.CompletableFuture;
 
 public final class VotifierCommand implements BrigadierCommand {
 
-    private static final String PERM_BASE = "proxyfeatures.feature.votifier.command";
     private static final String PERM_STATUS = "proxyfeatures.feature.votifier.command.status";
     private static final String PERM_TOP = "proxyfeatures.feature.votifier.command.top";
     private static final String PERM_DUMP = "proxyfeatures.feature.votifier.command.dump";
@@ -44,27 +48,32 @@ public final class VotifierCommand implements BrigadierCommand {
 
     @Override
     public @NotNull String name() {
-        return "votifier";
+        return "vote";
     }
 
     @Override
     public String description() {
-        return "Votifier admin commands.";
+        return "Vote links + Votifier admin commands.";
     }
 
     @Override
     public @NotNull LiteralCommandNode<CommandSource> buildTree() {
         LiteralArgumentBuilder<CommandSource> root =
                 LiteralArgumentBuilder.<CommandSource>literal(name())
-                        .requires(src -> src.hasPermission(PERM_BASE))
+                        // Intentionally no permission gate: /vote is player-facing
                         .executes(ctx -> {
-                            ctx.getSource().sendMessage(feature.getLocalizationHandler()
-                                    .getMessage("votifier.command.usage")
-                                    .forAudience(ctx.getSource())
-                                    .build());
+                            sendVoteLink(ctx.getSource());
                             return 1;
                         });
 
+        // /vote links
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("links")
+                .executes(ctx -> {
+                    sendVoteLink(ctx.getSource());
+                    return 1;
+                }));
+
+        // /vote status
         root.then(LiteralArgumentBuilder.<CommandSource>literal("status")
                 .requires(src -> src.hasPermission(PERM_STATUS))
                 .executes(ctx -> {
@@ -112,7 +121,7 @@ public final class VotifierCommand implements BrigadierCommand {
                             return dump(ctx.getSource(), ym);
                         })));
 
-        // /votifier stats [player]
+        // /vote stats [player]
         root.then(LiteralArgumentBuilder.<CommandSource>literal("stats")
                 .requires(src -> src.hasPermission(PERM_STATS))
                 .executes(ctx -> statsSelfOrFail(ctx.getSource()))
@@ -125,6 +134,35 @@ public final class VotifierCommand implements BrigadierCommand {
                         })));
 
         return root.build();
+    }
+
+    private void sendVoteLink(CommandSource src) {
+        String url = feature.getConfigHandler().node("vote").get("url").as(String.class, "");
+        if (url == null || url.isBlank()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.vote.not_configured")
+                    .forAudience(src)
+                    .build());
+            return;
+        }
+
+        String cleanUrl = url.trim();
+
+        Component urlComp = Component.text(cleanUrl, NamedTextColor.AQUA)
+                .decorate(TextDecoration.UNDERLINED)
+                .clickEvent(ClickEvent.openUrl(cleanUrl))
+                .hoverEvent(HoverEvent.showText(Component.text("Open vote link", NamedTextColor.GRAY)));
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.vote.header")
+                .forAudience(src)
+                .build());
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.vote.line")
+                .with("url", urlComp)
+                .forAudience(src)
+                .build());
     }
 
     private int statsSelfOrFail(CommandSource src) {

@@ -69,6 +69,10 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         cfg.put("stats.dump_top_n", 100);
         cfg.put("stats.dump_file_prefix", "votifier-top100");
 
+        // Player command link
+        // Shows on: /vote and /vote links
+        cfg.put("vote.url", "https://hauntedmc.nl/vote");
+
         // Logging
         cfg.put("logging.log_votes", true);
 
@@ -80,16 +84,16 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
 
         m.add("votifier.command.usage",
-                "&7Gebruik: &f/votifier &7<status|reload|top|dump|stats>");
+                "&7Gebruik: &f/vote &7<status|top|dump|stats|links>");
         m.add("votifier.command.status",
                 "&7[&aVotifier&7] status=&f{status}&7 host=&f{host}&7 port=&f{port}&7 timeout=&f{timeout}ms&7 keyBits=&f{keybits}&7 redis=&f{redis}&7 db=&f{db}");
 
         m.add("votifier.command.top.header",
-                "&7[&aVotifier&7] Top &f{limit}&7 voor maand &f{month}&7:");
+                "&7[&aVote&7] Top &f{limit}&7 voor maand &f{month}&7:");
         m.add("votifier.command.top.entry",
                 "  &8#&f{rank}&8: &f{player} &8- &e{votes} &fvotes");
         m.add("votifier.command.top.empty",
-                "&7[&aVotifier&7] &7Geen votes gevonden voor maand &f{month}&7.");
+                "&7[&aVote&7] &7Geen votes gevonden voor maand &f{month}&7.");
 
         m.add("votifier.command.dump.ok",
                 "&7[&aVotifier&7] &aDump geschreven: &f{file}");
@@ -98,15 +102,23 @@ public class Votifier extends VelocityBaseFeature<Meta> {
 
         // Stats
         m.add("votifier.command.stats.header",
-                "&7[&aVotifier&7] Stats van &f{player}&7:");
+                "&7[&aVote&7] Stats van &f{player}&7:");
         m.add("votifier.command.stats.line1",
                 "  &8• &7Maand votes: &f{month_votes} &8| &7Beste maand: &f{best_month_votes} &8| &7Totaal: &f{total_votes}");
         m.add("votifier.command.stats.line2",
                 "  &8• &7Streak: &f{streak} &8| &7Beste streak: &f{best_streak}");
         m.add("votifier.command.stats.not_found",
-                "&7[&aVotifier&7] &cSpeler niet gevonden: &f{player}");
+                "&7[&aVote&7] &cSpeler niet gevonden: &f{player}");
         m.add("votifier.command.stats.player_only",
-                "&7[&aVotifier&7] &cAlleen spelers kunnen dit zonder speler argument gebruiken.");
+                "&7[&aVote&7] &cAlleen spelers kunnen dit zonder speler argument gebruiken.");
+
+        // /vote link output
+        m.add("votifier.vote.header",
+                "&8[&aVote&8] &7Stem op &fHauntedMC&7:");
+        m.add("votifier.vote.line",
+                "  &8• &7Klik om te openen: {url}");
+        m.add("votifier.vote.not_configured",
+                "&8[&aVote&8] &cVote link is niet ingesteld.");
 
         return m;
     }
@@ -203,5 +215,4 @@ public class Votifier extends VelocityBaseFeature<Meta> {
     public int currentKeyBits() {
         return (int) getConfigHandler().get("keyBits");
     }
-
 }
