@@ -43,7 +43,6 @@ public class TextCommands extends VelocityBaseFeature<Meta> {
         m.add("text.support", "<aqua>Voor de ticket support ga je naar: <gray><click:open_url:'{url}'>{url}</click>");
         m.add("text.help", "<aqua>Voor extra hulp, informatie en veelgestelde vragen over HauntedMC ga naar: <gray><click:open_url:'{url}'>{url}</click>");
         m.add("text.vacatures", "<aqua>Voor het solliciteren voor een van onze staff ranks, lees deze informatie goed door: <gray><click:open_url:'{url}'>{url}</click>");
-        m.add("text.vote", "<aqua>Ga naar <gray><click:open_url:'{url}'>{url}</click> <aqua>voor alle vote informatie.");
         m.add("text.shoptutorial", "<aqua>Ga naar <gray><click:open_url:'{url}'>{url}</click> <aqua>voor de shop tutorial.");
         m.add("text.flaghelp", "<aqua>Ga naar <gray><click:open_url:'{url}'>{url}</click> <aqua>voor meer details over de flags.");
         m.add("text.maps", "<aqua>Ga naar <gray><click:open_url:'{url}'>{url}</click> <aqua>om alle interactieve 3D kaarten van de gamemodes te bekijken.");
@@ -76,7 +75,6 @@ public class TextCommands extends VelocityBaseFeature<Meta> {
         commands.put("support", new CommandDef("text.support", Map.of("url", "https://hauntedmc.nl/support")));
         commands.put("help", new CommandDef("text.help", Map.of("url", "https://hauntedmc.nl/help")));
         commands.put("vacatures", new CommandDef("text.vacatures", Map.of("url", "https://hauntedmc.nl/vacatures")));
-        commands.put("vote", new CommandDef("text.vote", Map.of("url", "https://hauntedmc.nl/vote")));
         commands.put("shoptutorial", new CommandDef("text.shoptutorial", Map.of("url", "https://hauntedmc.nl/shoptutorial")));
         commands.put("flaghelp", new CommandDef("text.flaghelp", Map.of("url", "https://github.com/ShaneBeee/GriefPreventionFlags/wiki/Flags")));
         commands.put("maps", new CommandDef("text.maps", Map.of("url", "https://hauntedmc.nl/help/dynmap")));
