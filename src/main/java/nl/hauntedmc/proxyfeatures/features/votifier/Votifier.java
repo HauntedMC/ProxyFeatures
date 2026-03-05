@@ -142,6 +142,10 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         // Vote reminders
         m.add("votifier.remind.header",
                 "&8[&aVote&8] &eHet is alweer &f{time} {unit}&e sinds je laatste vote. &eStem voor leuke rewards en een plek in de top-3!");
+
+        m.add("votifier.remind.never",
+                "&8[&aVote&8] &eJe hebt nog niet gevote. &eStem voor leuke rewards en een plek in de top-3!");
+
         m.add("votifier.remind.line",
                 "  &8• &7Klik om te stemmen: {url}");
 

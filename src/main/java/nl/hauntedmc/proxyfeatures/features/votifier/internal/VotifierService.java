@@ -404,12 +404,42 @@ public final class VotifierService {
         long thresholdMillis = Duration.ofHours(Math.max(1, cfg.remindThresholdHours())).toMillis();
         long lastVoteAt = st.lastVoteAt();
 
-        boolean due = lastVoteAt <= 0 || (now - lastVoteAt) >= thresholdMillis;
+        boolean neverVoted = lastVoteAt <= 0;
+        boolean due = neverVoted || (now - lastVoteAt) >= thresholdMillis;
         if (!due) {
             return;
         }
 
-        long diffMillis = lastVoteAt <= 0 ? thresholdMillis : Math.max(0L, now - lastVoteAt);
+        String cleanUrl = url.trim();
+
+        // NEW: special message when last_vote_at == 0
+        if (neverVoted) {
+            feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
+                Optional<Player> liveAgain = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+                if (liveAgain.isEmpty()) return;
+
+                Player p = liveAgain.get();
+
+                Component urlComp = Component.text(cleanUrl, NamedTextColor.AQUA)
+                        .decorate(TextDecoration.UNDERLINED)
+                        .clickEvent(ClickEvent.openUrl(cleanUrl))
+                        .hoverEvent(HoverEvent.showText(Component.text("Open vote link", NamedTextColor.GRAY)));
+
+                p.sendMessage(feature.getLocalizationHandler()
+                        .getMessage("votifier.remind.never")
+                        .forAudience(p)
+                        .build());
+
+                p.sendMessage(feature.getLocalizationHandler()
+                        .getMessage("votifier.remind.line")
+                        .with("url", urlComp)
+                        .forAudience(p)
+                        .build());
+            });
+            return;
+        }
+
+        long diffMillis = Math.max(0L, now - lastVoteAt);
         long hours = Math.max(0L, diffMillis / 3_600_000L);
 
         final String timeText;
@@ -424,8 +454,6 @@ public final class VotifierService {
             timeText = String.valueOf(showHours);
             unitKey = (showHours == 1L) ? "votifier.remind.unit.hour" : "votifier.remind.unit.hours";
         }
-
-        String cleanUrl = url.trim();
 
         feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
             Optional<Player> liveAgain = ProxyFeatures.getProxyInstance().getPlayer(uuid);
