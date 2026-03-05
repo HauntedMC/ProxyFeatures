@@ -1,14 +1,15 @@
 package nl.hauntedmc.proxyfeatures.features.votifier.listener;
 
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
 
-public final class VotifierMonthResultListener {
+public final class VotifierPlayerListener {
 
     private final Votifier feature;
 
-    public VotifierMonthResultListener(Votifier feature) {
+    public VotifierPlayerListener(Votifier feature) {
         this.feature = feature;
     }
 
@@ -16,5 +17,11 @@ public final class VotifierMonthResultListener {
     public void onPostLogin(PostLoginEvent event) {
         if (feature.getService() == null) return;
         feature.getService().onPlayerPostLogin(event.getPlayer());
+    }
+
+    @Subscribe
+    public void onDisconnect(DisconnectEvent event) {
+        if (feature.getService() == null) return;
+        feature.getService().onPlayerDisconnect(event.getPlayer().getUniqueId());
     }
 }

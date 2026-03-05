@@ -14,7 +14,7 @@ import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEnti
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.VotifierRolloverStateEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
-import nl.hauntedmc.proxyfeatures.features.votifier.listener.VotifierMonthResultListener;
+import nl.hauntedmc.proxyfeatures.features.votifier.listener.VotifierPlayerListener;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
 import nl.hauntedmc.proxyfeatures.features.votifier.meta.Meta;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
@@ -198,7 +198,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         getLifecycleManager().getCommandManager().registerBrigadierCommand(new VotifierCommand(this));
 
         // Listener: month results and reminders
-        getLifecycleManager().getListenerManager().registerListener(new VotifierMonthResultListener(this));
+        getLifecycleManager().getListenerManager().registerListener(new VotifierPlayerListener(this));
 
         // Data provider init
         getLifecycleManager().getDataManager().initDataProvider(getFeatureName());
