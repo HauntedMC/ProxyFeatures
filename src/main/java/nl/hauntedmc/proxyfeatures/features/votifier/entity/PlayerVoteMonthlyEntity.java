@@ -17,8 +17,9 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
                 @Index(name = "idx_vote_monthly_month", columnList = "month_year_month"),
                 @Index(name = "idx_vote_monthly_month_votes", columnList = "month_year_month, month_votes"),
                 @Index(name = "idx_vote_monthly_player", columnList = "player_id"),
-                @Index(name = "idx_vote_monthly_winner", columnList = "month_year_month, winner_rank"),
-                @Index(name = "idx_vote_monthly_winner_pending", columnList = "player_id, winner_rank, winner_processing, winner_congrats_sent, winner_reward_granted")
+                @Index(name = "idx_vote_monthly_final_rank", columnList = "month_year_month, final_rank"),
+                @Index(name = "idx_vote_monthly_pending", columnList = "player_id, processing, notify_sent, reward_granted, month_year_month"),
+                @Index(name = "idx_vote_monthly_processing_stale", columnList = "processing, processing_at")
         }
 )
 public class PlayerVoteMonthlyEntity {
@@ -33,26 +34,33 @@ public class PlayerVoteMonthlyEntity {
     @Column(name = "month_votes", nullable = false)
     private int monthVotes;
 
-    // Winner state for this specific month
-    // 0 means not a winner, 1..3 means position
-    @Column(name = "winner_rank", nullable = false)
-    private int winnerRank;
+    // Final rank for this month
+    // 0 means not computed yet (non winners can be computed lazily on first login)
+    // 1..N means final place based on monthVotes desc then playerId asc
+    @Column(name = "final_rank", nullable = false)
+    private int finalRank;
 
-    // Ensures medals are applied exactly once for this month and player
-    @Column(name = "winner_medal_applied", nullable = false)
-    private boolean winnerMedalApplied;
+    // Lifetime medals increment guard (applies to top 3 only)
+    @Column(name = "medal_applied", nullable = false)
+    private boolean medalApplied;
 
-    // One time congrats state
-    @Column(name = "winner_congrats_sent", nullable = false)
-    private boolean winnerCongratsSent;
+    // Message sent for this month result (congrats for top 3, result message for others)
+    @Column(name = "notify_sent", nullable = false)
+    private boolean notifySent;
 
-    // Reward state, tied to the same processing flow as congrats
-    @Column(name = "winner_reward_granted", nullable = false)
-    private boolean winnerRewardGranted;
+    // Processing complete marker
+    // For non winners we set this true together with notifySent
+    // For top 3 we set this true only when reward succeeds
+    @Column(name = "reward_granted", nullable = false)
+    private boolean rewardGranted;
 
-    // Lightweight lock to avoid multiple proxies processing the same row at the same time
-    @Column(name = "winner_processing", nullable = false)
-    private boolean winnerProcessing;
+    // Lightweight lock for cross proxy processing
+    @Column(name = "processing", nullable = false)
+    private boolean processing;
+
+    // Epoch millis when processing lock was acquired, used to recover from crashes
+    @Column(name = "processing_at", nullable = false)
+    private long processingAt;
 
     public PlayerVoteMonthlyEntity() {
     }
@@ -61,11 +69,14 @@ public class PlayerVoteMonthlyEntity {
         this.id = new PlayerVoteMonthlyKey(playerId, monthYearMonth);
         this.monthVotes = 0;
 
-        this.winnerRank = 0;
-        this.winnerMedalApplied = false;
-        this.winnerCongratsSent = false;
-        this.winnerRewardGranted = false;
-        this.winnerProcessing = false;
+        this.finalRank = 0;
+        this.medalApplied = false;
+
+        this.notifySent = false;
+        this.rewardGranted = false;
+
+        this.processing = false;
+        this.processingAt = 0L;
     }
 
     public PlayerVoteMonthlyKey getId() {
@@ -92,43 +103,51 @@ public class PlayerVoteMonthlyEntity {
         this.monthVotes = monthVotes;
     }
 
-    public int getWinnerRank() {
-        return winnerRank;
+    public int getFinalRank() {
+        return finalRank;
     }
 
-    public void setWinnerRank(int winnerRank) {
-        this.winnerRank = winnerRank;
+    public void setFinalRank(int finalRank) {
+        this.finalRank = finalRank;
     }
 
-    public boolean isWinnerMedalApplied() {
-        return winnerMedalApplied;
+    public boolean isMedalApplied() {
+        return medalApplied;
     }
 
-    public void setWinnerMedalApplied(boolean winnerMedalApplied) {
-        this.winnerMedalApplied = winnerMedalApplied;
+    public void setMedalApplied(boolean medalApplied) {
+        this.medalApplied = medalApplied;
     }
 
-    public boolean isWinnerCongratsSent() {
-        return winnerCongratsSent;
+    public boolean isNotifySent() {
+        return notifySent;
     }
 
-    public void setWinnerCongratsSent(boolean winnerCongratsSent) {
-        this.winnerCongratsSent = winnerCongratsSent;
+    public void setNotifySent(boolean notifySent) {
+        this.notifySent = notifySent;
     }
 
-    public boolean isWinnerRewardGranted() {
-        return winnerRewardGranted;
+    public boolean isRewardGranted() {
+        return rewardGranted;
     }
 
-    public void setWinnerRewardGranted(boolean winnerRewardGranted) {
-        this.winnerRewardGranted = winnerRewardGranted;
+    public void setRewardGranted(boolean rewardGranted) {
+        this.rewardGranted = rewardGranted;
     }
 
-    public boolean isWinnerProcessing() {
-        return winnerProcessing;
+    public boolean isProcessing() {
+        return processing;
     }
 
-    public void setWinnerProcessing(boolean winnerProcessing) {
-        this.winnerProcessing = winnerProcessing;
+    public void setProcessing(boolean processing) {
+        this.processing = processing;
+    }
+
+    public long getProcessingAt() {
+        return processingAt;
+    }
+
+    public void setProcessingAt(long processingAt) {
+        this.processingAt = processingAt;
     }
 }

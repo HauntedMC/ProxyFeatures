@@ -13,7 +13,7 @@ import nl.hauntedmc.proxyfeatures.features.votifier.command.VotifierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
-import nl.hauntedmc.proxyfeatures.features.votifier.listener.VotifierWinnerListener;
+import nl.hauntedmc.proxyfeatures.features.votifier.listener.VotifierMonthResultListener;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
 import nl.hauntedmc.proxyfeatures.features.votifier.meta.Meta;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
@@ -128,6 +128,10 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         m.add("votifier.winner.congrats",
                 "&8[&aVote&8] &aGefeliciteerd&7! Je eindigde als &f#{rank}&7 in de vote top 3 van &f{month}&7 met &e{votes}&7 votes.");
 
+        // Participant monthly result (non top 3)
+        m.add("votifier.month.result",
+                "&8[&aVote&8] &7Je eindigde op plek &f#{rank}&7 in &f{month}&7 met &e{votes}&7 votes.");
+
         // /vote link output
         m.add("votifier.vote.header",
                 "&8[&aVote&8] &7Stem op &fHauntedMC&7:");
@@ -151,7 +155,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         getLifecycleManager().getCommandManager().registerBrigadierCommand(new VotifierCommand(this));
 
         // Listener: winner congrats on login
-        getLifecycleManager().getListenerManager().registerListener(new VotifierWinnerListener(this));
+        getLifecycleManager().getListenerManager().registerListener(new VotifierMonthResultListener(this));
 
         // Data provider init
         getLifecycleManager().getDataManager().initDataProvider(getFeatureName());

@@ -4,11 +4,11 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
 
-public final class VotifierWinnerListener {
+public final class VotifierMonthResultListener {
 
     private final Votifier feature;
 
-    public VotifierWinnerListener(Votifier feature) {
+    public VotifierMonthResultListener(Votifier feature) {
         this.feature = feature;
     }
 

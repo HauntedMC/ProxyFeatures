@@ -1,12 +1,12 @@
 package nl.hauntedmc.proxyfeatures.features.votifier.internal;
 
-public record VoteWinnerNotification(
+public record VoteMonthNotification(
         long playerId,
         String username,
-        int winnerMonthYearMonth,
-        int winnerRank,
+        int monthYearMonth,
+        int rank,
         int monthVotes,
-        boolean needsCongrats,
+        boolean needsNotify,
         boolean needsReward
 ) {
 }

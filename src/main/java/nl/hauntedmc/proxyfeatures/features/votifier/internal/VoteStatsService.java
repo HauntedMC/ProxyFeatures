@@ -8,6 +8,7 @@ import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyKey;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.model.Vote;
 import org.hibernate.LockMode;
+import org.hibernate.Session;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -23,6 +24,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 public final class VoteStatsService {
+
+    private static final long DEFAULT_STALE_LOCK_MILLIS = Duration.ofMinutes(10).toMillis();
 
     private final Votifier feature;
     private final ORMContext orm;
@@ -56,16 +59,6 @@ public final class VoteStatsService {
         });
     }
 
-    /**
-     * Record a vote.
-     *
-     * Source of truth:
-     * - player_vote_stats is authoritative for totals, streaks, current month marker, current month votes, highest month
-     * - player_vote_monthly is a mirror for monthVotes per (player, yyyymm) and stores winner processing flags
-     *
-     * Concurrency:
-     * - Locks PlayerEntity and PlayerVoteStatsEntity with PESSIMISTIC_WRITE to avoid lost updates per player.
-     */
     public void recordVote(PlayerEntity player, Vote vote, VotifierConfig cfg) {
         if (player == null) return;
 
@@ -77,17 +70,13 @@ public final class VoteStatsService {
             long playerId = playerIdObj == null ? 0L : playerIdObj;
             if (playerId <= 0) return null;
 
-            // Lock the player row first so first-time stats creation is safe under concurrency.
             PlayerEntity managedPlayer = session.get(PlayerEntity.class, playerId, LockMode.PESSIMISTIC_WRITE);
             if (managedPlayer == null) return null;
 
-            // Lock stats row (authoritative)
             PlayerVoteStatsEntity stats = session.get(PlayerVoteStatsEntity.class, playerId, LockMode.PESSIMISTIC_WRITE);
             if (stats == null) {
                 stats = new PlayerVoteStatsEntity(managedPlayer);
 
-                // Bootstrap from monthly if it already has data (migration safety).
-                // This prevents data loss if monthly exists but stats did not.
                 long totalFromMonthly = safeLong(session.createQuery(
                                 "select coalesce(sum(m.monthVotes), 0) from PlayerVoteMonthlyEntity m where m.id.playerId = :pid",
                                 Long.class
@@ -118,17 +107,14 @@ public final class VoteStatsService {
                 stats.setMonthYearMonth(currentYm);
                 stats.setMonthVotes(Math.max(0, existingCurrentMonthVotes));
 
-                // lastVoteAt, streaks remain 0 because we cannot reconstruct safely.
                 session.persist(stats);
             }
 
-            // Month marker and monthVotes are authoritative in stats.
             if (stats.getMonthYearMonth() != currentYm) {
                 stats.setMonthYearMonth(currentYm);
                 stats.setMonthVotes(0);
             }
 
-            // Streak (authoritative)
             long lastVoteAt = stats.getLastVoteAt();
             long gapMillis = Duration.ofHours(Math.max(1, cfg.streakGapHours())).toMillis();
 
@@ -141,34 +127,26 @@ public final class VoteStatsService {
             stats.setVoteStreak(newStreak);
             stats.setBestVoteStreak(Math.max(stats.getBestVoteStreak(), newStreak));
 
-            // Totals (authoritative)
             stats.setTotalVotes(stats.getTotalVotes() + 1);
 
-            // Last vote data (authoritative)
             stats.setLastVoteAt(nowMillis);
             stats.setLastVoteService(sanitize(vote == null ? null : vote.serviceName(), 64));
             stats.setLastVoteAddress(sanitize(vote == null ? null : vote.address(), 64));
 
-            // Current month votes (authoritative)
             int newMonthVotes = stats.getMonthVotes() + 1;
             stats.setMonthVotes(newMonthVotes);
 
-            // Highest month votes (authoritative)
             if (newMonthVotes > stats.getHighestMonthVotes()) {
                 stats.setHighestMonthVotes(newMonthVotes);
             }
 
-            // Mirror into monthly table for (player, yyyymm)
             PlayerVoteMonthlyKey key = new PlayerVoteMonthlyKey(playerId, currentYm);
-
-            // Lock monthly row too (keeps mirror consistent if any external process touches it)
             PlayerVoteMonthlyEntity month = session.get(PlayerVoteMonthlyEntity.class, key, LockMode.PESSIMISTIC_WRITE);
             if (month == null) {
                 month = new PlayerVoteMonthlyEntity(playerId, currentYm);
                 session.persist(month);
             }
 
-            // Mirror: monthly must match authoritative stats monthVotes for this month.
             month.setMonthVotes(newMonthVotes);
 
             return null;
@@ -213,11 +191,11 @@ public final class VoteStatsService {
     }
 
     /**
-     * Finalize winners for a finished month.
+     * Finalize top 3 for a finished month and apply lifetime medals exactly once.
      *
      * Guarantees:
-     * - winner_rank is set for the top 3 rows of that month
-     * - medals are incremented in player_vote_stats exactly once, guarded by winner_medal_applied in player_vote_monthly
+     * - final_rank is set for the top 3 rows of that month
+     * - medals are incremented in player_vote_stats exactly once, guarded by medal_applied in player_vote_monthly
      * - safe to call multiple times, safe across multiple proxies
      */
     public int applyMonthlyWinners(int yyyymm) {
@@ -226,12 +204,9 @@ public final class VoteStatsService {
         return orm.runInTransaction(session -> {
             List<VoteLeaderboardEntry> top3 = session.createQuery(
                             "select new nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteLeaderboardEntry(" +
-                                    "m.id.playerId, p.username, m.monthVotes, s.totalVotes) " +
-                                    "from PlayerVoteMonthlyEntity m, PlayerVoteStatsEntity s " +
-                                    "join m.player p " +
-                                    "where m.id.monthYearMonth = :m " +
-                                    "and s.playerId = m.id.playerId " +
-                                    "and m.monthVotes > 0 " +
+                                    "m.id.playerId, p.username, m.monthVotes, 0) " +
+                                    "from PlayerVoteMonthlyEntity m join m.player p " +
+                                    "where m.id.monthYearMonth = :m and m.monthVotes > 0 " +
                                     "order by m.monthVotes desc, m.id.playerId asc",
                             VoteLeaderboardEntry.class
                     )
@@ -251,21 +226,19 @@ public final class VoteStatsService {
                     continue;
                 }
 
-                // Always set the winner rank, idempotent
                 session.createQuery(
                                 "update PlayerVoteMonthlyEntity m " +
-                                        "set m.winnerRank = :r " +
+                                        "set m.finalRank = :r " +
                                         "where m.id.playerId = :pid and m.id.monthYearMonth = :mo")
                         .setParameter("r", rank)
                         .setParameter("pid", pid)
                         .setParameter("mo", yyyymm)
                         .executeUpdate();
 
-                // Claim medal application exactly once
                 int claimed = session.createQuery(
                                 "update PlayerVoteMonthlyEntity m " +
-                                        "set m.winnerMedalApplied = true " +
-                                        "where m.id.playerId = :pid and m.id.monthYearMonth = :mo and m.winnerMedalApplied = false")
+                                        "set m.medalApplied = true " +
+                                        "where m.id.playerId = :pid and m.id.monthYearMonth = :mo and m.medalApplied = false")
                         .setParameter("pid", pid)
                         .setParameter("mo", yyyymm)
                         .executeUpdate();
@@ -318,14 +291,20 @@ public final class VoteStatsService {
     }
 
     /**
-     * Claims exactly one pending winner notification for this username.
-     * Uses player_vote_monthly as the single source of truth.
+     * Claims exactly one pending month notification for this username.
      *
-     * Locking:
-     * - winner_processing is a lightweight lock to avoid multiple proxies processing the same month-row at the same time
+     * Pending means:
+     * - notify not sent yet, or reward not granted yet (only relevant for top 3)
+     *
+     * Finalization safety:
+     * - only months that already have at least one row with final_rank 1..3 are considered finalized
+     *
+     * Lock safety:
+     * - processing_at allows recovering from stale locks after a crash
      */
-    public Optional<VoteWinnerNotification> claimPendingWinnerByUsername(String username) {
+    public Optional<VoteMonthNotification> claimPendingMonthNotificationByUsername(String username, int currentYyyymm) {
         if (username == null || username.isBlank()) return Optional.empty();
+        if (currentYyyymm <= 0) return Optional.empty();
 
         Optional<PlayerEntity> pOpt = findPlayerByUsername(username);
         if (pOpt.isEmpty()) return Optional.empty();
@@ -338,17 +317,24 @@ public final class VoteStatsService {
                 ? username.trim()
                 : p.getUsername();
 
+        long now = System.currentTimeMillis();
+        long staleBefore = now - DEFAULT_STALE_LOCK_MILLIS;
+
         return orm.runInTransaction(session -> {
             List<PlayerVoteMonthlyEntity> candidates = session.createQuery(
                             "from PlayerVoteMonthlyEntity m " +
                                     "where m.id.playerId = :pid " +
-                                    "and m.winnerRank > 0 " +
-                                    "and m.winnerProcessing = false " +
-                                    "and (m.winnerCongratsSent = false or m.winnerRewardGranted = false) " +
+                                    "and m.id.monthYearMonth < :cur " +
+                                    "and m.monthVotes > 0 " +
+                                    "and (m.processing = false or m.processingAt < :staleBefore) " +
+                                    "and (m.notifySent = false or (m.finalRank > 0 and m.finalRank <= 3 and m.rewardGranted = false)) " +
+                                    "and exists (select 1 from PlayerVoteMonthlyEntity w where w.id.monthYearMonth = m.id.monthYearMonth and w.finalRank > 0 and w.finalRank <= 3) " +
                                     "order by m.id.monthYearMonth desc",
                             PlayerVoteMonthlyEntity.class
                     )
                     .setParameter("pid", playerId)
+                    .setParameter("cur", currentYyyymm)
+                    .setParameter("staleBefore", staleBefore)
                     .setMaxResults(1)
                     .list();
 
@@ -356,44 +342,53 @@ public final class VoteStatsService {
 
             PlayerVoteMonthlyEntity row = candidates.getFirst();
             int month = row.getMonthYearMonth();
-            int rank = row.getWinnerRank();
             int votes = row.getMonthVotes();
 
-            boolean needsCongrats = !row.isWinnerCongratsSent();
-            boolean needsReward = !row.isWinnerRewardGranted();
+            int rank = row.getFinalRank();
+            if (rank <= 0) {
+                rank = computeFinalRank(session, month, votes, playerId);
+            }
+
+            boolean needsNotify = !row.isNotifySent();
+            boolean needsReward = (rank > 0 && rank <= 3) && !row.isRewardGranted();
+
+            if (!needsNotify && !needsReward) {
+                return Optional.empty();
+            }
 
             int locked = session.createQuery(
                             "update PlayerVoteMonthlyEntity m " +
-                                    "set m.winnerProcessing = true " +
+                                    "set m.processing = true, m.processingAt = :now " +
                                     "where m.id.playerId = :pid and m.id.monthYearMonth = :mo " +
-                                    "and m.winnerProcessing = false " +
-                                    "and m.winnerRank > 0 " +
-                                    "and (m.winnerCongratsSent = false or m.winnerRewardGranted = false)")
+                                    "and (m.processing = false or m.processingAt < :staleBefore) " +
+                                    "and (m.notifySent = false or (m.finalRank > 0 and m.finalRank <= 3 and m.rewardGranted = false))")
+                    .setParameter("now", now)
                     .setParameter("pid", playerId)
                     .setParameter("mo", month)
+                    .setParameter("staleBefore", staleBefore)
                     .executeUpdate();
 
             if (locked != 1) return Optional.empty();
 
-            return Optional.of(new VoteWinnerNotification(
+            return Optional.of(new VoteMonthNotification(
                     playerId,
                     displayName,
                     month,
                     rank,
                     votes,
-                    needsCongrats,
+                    needsNotify,
                     needsReward
             ));
         });
     }
 
-    public void releaseWinnerProcessing(long playerId, int month) {
+    public void releaseProcessing(long playerId, int month) {
         if (playerId <= 0 || month <= 0) return;
 
         orm.runInTransaction(session -> {
             session.createQuery(
                             "update PlayerVoteMonthlyEntity m " +
-                                    "set m.winnerProcessing = false " +
+                                    "set m.processing = false, m.processingAt = 0 " +
                                     "where m.id.playerId = :pid and m.id.monthYearMonth = :mo")
                     .setParameter("pid", playerId)
                     .setParameter("mo", month)
@@ -402,24 +397,53 @@ public final class VoteStatsService {
         });
     }
 
-    public void completeWinnerProcessing(long playerId, int month, boolean congratsSentNow, boolean rewardGrantedNow) {
+    public void completeProcessing(long playerId, int month, int computedRank, boolean notifySentNow, boolean rewardGrantedNow) {
         if (playerId <= 0 || month <= 0) return;
 
+        int safeRank = Math.max(0, computedRank);
+
         orm.runInTransaction(session -> {
-            // Only ever move flags from false to true, never back to false
             session.createQuery(
                             "update PlayerVoteMonthlyEntity m " +
-                                    "set m.winnerProcessing = false, " +
-                                    "m.winnerCongratsSent = (case when m.winnerCongratsSent = true then true else :cs end), " +
-                                    "m.winnerRewardGranted = (case when m.winnerRewardGranted = true then true else :rg end) " +
+                                    "set m.processing = false, m.processingAt = 0, " +
+                                    "m.finalRank = (case when m.finalRank > 0 then m.finalRank else :r end), " +
+                                    "m.notifySent = (case when m.notifySent = true then true else :ns end), " +
+                                    "m.rewardGranted = (case when m.rewardGranted = true then true else :rg end) " +
                                     "where m.id.playerId = :pid and m.id.monthYearMonth = :mo")
-                    .setParameter("cs", congratsSentNow)
+                    .setParameter("r", safeRank)
+                    .setParameter("ns", notifySentNow)
                     .setParameter("rg", rewardGrantedNow)
                     .setParameter("pid", playerId)
                     .setParameter("mo", month)
                     .executeUpdate();
             return null;
         });
+    }
+
+    private static int computeFinalRank(Session session, int monthYyyymm, int myVotes, long myPlayerId) {
+        long higherVotes = safeLong(session.createQuery(
+                        "select count(m) from PlayerVoteMonthlyEntity m " +
+                                "where m.id.monthYearMonth = :mo and m.monthVotes > :v",
+                        Long.class
+                )
+                .setParameter("mo", monthYyyymm)
+                .setParameter("v", myVotes)
+                .uniqueResult());
+
+        long tieAhead = safeLong(session.createQuery(
+                        "select count(m) from PlayerVoteMonthlyEntity m " +
+                                "where m.id.monthYearMonth = :mo and m.monthVotes = :v and m.id.playerId < :pid",
+                        Long.class
+                )
+                .setParameter("mo", monthYyyymm)
+                .setParameter("v", myVotes)
+                .setParameter("pid", myPlayerId)
+                .uniqueResult());
+
+        long rank = 1L + higherVotes + tieAhead;
+        if (rank <= 0) return 0;
+        if (rank > Integer.MAX_VALUE) return Integer.MAX_VALUE;
+        return (int) rank;
     }
 
     public Path dumpTopForMonth(YearMonth month, int currentYyyymm, int topN, String prefix) {
