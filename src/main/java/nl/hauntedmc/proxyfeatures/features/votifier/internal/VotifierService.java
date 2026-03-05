@@ -2,6 +2,11 @@ package nl.hauntedmc.proxyfeatures.features.votifier.internal;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.scheduler.ScheduledTask;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
@@ -29,12 +34,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class VotifierService {
+
+    public enum RemindMode { ON, OFF, TOGGLE }
 
     private static final DateTimeFormatter DISPLAY_MONTH = DateTimeFormatter.ofPattern("MM-uuuu");
 
@@ -45,6 +53,8 @@ public final class VotifierService {
 
     private final EventBusHandler bus;
     private final VoteStatsService stats;
+
+    private final ConcurrentHashMap<UUID, ScheduledTask> remindTasks = new ConcurrentHashMap<>();
 
     private volatile VotifierServer server;
     private volatile ScheduledTask resetTask;
@@ -90,6 +100,7 @@ public final class VotifierService {
     public void shutdown() {
         cancelResetTask();
         stopServer();
+        cancelAllReminders();
 
         worker.shutdownNow();
         try {
@@ -207,79 +218,258 @@ public final class VotifierService {
         ));
     }
 
-    public void onPlayerPostLogin(Player player) {
-        if (player == null) return;
-        if (stats == null || !configRef.get().statsEnabled()) return;
+    public Optional<Boolean> getVoteRemindEnabled(Player player) {
+        if (player == null) return Optional.empty();
+        if (stats == null || !configRef.get().statsEnabled()) return Optional.empty();
 
         VotifierConfig cfg = configRef.get();
+        int currentYm = toYearMonthInt(YearMonth.now(cfg.statsZone()));
 
-        String username = player.getUsername();
-        UUID uuid = player.getUniqueId();
-        int currentYmInt = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+        Optional<VoteReminderState> st = stats.getReminderStateByUsername(player.getUsername(), currentYm);
+        return st.map(VoteReminderState::remindEnabled);
+    }
 
-        worker.execute(() -> {
-            try {
-                Optional<VoteMonthNotification> notifOpt = stats.claimPendingMonthNotificationByUsername(username, currentYmInt);
-                if (notifOpt.isEmpty()) return;
+    public Optional<Boolean> setVoteRemind(Player player, RemindMode mode) {
+        if (player == null || mode == null) return Optional.empty();
+        if (stats == null || !configRef.get().statsEnabled()) return Optional.empty();
 
-                VoteMonthNotification notif = notifOpt.get();
+        VotifierConfig cfg = configRef.get();
+        int currentYm = toYearMonthInt(YearMonth.now(cfg.statsZone()));
 
-                feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
-                    Optional<Player> live = ProxyFeatures.getProxyInstance().getPlayer(uuid);
-                    if (live.isEmpty()) {
-                        worker.execute(() -> stats.releaseProcessing(notif.playerId(), notif.monthYearMonth()));
-                        return;
-                    }
+        Optional<Boolean> updated = stats.setVoteRemindEnabledByUsername(
+                player.getUsername(),
+                currentYm,
+                switch (mode) {
+                    case ON -> VoteStatsService.RemindMode.ON;
+                    case OFF -> VoteStatsService.RemindMode.OFF;
+                    case TOGGLE -> VoteStatsService.RemindMode.TOGGLE;
+                }
+        );
 
-                    Player target = live.get();
-
-                    boolean notifyOk = false;
-                    boolean rewardOk = false;
-
-                    try {
-                        if (notif.needsNotify()) {
-                            if (notif.rank() > 0 && notif.rank() <= 3) {
-                                sendWinnerCongrats(target, notif);
-                            } else {
-                                sendMonthResult(target, notif);
-                            }
-                        }
-                        notifyOk = true;
-                    } catch (Throwable t) {
-                        feature.getLogger().warn("Vote month notify failed: " + safeMsg(t));
-                    }
-
-                    try {
-                        if (notif.needsReward()) {
-                            grantMonthlyWinnerReward(target, notif);
-                        }
-                        rewardOk = true;
-                    } catch (Throwable t) {
-                        feature.getLogger().warn("Vote month reward failed: " + safeMsg(t));
-                    }
-
-                    boolean finalNotify = notif.needsNotify() && notifyOk;
-
-                    boolean finalReward;
-                    if (notif.rank() > 0 && notif.rank() <= 3) {
-                        finalReward = notif.needsReward() && rewardOk;
-                    } else {
-                        finalReward = finalNotify;
-                    }
-
-                    worker.execute(() -> stats.completeProcessing(
-                            notif.playerId(),
-                            notif.monthYearMonth(),
-                            notif.rank(),
-                            finalNotify,
-                            finalReward
-                    ));
-                });
-
-            } catch (Throwable t) {
-                feature.getLogger().warn("Vote month handler failed: " + safeMsg(t));
+        if (updated.isPresent()) {
+            if (!updated.get()) {
+                cancelReminder(player.getUniqueId());
+            } else {
+                scheduleReminderLoop(player);
             }
+        }
+
+        return updated;
+    }
+
+    public void onPlayerPostLogin(Player player) {
+        if (player == null) return;
+
+        // Existing month results pipeline
+        if (stats != null && configRef.get().statsEnabled()) {
+            VotifierConfig cfg = configRef.get();
+
+            String username = player.getUsername();
+            UUID uuid = player.getUniqueId();
+            int currentYmInt = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+
+            worker.execute(() -> {
+                try {
+                    Optional<VoteMonthNotification> notifOpt = stats.claimPendingMonthNotificationByUsername(username, currentYmInt);
+                    if (notifOpt.isEmpty()) return;
+
+                    VoteMonthNotification notif = notifOpt.get();
+
+                    feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
+                        Optional<Player> live = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+                        if (live.isEmpty()) {
+                            worker.execute(() -> stats.releaseProcessing(notif.playerId(), notif.monthYearMonth()));
+                            return;
+                        }
+
+                        Player target = live.get();
+
+                        boolean notifyOk = false;
+                        boolean rewardOk = false;
+
+                        try {
+                            if (notif.needsNotify()) {
+                                if (notif.rank() > 0 && notif.rank() <= 3) {
+                                    sendWinnerCongrats(target, notif);
+                                } else {
+                                    sendMonthResult(target, notif);
+                                }
+                            }
+                            notifyOk = true;
+                        } catch (Throwable t) {
+                            feature.getLogger().warn("Vote month notify failed: " + safeMsg(t));
+                        }
+
+                        try {
+                            if (notif.needsReward()) {
+                                grantMonthlyWinnerReward(target, notif);
+                            }
+                            rewardOk = true;
+                        } catch (Throwable t) {
+                            feature.getLogger().warn("Vote month reward failed: " + safeMsg(t));
+                        }
+
+                        boolean finalNotify = notif.needsNotify() && notifyOk;
+
+                        boolean finalReward;
+                        if (notif.rank() > 0 && notif.rank() <= 3) {
+                            finalReward = notif.needsReward() && rewardOk;
+                        } else {
+                            finalReward = finalNotify;
+                        }
+
+                        worker.execute(() -> stats.completeProcessing(
+                                notif.playerId(),
+                                notif.monthYearMonth(),
+                                notif.rank(),
+                                finalNotify,
+                                finalReward
+                        ));
+                    });
+
+                } catch (Throwable t) {
+                    feature.getLogger().warn("Vote month handler failed: " + safeMsg(t));
+                }
+            });
+        }
+
+        // New reminder loop
+        scheduleReminderLoop(player);
+    }
+
+    public void onPlayerDisconnect(UUID uuid) {
+        if (uuid == null) return;
+        cancelReminder(uuid);
+    }
+
+    private void scheduleReminderLoop(Player player) {
+        if (player == null) return;
+
+        VotifierConfig cfg = configRef.get();
+        if (!cfg.remindEnabled()) return;
+        if (stats == null || !cfg.statsEnabled()) return;
+
+        UUID uuid = player.getUniqueId();
+
+        cancelReminder(uuid);
+
+        Duration initialDelay = Duration.ofMinutes(Math.max(0, cfg.remindInitialDelayMinutes()));
+        Duration interval = Duration.ofMinutes(Math.max(1, cfg.remindIntervalMinutes()));
+
+        ScheduledTask t = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
+            worker.execute(() -> reminderTick(uuid));
+        }, initialDelay, interval);
+
+        remindTasks.put(uuid, t);
+    }
+
+    private void reminderTick(UUID uuid) {
+        if (uuid == null) return;
+
+        Optional<Player> liveOpt = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+        if (liveOpt.isEmpty()) {
+            cancelReminder(uuid);
+            return;
+        }
+
+        Player player = liveOpt.get();
+
+        VotifierConfig cfg = configRef.get();
+        if (!cfg.remindEnabled()) {
+            cancelReminder(uuid);
+            return;
+        }
+        if (stats == null || !cfg.statsEnabled()) {
+            return;
+        }
+
+        String url = cfg.voteUrl();
+        if (url == null || url.isBlank()) {
+            return;
+        }
+
+        int currentYm = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+        Optional<VoteReminderState> stOpt = stats.getReminderStateByUsername(player.getUsername(), currentYm);
+        if (stOpt.isEmpty()) {
+            return;
+        }
+
+        VoteReminderState st = stOpt.get();
+        if (!st.remindEnabled()) {
+            cancelReminder(uuid);
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long thresholdMillis = Duration.ofHours(Math.max(1, cfg.remindThresholdHours())).toMillis();
+        long lastVoteAt = st.lastVoteAt();
+
+        boolean due = lastVoteAt <= 0 || (now - lastVoteAt) >= thresholdMillis;
+        if (!due) {
+            return;
+        }
+
+        long diffMillis = lastVoteAt <= 0 ? thresholdMillis : Math.max(0L, now - lastVoteAt);
+        long hours = Math.max(0L, diffMillis / 3_600_000L);
+
+        final String timeText;
+        final String unitKey;
+
+        if (hours >= 48L) {
+            int days = (int) Math.max(2L, Math.round(hours / 24.0d));
+            timeText = String.valueOf(days);
+            unitKey = (days == 1) ? "votifier.remind.unit.day" : "votifier.remind.unit.days";
+        } else {
+            long showHours = Math.max(1L, hours);
+            timeText = String.valueOf(showHours);
+            unitKey = (showHours == 1L) ? "votifier.remind.unit.hour" : "votifier.remind.unit.hours";
+        }
+
+        String cleanUrl = url.trim();
+
+        feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
+            Optional<Player> liveAgain = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+            if (liveAgain.isEmpty()) return;
+
+            Player p = liveAgain.get();
+
+            Component unitComp = feature.getLocalizationHandler()
+                    .getMessage(unitKey)
+                    .forAudience(p)
+                    .build();
+
+            Component urlComp = Component.text(cleanUrl, NamedTextColor.AQUA)
+                    .decorate(TextDecoration.UNDERLINED)
+                    .clickEvent(ClickEvent.openUrl(cleanUrl))
+                    .hoverEvent(HoverEvent.showText(Component.text("Open vote link", NamedTextColor.GRAY)));
+
+            p.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.remind.header")
+                    .with("time", timeText)
+                    .with("unit", unitComp)
+                    .forAudience(p)
+                    .build());
+
+            p.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.remind.line")
+                    .with("url", urlComp)
+                    .forAudience(p)
+                    .build());
         });
+    }
+
+    private void cancelReminder(UUID uuid) {
+        ScheduledTask t = remindTasks.remove(uuid);
+        if (t != null) {
+            feature.getLifecycleManager().getTaskManager().cancelTask(t);
+        }
+    }
+
+    private void cancelAllReminders() {
+        for (UUID uuid : remindTasks.keySet()) {
+            cancelReminder(uuid);
+        }
+        remindTasks.clear();
     }
 
     private void sendWinnerCongrats(Player player, VoteMonthNotification notif) {

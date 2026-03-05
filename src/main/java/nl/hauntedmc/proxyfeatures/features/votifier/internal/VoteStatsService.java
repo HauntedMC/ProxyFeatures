@@ -15,14 +15,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class VoteStatsService {
 
@@ -36,13 +40,22 @@ public final class VoteStatsService {
                     "values (?, ?, ?, ?, false, false, false, false, 0) " +
                     "on duplicate key update month_votes = values(month_votes), final_rank = values(final_rank)";
 
+    private static final String REMIND_COLUMN = "vote_remind_enabled";
+    private static final String REMIND_SCHEMA_GUARD_SQL =
+            "alter table player_vote_stats add column vote_remind_enabled tinyint(1) not null default 1";
+
     private final Votifier feature;
     private final ORMContext orm;
+
+    private final AtomicBoolean remindSchemaChecked = new AtomicBoolean(false);
 
     public VoteStatsService(Votifier feature, ORMContext orm) {
         this.feature = feature;
         this.orm = orm;
+        ensureRemindColumnBestEffort();
     }
+
+    public enum RemindMode { ON, OFF, TOGGLE }
 
     public record RolloverResult(
             int finalizedMonthYearMonth,
@@ -68,6 +81,77 @@ public final class VoteStatsService {
         return orm.runInTransaction(session -> Optional.ofNullable(session.get(PlayerVoteStatsEntity.class, playerId)));
     }
 
+    public Optional<VoteReminderState> getReminderStateByUsername(String username, int currentYyyymm) {
+        if (username == null || username.isBlank()) return Optional.empty();
+
+        Optional<PlayerEntity> pOpt = findPlayerByUsername(username);
+        if (pOpt.isEmpty()) return Optional.empty();
+
+        PlayerEntity p = pOpt.get();
+        long playerId = p.getId() == null ? 0L : p.getId();
+        if (playerId <= 0) return Optional.empty();
+
+        String displayName = (p.getUsername() == null || p.getUsername().isBlank())
+                ? username.trim()
+                : p.getUsername();
+
+        return orm.runInTransaction(session -> {
+            PlayerEntity managedPlayer = session.get(PlayerEntity.class, playerId, LockMode.PESSIMISTIC_READ);
+            if (managedPlayer == null) return Optional.empty();
+
+            PlayerVoteStatsEntity stats = session.get(PlayerVoteStatsEntity.class, playerId, LockMode.PESSIMISTIC_WRITE);
+            if (stats == null) {
+                stats = new PlayerVoteStatsEntity(managedPlayer);
+                stats.setMonthYearMonth(Math.max(0, currentYyyymm));
+                stats.setMonthVotes(0);
+                stats.setVoteRemindEnabled(true);
+                session.persist(stats);
+            }
+
+            return Optional.of(new VoteReminderState(
+                    playerId,
+                    displayName,
+                    stats.isVoteRemindEnabled(),
+                    stats.getLastVoteAt()
+            ));
+        });
+    }
+
+    public Optional<Boolean> setVoteRemindEnabledByUsername(String username, int currentYyyymm, RemindMode mode) {
+        if (username == null || username.isBlank() || mode == null) return Optional.empty();
+
+        Optional<PlayerEntity> pOpt = findPlayerByUsername(username);
+        if (pOpt.isEmpty()) return Optional.empty();
+
+        PlayerEntity p = pOpt.get();
+        long playerId = p.getId() == null ? 0L : p.getId();
+        if (playerId <= 0) return Optional.empty();
+
+        return orm.runInTransaction(session -> {
+            PlayerEntity managedPlayer = session.get(PlayerEntity.class, playerId, LockMode.PESSIMISTIC_READ);
+            if (managedPlayer == null) return Optional.empty();
+
+            PlayerVoteStatsEntity stats = session.get(PlayerVoteStatsEntity.class, playerId, LockMode.PESSIMISTIC_WRITE);
+            if (stats == null) {
+                stats = new PlayerVoteStatsEntity(managedPlayer);
+                stats.setMonthYearMonth(Math.max(0, currentYyyymm));
+                stats.setMonthVotes(0);
+                stats.setVoteRemindEnabled(true);
+                session.persist(stats);
+            }
+
+            boolean cur = stats.isVoteRemindEnabled();
+            boolean next = switch (mode) {
+                case ON -> true;
+                case OFF -> false;
+                case TOGGLE -> !cur;
+            };
+
+            stats.setVoteRemindEnabled(next);
+            return Optional.of(next);
+        });
+    }
+
     public void recordVote(PlayerEntity player, Vote vote, VotifierConfig cfg) {
         if (player == null) return;
 
@@ -88,6 +172,7 @@ public final class VoteStatsService {
 
                 stats.setMonthYearMonth(currentYm);
                 stats.setMonthVotes(0);
+                stats.setVoteRemindEnabled(true);
 
                 session.persist(stats);
             }
@@ -537,6 +622,37 @@ public final class VoteStatsService {
         }
 
         return out;
+    }
+
+    private void ensureRemindColumnBestEffort() {
+        if (!remindSchemaChecked.compareAndSet(false, true)) return;
+
+        try {
+            orm.runInTransaction(session -> {
+                session.doWork(conn -> {
+                    try {
+                        DatabaseMetaData md = conn.getMetaData();
+                        String catalog = conn.getCatalog();
+
+                        boolean exists = false;
+                        try (ResultSet rs = md.getColumns(catalog, null, "player_vote_stats", REMIND_COLUMN)) {
+                            if (rs != null && rs.next()) exists = true;
+                        }
+
+                        if (!exists) {
+                            try (Statement st = conn.createStatement()) {
+                                st.executeUpdate(REMIND_SCHEMA_GUARD_SQL);
+                            }
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                return null;
+            });
+        } catch (Throwable t) {
+            feature.getLogger().warn("Vote remind schema guard failed: " + (t.getMessage() == null ? "unknown" : t.getMessage()));
+        }
     }
 
     private static int toYearMonthInt(YearMonth ym) {

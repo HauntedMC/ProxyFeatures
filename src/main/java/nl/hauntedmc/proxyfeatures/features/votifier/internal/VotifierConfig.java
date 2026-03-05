@@ -26,7 +26,12 @@ public record VotifierConfig(
         int streakGapHours,
         int dumpTopN,
         String dumpFilePrefix,
-        boolean logVotes
+        boolean logVotes,
+        boolean remindEnabled,
+        int remindThresholdHours,
+        int remindInitialDelayMinutes,
+        int remindIntervalMinutes,
+        String voteUrl
 ) {
 
     public static VotifierConfig load(Votifier feature) {
@@ -65,6 +70,15 @@ public record VotifierConfig(
         var logging = root.get("logging");
         boolean logVotes = logging.get("log_votes").as(Boolean.class, true);
 
+        var remind = root.get("remind");
+        boolean remindEnabled = remind.get("enabled").as(Boolean.class, true);
+        int thresholdHours = clamp(remind.get("threshold_hours").as(Integer.class, 24), 1, 24 * 365);
+        int initialDelayMinutes = clamp(remind.get("initial_delay_minutes").as(Integer.class, 5), 0, 24 * 60);
+        int intervalMinutes = clamp(remind.get("interval_minutes").as(Integer.class, 60), 1, 24 * 60);
+
+        var vote = root.get("vote");
+        String voteUrl = vote.get("url").as(String.class, "https://hauntedmc.nl/vote");
+
         return new VotifierConfig(
                 host,
                 port,
@@ -87,7 +101,12 @@ public record VotifierConfig(
                 streakGapHours,
                 dumpTopN,
                 dumpPrefix,
-                logVotes
+                logVotes,
+                remindEnabled,
+                thresholdHours,
+                initialDelayMinutes,
+                intervalMinutes,
+                voteUrl == null ? "" : voteUrl.trim()
         );
     }
 

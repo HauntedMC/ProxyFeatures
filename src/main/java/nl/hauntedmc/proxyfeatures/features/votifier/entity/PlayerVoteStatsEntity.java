@@ -17,7 +17,8 @@ import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
         indexes = {
                 @Index(name = "idx_vote_month", columnList = "month_year_month"),
                 @Index(name = "idx_vote_month_votes", columnList = "month_year_month, month_votes"),
-                @Index(name = "idx_vote_medals", columnList = "first_places, second_places, third_places")
+                @Index(name = "idx_vote_medals", columnList = "first_places, second_places, third_places"),
+                @Index(name = "idx_vote_remind_enabled", columnList = "vote_remind_enabled")
         }
 )
 public class PlayerVoteStatsEntity {
@@ -58,6 +59,10 @@ public class PlayerVoteStatsEntity {
     @Column(name = "best_vote_streak", nullable = false)
     private int bestVoteStreak;
 
+    // Vote reminders (default on)
+    @Column(name = "vote_remind_enabled", nullable = false)
+    private boolean voteRemindEnabled = true;
+
     // Lifetime medals
     @Column(name = "first_places", nullable = false)
     private int firstPlaces;
@@ -81,6 +86,8 @@ public class PlayerVoteStatsEntity {
         this.lastVoteAt = 0;
         this.voteStreak = 0;
         this.bestVoteStreak = 0;
+
+        this.voteRemindEnabled = true;
 
         this.firstPlaces = 0;
         this.secondPlaces = 0;
@@ -165,6 +172,14 @@ public class PlayerVoteStatsEntity {
 
     public void setBestVoteStreak(int bestVoteStreak) {
         this.bestVoteStreak = bestVoteStreak;
+    }
+
+    public boolean isVoteRemindEnabled() {
+        return voteRemindEnabled;
+    }
+
+    public void setVoteRemindEnabled(boolean voteRemindEnabled) {
+        this.voteRemindEnabled = voteRemindEnabled;
     }
 
     public int getFirstPlaces() {

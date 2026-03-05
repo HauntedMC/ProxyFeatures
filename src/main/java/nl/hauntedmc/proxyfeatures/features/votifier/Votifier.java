@@ -78,6 +78,12 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         // /vote leaderboard link
         cfg.put("vote.leaderboard_url", "https://www.hauntedmc.nl/leaderboard/votes/");
 
+        // Vote reminders
+        cfg.put("remind.enabled", true);
+        cfg.put("remind.threshold_hours", 24);
+        cfg.put("remind.initial_delay_minutes", 1);
+        cfg.put("remind.interval_minutes", 60);
+
         // Logging
         cfg.put("logging.log_votes", true);
 
@@ -89,14 +95,14 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
 
         m.add("votifier.command.usage",
-                "&7Gebruik: &f/vote &7<status|top|dump|stats|winners|links|leaderboard>");
+                "&7Gebruik: &f/vote &7<status|top|dump|stats|winners|remind|links|leaderboard>");
         m.add("votifier.command.status",
                 "&7[&aVotifier&7] status=&f{status}&7 host=&f{host}&7 port=&f{port}&7 timeout=&f{timeout}ms&7 keyBits=&f{keybits}&7 redis=&f{redis}&7 db=&f{db}");
 
         m.add("votifier.command.top.header",
                 "&7[&aVote&7] Top &f{limit}&7 voor maand &f{month}&7:");
         m.add("votifier.command.top.entry",
-                "  &8#&f{rank}&8: &f{player} &8- &e{votes} &fvotes");
+                "  &8#&f{rank}&8: &f{player} &8| &e{votes} &fvotes");
         m.add("votifier.command.top.empty",
                 "&7[&aVote&7] &7Geen votes gevonden voor maand &f{month}&7.");
 
@@ -133,6 +139,38 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         m.add("votifier.month.result",
                 "&8[&aVote&8] &7Je eindigde op plek &f#{rank}&7 in &f{month}&7 met &e{votes}&7 votes.");
 
+        // Vote reminders
+        m.add("votifier.remind.header",
+                "&8[&aVote&8] &eHet is alweer &f{time} {unit}&e sinds je laatste vote. &eStem voor leuke rewards en een plek in de top-3!");
+        m.add("votifier.remind.line",
+                "  &8• &7Klik om te stemmen: {url}");
+
+        // Units for reminders (translatable)
+        m.add("votifier.remind.unit.hour", "uur");
+        m.add("votifier.remind.unit.hours", "uur");
+        m.add("votifier.remind.unit.day", "dag");
+        m.add("votifier.remind.unit.days", "dagen");
+
+        m.add("votifier.command.remind.usage",
+                "&7Gebruik: &f/vote remind &7<on|off|toggle>");
+        m.add("votifier.command.remind.player_only",
+                "&8[&aVote&8] &cAlleen spelers kunnen dit gebruiken.");
+        m.add("votifier.command.remind.unavailable",
+                "&8[&aVote&8] &cVote herinneringen zijn nu niet beschikbaar.");
+
+        // Status line + translatable status words
+        m.add("votifier.command.remind.status.current",
+                "&8[&aVote&8] &7Vote herinneringen zijn {status}&7.");
+        m.add("votifier.command.remind.status.enabled",
+                "&aingeschakeld");
+        m.add("votifier.command.remind.status.disabled",
+                "&cuitgeschakeld");
+
+        m.add("votifier.command.remind.enabled",
+                "&8[&aVote&8] &7Vote herinneringen zijn nu &aingeschakeld&7.");
+        m.add("votifier.command.remind.disabled",
+                "&8[&aVote&8] &7Vote herinneringen zijn nu &cuitgeschakeld&7.");
+
         // /vote link output
         m.add("votifier.vote.header",
                 "&8[&aVote&8] &7Stem op &fHauntedMC&7:");
@@ -155,7 +193,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         // Commands
         getLifecycleManager().getCommandManager().registerBrigadierCommand(new VotifierCommand(this));
 
-        // Listener: month results on login
+        // Listener: month results and reminders
         getLifecycleManager().getListenerManager().registerListener(new VotifierMonthResultListener(this));
 
         // Data provider init

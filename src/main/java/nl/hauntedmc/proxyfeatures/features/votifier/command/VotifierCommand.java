@@ -20,6 +20,7 @@ import nl.hauntedmc.proxyfeatures.features.votifier.Votifier;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteLeaderboardEntry;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotePlayerStatsView;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VoteWinnersEntry;
+import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.YearMonth;
@@ -62,27 +63,32 @@ public final class VotifierCommand implements BrigadierCommand {
     public @NotNull LiteralCommandNode<CommandSource> buildTree() {
         LiteralArgumentBuilder<CommandSource> root =
                 LiteralArgumentBuilder.<CommandSource>literal(name())
-                        // Intentionally no permission gate: /vote is player-facing
                         .executes(ctx -> {
                             sendVoteLink(ctx.getSource());
                             return 1;
                         });
 
-        // /vote links
         root.then(LiteralArgumentBuilder.<CommandSource>literal("links")
                 .executes(ctx -> {
                     sendVoteLink(ctx.getSource());
                     return 1;
                 }));
 
-        // /vote leaderboard
         root.then(LiteralArgumentBuilder.<CommandSource>literal("leaderboard")
                 .executes(ctx -> {
                     sendVoteLeaderboard(ctx.getSource());
                     return 1;
                 }));
 
-        // /vote status
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("remind")
+                .executes(ctx -> remindStatus(ctx.getSource()))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("mode", StringArgumentType.word())
+                        .suggests((c, b) -> suggestRemindModes(b))
+                        .executes(ctx -> {
+                            String mode = StringArgumentType.getString(ctx, "mode");
+                            return remindSet(ctx.getSource(), mode);
+                        })));
+
         root.then(LiteralArgumentBuilder.<CommandSource>literal("status")
                 .requires(src -> src.hasPermission(PERM_STATUS))
                 .executes(ctx -> {
@@ -130,7 +136,6 @@ public final class VotifierCommand implements BrigadierCommand {
                             return dump(ctx.getSource(), ym);
                         })));
 
-        // /vote stats [player]
         root.then(LiteralArgumentBuilder.<CommandSource>literal("stats")
                 .requires(src -> src.hasPermission(PERM_STATS))
                 .executes(ctx -> statsSelfOrFail(ctx.getSource()))
@@ -142,7 +147,6 @@ public final class VotifierCommand implements BrigadierCommand {
                             return statsFor(ctx.getSource(), target);
                         })));
 
-        // /vote winners [limit]
         root.then(LiteralArgumentBuilder.<CommandSource>literal("winners")
                 .requires(src -> src.hasPermission(PERM_WINNERS))
                 .executes(ctx -> winners(ctx.getSource(), 10))
@@ -153,6 +157,109 @@ public final class VotifierCommand implements BrigadierCommand {
                         })));
 
         return root.build();
+    }
+
+    private int remindStatus(CommandSource src) {
+        if (!(src instanceof Player p)) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.remind.player_only")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        VotifierService svc = feature.getService();
+        if (svc == null) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.remind.unavailable")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        Optional<Boolean> opt = svc.getVoteRemindEnabled(p);
+        if (opt.isEmpty()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.remind.unavailable")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        Component statusComp = feature.getLocalizationHandler()
+                .getMessage(opt.get() ? "votifier.command.remind.status.enabled" : "votifier.command.remind.status.disabled")
+                .forAudience(src)
+                .build();
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.command.remind.status.current")
+                .with("status", statusComp)
+                .forAudience(src)
+                .build());
+
+        return 1;
+    }
+
+    private int remindSet(CommandSource src, String modeRaw) {
+        if (!(src instanceof Player p)) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.remind.player_only")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        VotifierService svc = feature.getService();
+        if (svc == null) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.remind.unavailable")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        VotifierService.RemindMode mode = parseRemindMode(modeRaw);
+        if (mode == null) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.remind.usage")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        Optional<Boolean> updated = svc.setVoteRemind(p, mode);
+        if (updated.isEmpty()) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.remind.unavailable")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage(updated.get() ? "votifier.command.remind.enabled" : "votifier.command.remind.disabled")
+                .forAudience(src)
+                .build());
+
+        return 1;
+    }
+
+    private static VotifierService.RemindMode parseRemindMode(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String s = raw.trim().toLowerCase(Locale.ROOT);
+        return switch (s) {
+            case "on", "aan", "true", "1" -> VotifierService.RemindMode.ON;
+            case "off", "uit", "false", "0" -> VotifierService.RemindMode.OFF;
+            case "toggle" -> VotifierService.RemindMode.TOGGLE;
+            default -> null;
+        };
+    }
+
+    private CompletableFuture<Suggestions> suggestRemindModes(SuggestionsBuilder b) {
+        b.suggest("on");
+        b.suggest("off");
+        b.suggest("toggle");
+        return b.buildFuture();
     }
 
     private void sendVoteLink(CommandSource src) {
