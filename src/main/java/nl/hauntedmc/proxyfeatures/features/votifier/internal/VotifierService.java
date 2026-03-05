@@ -137,6 +137,32 @@ public final class VotifierService {
         return YearMonth.now(configRef.get().statsZone());
     }
 
+    public boolean publishTestVote(String serviceName, String username) {
+        VotifierConfig cfg = configRef.get();
+        if (!cfg.redisEnabled() || bus == null) return false;
+
+        String service = sanitize(serviceName, 64);
+        String user = sanitize(username, 16);
+
+        if (service.isBlank() || user.isBlank()) return false;
+
+        VoteMessage msg = new VoteMessage(
+                service,
+                user,
+                "test",
+                System.currentTimeMillis()
+        );
+
+        if (cfg.publishLegacyChannel() && cfg.legacyChannel() != null && !cfg.legacyChannel().isBlank()) {
+            bus.publishVote(msg, cfg.legacyChannel().trim());
+        }
+        if (cfg.redisChannel() != null && !cfg.redisChannel().isBlank()) {
+            bus.publishVote(msg, cfg.redisChannel().trim());
+        }
+
+        return true;
+    }
+
     public List<VoteLeaderboardEntry> topForMonth(YearMonth month, int limit) {
         if (stats == null) return List.of();
 
@@ -412,7 +438,6 @@ public final class VotifierService {
 
         String cleanUrl = url.trim();
 
-        // NEW: special message when last_vote_at == 0
         if (neverVoted) {
             feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
                 Optional<Player> liveAgain = ProxyFeatures.getProxyInstance().getPlayer(uuid);
@@ -733,6 +758,13 @@ public final class VotifierService {
         YearMonth ym = fromYearMonthInt(yyyymm);
         if (ym == null) return "";
         return DISPLAY_MONTH.format(ym);
+    }
+
+    private static String sanitize(String s, int maxLen) {
+        if (s == null) return "";
+        String t = s.trim();
+        if (t.length() > maxLen) t = t.substring(0, maxLen);
+        return t;
     }
 
     private static String safeMsg(Throwable t) {

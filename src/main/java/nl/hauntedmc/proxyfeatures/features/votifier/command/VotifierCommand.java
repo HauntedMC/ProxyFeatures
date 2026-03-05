@@ -39,6 +39,7 @@ public final class VotifierCommand implements BrigadierCommand {
     private static final String PERM_STATS = "proxyfeatures.feature.votifier.command.stats";
     private static final String PERM_OTHER = "proxyfeatures.feature.votifier.command.stats.other";
     private static final String PERM_WINNERS = "proxyfeatures.feature.votifier.command.winners";
+    private static final String PERM_TEST = "proxyfeatures.feature.votifier.command.test";
 
     private static final DateTimeFormatter DISPLAY_MONTH = DateTimeFormatter.ofPattern("MM-uuuu");
     private static final DateTimeFormatter INPUT_MONTH_EU = DateTimeFormatter.ofPattern("MM-uuuu");
@@ -156,7 +157,38 @@ public final class VotifierCommand implements BrigadierCommand {
                             return winners(ctx.getSource(), limit);
                         })));
 
+        root.then(LiteralArgumentBuilder.<CommandSource>literal("test")
+                .requires(src -> src.hasPermission(PERM_TEST))
+                .then(RequiredArgumentBuilder.<CommandSource, String>argument("service", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<CommandSource, String>argument("player", StringArgumentType.word())
+                                .suggests((c, b) -> suggestOnlinePlayers(b))
+                                .executes(ctx -> {
+                                    String service = StringArgumentType.getString(ctx, "service");
+                                    String player = StringArgumentType.getString(ctx, "player");
+                                    return testVote(ctx.getSource(), service, player);
+                                }))));
+
         return root.build();
+    }
+
+    private int testVote(CommandSource src, String service, String player) {
+        VotifierService svc = feature.getService();
+        if (svc == null || !svc.publishTestVote(service, player)) {
+            src.sendMessage(feature.getLocalizationHandler()
+                    .getMessage("votifier.command.test.unavailable")
+                    .forAudience(src)
+                    .build());
+            return 0;
+        }
+
+        src.sendMessage(feature.getLocalizationHandler()
+                .getMessage("votifier.command.test.ok")
+                .with("service", service == null ? "" : service)
+                .with("player", player == null ? "" : player)
+                .forAudience(src)
+                .build());
+
+        return 1;
     }
 
     private int remindStatus(CommandSource src) {

@@ -95,7 +95,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         MessageMap m = new MessageMap();
 
         m.add("votifier.command.usage",
-                "&7Gebruik: &f/vote &7<status|top|dump|stats|winners|remind|links|leaderboard>");
+                "&7Gebruik: &f/vote &7<status|top|dump|stats|winners|remind|links|leaderboard|test>");
         m.add("votifier.command.status",
                 "&7[&aVotifier&7] status=&f{status}&7 host=&f{host}&7 port=&f{port}&7 timeout=&f{timeout}ms&7 keyBits=&f{keybits}&7 redis=&f{redis}&7 db=&f{db}");
 
@@ -188,6 +188,14 @@ public class Votifier extends VelocityBaseFeature<Meta> {
                 "&8[&aVote&8] &7Live leaderboard:");
         m.add("votifier.vote.leaderboard.not_configured",
                 "&8[&aVote&8] &cLeaderboard link is niet ingesteld.");
+
+        // Test vote
+        m.add("votifier.command.test.usage",
+                "&7Gebruik: &f/vote test &7<service> <player>");
+        m.add("votifier.command.test.ok",
+                "&7[&aVotifier&7] &aTest vote gepubliceerd&7 service=&f{service}&7 player=&f{player}");
+        m.add("votifier.command.test.unavailable",
+                "&7[&aVotifier&7] &cTest vote niet beschikbaar (redis publish staat uit).");
 
         return m;
     }
