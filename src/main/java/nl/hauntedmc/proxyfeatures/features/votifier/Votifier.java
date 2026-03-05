@@ -12,6 +12,7 @@ import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.votifier.command.VotifierCommand;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity;
+import nl.hauntedmc.proxyfeatures.features.votifier.entity.VotifierRolloverStateEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
 import nl.hauntedmc.proxyfeatures.features.votifier.listener.VotifierMonthResultListener;
 import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
@@ -154,7 +155,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         // Commands
         getLifecycleManager().getCommandManager().registerBrigadierCommand(new VotifierCommand(this));
 
-        // Listener: winner congrats on login
+        // Listener: month results on login
         getLifecycleManager().getListenerManager().registerListener(new VotifierMonthResultListener(this));
 
         // Data provider init
@@ -184,7 +185,13 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         ORMContext orm = null;
         if (ormOpt.isPresent()) {
             orm = getLifecycleManager().getDataManager()
-                    .createORMContext("orm", PlayerEntity.class, PlayerVoteStatsEntity.class, PlayerVoteMonthlyEntity.class)
+                    .createORMContext(
+                            "orm",
+                            PlayerEntity.class,
+                            PlayerVoteStatsEntity.class,
+                            PlayerVoteMonthlyEntity.class,
+                            VotifierRolloverStateEntity.class
+                    )
                     .orElse(null);
             if (orm == null) {
                 getLogger().warn("Failed to create ORMContext, vote stats disabled.");

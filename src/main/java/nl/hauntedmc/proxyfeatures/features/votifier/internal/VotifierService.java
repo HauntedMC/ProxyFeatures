@@ -45,7 +45,6 @@ public final class VotifierService {
 
     private final EventBusHandler bus;
     private final VoteStatsService stats;
-    private final VotifierLocalState localState;
 
     private volatile VotifierServer server;
     private volatile ScheduledTask resetTask;
@@ -62,7 +61,6 @@ public final class VotifierService {
 
         this.bus = redisBus == null ? null : new EventBusHandler(feature, redisBus);
         this.stats = orm == null ? null : new VoteStatsService(feature, orm);
-        this.localState = new VotifierLocalState(feature);
     }
 
     public void start() {
@@ -77,6 +75,16 @@ public final class VotifierService {
         startServer(cfg);
 
         scheduleMonthlyReset(cfg);
+
+        if (cfg.statsEnabled() && stats != null) {
+            worker.execute(() -> {
+                try {
+                    maybeRollover(cfg);
+                } catch (Throwable t) {
+                    feature.getLogger().warn("Rollover bootstrap failed: " + safeMsg(t));
+                }
+            });
+        }
     }
 
     public void shutdown() {
@@ -125,6 +133,11 @@ public final class VotifierService {
         int requested = toYearMonthInt(month);
         int current = toYearMonthInt(YearMonth.now(cfg.statsZone()));
 
+        if (requested != current) {
+            maybeRollover(cfg);
+            current = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+        }
+
         if (requested == current) {
             return stats.topForCurrentMonth(current, limit);
         }
@@ -140,6 +153,8 @@ public final class VotifierService {
     public String dumpTopForMonth(YearMonth month) {
         VotifierConfig cfg = configRef.get();
         if (stats == null) throw new IllegalStateException("stats disabled");
+
+        maybeRollover(cfg);
 
         YearMonth ym = (month == null) ? YearMonth.now(cfg.statsZone()).minusMonths(1) : month;
         int current = toYearMonthInt(YearMonth.now(cfg.statsZone()));
@@ -380,6 +395,8 @@ public final class VotifierService {
 
         PlayerEntity player = null;
         if (cfg.statsEnabled() && stats != null) {
+            maybeRollover(cfg);
+
             Optional<PlayerEntity> pOpt = stats.findPlayerByUsername(username);
             if (pOpt.isEmpty()) {
                 feature.getLogger().warn("Discarded vote for unknown player: " + username);
@@ -427,12 +444,27 @@ public final class VotifierService {
         Duration period = Duration.ofMinutes(minutes);
 
         this.resetTask = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
-            try {
-                maybeRunMonthlyReset();
-            } catch (Throwable t) {
-                feature.getLogger().warn("Monthly reset check failed: " + safeMsg(t));
-            }
+            worker.execute(() -> {
+                try {
+                    maybeRollover(cfg);
+                } catch (Throwable t) {
+                    feature.getLogger().warn("Monthly rollover check failed: " + safeMsg(t));
+                }
+            });
         }, period);
+    }
+
+    private void maybeRollover(VotifierConfig cfg) {
+        if (stats == null || cfg == null || !cfg.statsEnabled()) return;
+
+        Optional<VoteStatsService.RolloverResult> res = stats.rolloverIfNeeded(cfg);
+        if (res.isEmpty()) return;
+
+        VoteStatsService.RolloverResult r = res.get();
+
+        feature.getLogger().info("Monthly finalize completed. Month=" + formatYearMonthInt(r.finalizedMonthYearMonth())
+                + " dump=" + r.dumpFile()
+                + " medalsApplied=" + r.medalsApplied());
     }
 
     private void cancelResetTask() {
@@ -441,69 +473,6 @@ public final class VotifierService {
         if (t != null) {
             feature.getLifecycleManager().getTaskManager().cancelTask(t);
         }
-    }
-
-    private void maybeRunMonthlyReset() {
-        VotifierConfig cfg = configRef.get();
-        if (stats == null || !cfg.statsEnabled()) return;
-
-        YearMonth currentYm = YearMonth.now(cfg.statsZone());
-        int currentInt = toYearMonthInt(currentYm);
-
-        int lastResetInt = localState.lastResetYearMonth();
-        YearMonth lastResetYm = fromYearMonthInt(lastResetInt);
-
-        if (lastResetYm == null) {
-            worker.execute(() -> processMonthMarker(cfg, currentYm, null));
-            return;
-        }
-
-        if (lastResetYm.isAfter(currentYm)) {
-            localState.setLastResetYearMonth(currentInt);
-            return;
-        }
-
-        if (lastResetYm.equals(currentYm)) return;
-
-        worker.execute(() -> processMonthMarker(cfg, currentYm, lastResetYm));
-    }
-
-    private void processMonthMarker(VotifierConfig cfg, YearMonth currentYm, YearMonth lastResetYm) {
-        try {
-            int currentInt = toYearMonthInt(currentYm);
-
-            if (lastResetYm == null) {
-                YearMonth prev = currentYm.minusMonths(1);
-                finalizeFinishedMonth(cfg, prev);
-                localState.setLastResetYearMonth(currentInt);
-                return;
-            }
-
-            YearMonth marker = lastResetYm.plusMonths(1);
-            while (!marker.isAfter(currentYm)) {
-                YearMonth prev = marker.minusMonths(1);
-
-                finalizeFinishedMonth(cfg, prev);
-
-                localState.setLastResetYearMonth(toYearMonthInt(marker));
-
-                marker = marker.plusMonths(1);
-            }
-
-        } catch (Throwable t) {
-            feature.getLogger().error("Monthly processing failed: " + safeMsg(t));
-        }
-    }
-
-    private void finalizeFinishedMonth(VotifierConfig cfg, YearMonth finishedMonth) {
-        int finishedInt = toYearMonthInt(finishedMonth);
-        int currentInt = toYearMonthInt(YearMonth.now(cfg.statsZone()));
-
-        Path dumpFile = stats.dumpTopForMonth(finishedMonth, currentInt, cfg.dumpTopN(), cfg.dumpFilePrefix());
-
-        int medalsApplied = stats.applyMonthlyWinners(finishedInt);
-
-        feature.getLogger().info("Monthly finalize completed. Month=" + finishedMonth + " dump=" + dumpFile + " medalsApplied=" + medalsApplied);
     }
 
     private static int toYearMonthInt(YearMonth ym) {
