@@ -26,14 +26,7 @@ public class TextCommands extends VelocityBaseFeature<Meta> {
     public ConfigMap getDefaultConfig() {
         ConfigMap defaults = new ConfigMap();
         defaults.put("enabled", false);
-
-        defaultCommands().forEach((name, def) -> {
-            defaults.put("commands." + name + ".message-key", def.messageKey);
-            def.placeholders.forEach((placeholder, value) ->
-                    defaults.put("commands." + name + ".placeholders." + placeholder, value)
-            );
-        });
-
+        defaults.put("commands", new LinkedHashMap<>());
         return defaults;
     }
 
@@ -88,7 +81,10 @@ public class TextCommands extends VelocityBaseFeature<Meta> {
                 continue;
             }
 
-            Map<String, String> placeholders = new HashMap<>(node.get("placeholders").mapValues(String.class));
+            Map<String, String> configuredPlaceholders = node.get("placeholders").mapValues(String.class);
+            Map<String, String> placeholders = configuredPlaceholders == null
+                    ? new HashMap<>()
+                    : new HashMap<>(configuredPlaceholders);
             commands.put(trimmedName, new CommandDef(messageKey.trim(), placeholders));
         }
 
@@ -113,29 +109,5 @@ public class TextCommands extends VelocityBaseFeature<Meta> {
      * Simple holder for a message key and its placeholder map.
      */
     private record CommandDef(String messageKey, Map<String, String> placeholders) {
-    }
-
-    private static Map<String, CommandDef> defaultCommands() {
-        Map<String, CommandDef> defaults = new LinkedHashMap<>();
-        defaults.put("store", new CommandDef("text.store", Map.of("url", "https://store.hauntedmc.nl")));
-        defaults.put("regels", new CommandDef("text.regels", Map.of("url", "https://hauntedmc.nl/regels")));
-        defaults.put("website", new CommandDef("text.website", Map.of("url", "https://hauntedmc.nl/")));
-        defaults.put("ranks", new CommandDef("text.ranks", Map.of("url", "https://hauntedmc.nl/ranks")));
-        defaults.put("discord", new CommandDef("text.discord", Map.of("url", "https://hauntedmc.nl/discord")));
-        defaults.put("linkbedrock", new CommandDef("text.linkbedrock", Map.of("url", "https://link.geysermc.org/method/online")));
-        defaults.put("bedrock", new CommandDef("text.bedrock", Map.of("url", "https://hauntedmc.nl/help/bedrock")));
-        defaults.put("support", new CommandDef("text.support", Map.of("url", "https://hauntedmc.nl/support")));
-        defaults.put("help", new CommandDef("text.help", Map.of("url", "https://hauntedmc.nl/help")));
-        defaults.put("vacatures", new CommandDef("text.vacatures", Map.of("url", "https://hauntedmc.nl/vacatures")));
-        defaults.put("shoptutorial", new CommandDef("text.shoptutorial", Map.of("url", "https://hauntedmc.nl/shoptutorial")));
-        defaults.put("flaghelp", new CommandDef("text.flaghelp", Map.of("url", "https://github.com/ShaneBeee/GriefPreventionFlags/wiki/Flags")));
-        defaults.put("maps", new CommandDef("text.maps", Map.of("url", "https://hauntedmc.nl/help/dynmap")));
-        defaults.put("limits", new CommandDef("text.limits", Map.of("url", "https://hauntedmc.nl/limits")));
-        defaults.put("leaderboard", new CommandDef("text.leaderboard", Map.of("url", "https://hauntedmc.nl/leaderboard")));
-        defaults.put("kleurcodes", new CommandDef("text.kleurcodes", Map.of("url", "https://www.hauntedmc.nl/kleurcodes/")));
-        defaults.put("claimtutorial", new CommandDef("text.claimtutorial", Map.of("url", "https://www.youtube.com/watch?v=VScvidtaWM8")));
-        defaults.put("hex", new CommandDef("text.hex", Map.of("url", "https://rgb.birdflop.com/")));
-        defaults.put("report", new CommandDef("text.report", Map.of("url", "https://hauntedmc.nl/support")));
-        return defaults;
     }
 }

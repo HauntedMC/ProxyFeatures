@@ -50,7 +50,7 @@ public class TextCommand implements FeatureCommand {
 
 
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
-        return CompletableFuture.completedFuture(List.of(""));
+        return CompletableFuture.completedFuture(List.of());
     }
 
 
@@ -60,6 +60,6 @@ public class TextCommand implements FeatureCommand {
 
 
     public String[] getAliases() {
-        return new String[]{""};
+        return new String[0];
     }
 }
