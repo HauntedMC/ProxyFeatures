@@ -22,7 +22,7 @@ public class SlashServerCommand implements FeatureCommand {
     }
 
     public String[] getAliases() {
-        return new String[]{""};
+        return new String[0];
     }
 
     public void execute(Invocation invocation) {
@@ -32,6 +32,10 @@ public class SlashServerCommand implements FeatureCommand {
                     .getMessage("general.player_command")
                     .forAudience(source)
                     .build());
+            return;
+        }
+
+        if (!feature.isServerEnabled(serverName)) {
             return;
         }
 
