@@ -20,24 +20,41 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class HLinkHandler {
+
+    public enum LinkResultType { SUCCESS, ALREADY_REGISTERED, ERROR }
+    public record LinkResult(LinkResultType type, String token) {}
 
     private final HLink feature;
     private final Gson gson = new Gson();
     private final String apiKey;
     private final boolean friendly;
     private final String websiteUrl;
+    private final ExecutorService httpExecutor;
 
     // Cache for updatePlayerData: key = player UUID, value = CachedPlayerData (username & primary group)
     private final Map<UUID, CachedPlayerData> updateCache = new ConcurrentHashMap<>();
 
     public HLinkHandler(HLink feature) {
         this.feature = feature;
-        this.apiKey = (String) feature.getConfigHandler().get("api-key");
-        this.friendly = (boolean) feature.getConfigHandler().get("full-friendly-urls-enabled");
-        this.websiteUrl = (String) feature.getConfigHandler().get("website-url");
+        Object apiKeyRaw = feature.getConfigHandler().get("api-key");
+        Object websiteUrlRaw = feature.getConfigHandler().get("website-url");
+        Object friendlyRaw = feature.getConfigHandler().get("full-friendly-urls-enabled");
+
+        this.apiKey = apiKeyRaw == null ? "" : String.valueOf(apiKeyRaw).trim();
+        this.friendly = friendlyRaw instanceof Boolean b ? b : true;
+        this.websiteUrl = websiteUrlRaw == null ? "" : String.valueOf(websiteUrlRaw).trim();
+
+        this.httpExecutor = Executors.newFixedThreadPool(2, r -> {
+            Thread t = new Thread(r, "hlink-http");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     private String buildApiUrl() {
@@ -50,15 +67,25 @@ public class HLinkHandler {
      * If nothing has changed, no API call is made.
      */
     public void updatePlayerData(Player player) {
+        if (player == null) return;
+        updatePlayerDataAsync(player);
+    }
+
+    public CompletableFuture<Boolean> updatePlayerDataAsync(Player player) {
+        if (player == null) return CompletableFuture.completedFuture(false);
         UUID uuid = player.getUniqueId();
         String username = player.getUsername();
-        String primaryGroup = getPlayerGroups(player);
+        return CompletableFuture.supplyAsync(() -> updatePlayerData(uuid, username), httpExecutor);
+    }
+
+    private boolean updatePlayerData(UUID uuid, String username) {
+        if (!isConfigured()) return false;
+        String primaryGroup = getPlayerGroups(uuid, username);
 
         CachedPlayerData cached = updateCache.get(uuid);
         if (cached != null && cached.username.equals(username) && cached.primaryGroup.equals(primaryGroup)) {
-            return;
+            return true;
         }
-
         String apiUrl = buildApiUrl();
         List<NameValuePair> args = new ArrayList<>();
         args.add(new BasicNameValuePair("api_key", apiKey));
@@ -69,8 +96,10 @@ public class HLinkHandler {
         try {
             SimpleHttpClient.post(apiUrl + "/updatePlayerCache", args);
             updateCache.put(uuid, new CachedPlayerData(username, primaryGroup));
+            return true;
         } catch (Exception e) {
-            feature.getLogger().error(Component.text("Error updating player data for " + player.getUsername()));
+            feature.getLogger().error(Component.text("Error updating player data for " + username));
+            return false;
         }
     }
 
@@ -78,10 +107,10 @@ public class HLinkHandler {
      * Retrieves the player's primary group using LuckPerms.
      * If an error occurs or the user is not found, "default" is returned.
      */
-    private String getPlayerGroups(Player player) {
+    private String getPlayerGroups(UUID uuid, String username) {
         try {
             LuckPerms lp = LuckPermsProvider.get();
-            User user = lp.getUserManager().getUser(player.getUniqueId());
+            User user = lp.getUserManager().getUser(uuid);
             if (user == null) {
                 return "default";
             }
@@ -103,8 +132,8 @@ public class HLinkHandler {
 
             return String.join(",", highestPerTrack);
 
-        } catch (Exception e) {
-            feature.getLogger().error(Component.text("Error retrieving LuckPerms groups for " + player.getUsername()));
+        } catch (Throwable e) {
+            feature.getLogger().error(Component.text("Error retrieving LuckPerms groups for " + username));
             return "default";
         }
     }
@@ -127,6 +156,7 @@ public class HLinkHandler {
     }
 
     public String doesKeyExist(String uuid, int keyType) {
+        if (!isConfigured()) return "false";
         String apiUrl = buildApiUrl();
         List<NameValuePair> args = new ArrayList<>();
         args.add(new BasicNameValuePair("api_key", apiKey));
@@ -145,6 +175,7 @@ public class HLinkHandler {
     }
 
     public boolean alreadyRegistered(String uuid) {
+        if (!isConfigured()) return false;
         String apiUrl = buildApiUrl();
         List<NameValuePair> args = new ArrayList<>();
         args.add(new BasicNameValuePair("api_key", apiKey));
@@ -161,58 +192,71 @@ public class HLinkHandler {
     }
 
     /**
-     * Creates a new link key for the given player.
-     * If the player is already registered, sends an error message and returns null.
+     * Creates or retrieves a link key for the given player asynchronously.
      */
-    public String addNewKey(Player player, int keyType) {
-        String uuid = player.getUniqueId().toString();
+    public CompletableFuture<LinkResult> addNewKeyAsync(Player player, int keyType) {
+        if (player == null) {
+            return CompletableFuture.completedFuture(new LinkResult(LinkResultType.ERROR, null));
+        }
+        UUID uuid = player.getUniqueId();
+        String username = player.getUsername();
+        return CompletableFuture.supplyAsync(() -> addNewKey(uuid, username, keyType), httpExecutor);
+    }
 
+    private LinkResult addNewKey(UUID playerId, String username, int keyType) {
+        if (!isConfigured()) {
+            return new LinkResult(LinkResultType.ERROR, null);
+        }
+        String uuid = playerId.toString();
         if (alreadyRegistered(uuid)) {
-            if (keyType == 1) {
-                player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorAlreadyLinked").forAudience(player).build());
-            } else {
-                player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorAlreadyRegistered").forAudience(player).build());
-            }
-            return null;
+            return new LinkResult(LinkResultType.ALREADY_REGISTERED, null);
         }
 
         String token = doesKeyExist(uuid, keyType);
         if (!token.equalsIgnoreCase("false")) {
-            return token;
+            return new LinkResult(LinkResultType.SUCCESS, token);
         }
         token = UUID.randomUUID().toString();
-        String groups = getPlayerGroups(player);
+        String groups = getPlayerGroups(playerId, username);
         String apiUrl = buildApiUrl();
 
         List<NameValuePair> argsCreate = new ArrayList<>();
         argsCreate.add(new BasicNameValuePair("api_key", apiKey));
         argsCreate.add(new BasicNameValuePair("token", token));
         argsCreate.add(new BasicNameValuePair("uuid", uuid));
-        argsCreate.add(new BasicNameValuePair("mc_username", player.getUsername()));
+        argsCreate.add(new BasicNameValuePair("mc_username", username));
         argsCreate.add(new BasicNameValuePair("valid", "1"));
         argsCreate.add(new BasicNameValuePair("key_type", String.valueOf(keyType)));
 
         List<NameValuePair> argsUpdate = new ArrayList<>();
         argsUpdate.add(new BasicNameValuePair("api_key", apiKey));
         argsUpdate.add(new BasicNameValuePair("uuid", uuid));
-        argsUpdate.add(new BasicNameValuePair("username", player.getUsername()));
+        argsUpdate.add(new BasicNameValuePair("username", username));
         argsUpdate.add(new BasicNameValuePair("groups", groups));
 
         try {
             SimpleHttpClient.post(apiUrl + "/createLinkKey", argsCreate);
             SimpleHttpClient.post(apiUrl + "/updatePlayerCache", argsUpdate);
         } catch (Exception e) {
-            feature.getLogger().error(Component.text("Error adding new key for " + player.getUsername()));
-            player.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorCreatingKey").forAudience(player).build());
-            return "errorCreatingKey";
+            feature.getLogger().error(Component.text("Error adding new key for " + username));
+            return new LinkResult(LinkResultType.ERROR, null);
         }
-        return token;
+        return new LinkResult(LinkResultType.SUCCESS, token);
     }
 
     public String getLink(String token) {
         return friendly
                 ? websiteUrl + "/link-minecraft/?token=" + token + "&type=link"
                 : websiteUrl + "/index.php?link-minecraft/&token=" + token + "&type=link";
+    }
+
+    public void shutdown() {
+        httpExecutor.shutdownNow();
+        updateCache.clear();
+    }
+
+    private boolean isConfigured() {
+        return !apiKey.isBlank() && !websiteUrl.isBlank();
     }
 
     // Simple POJO to cache player's username and primary group.

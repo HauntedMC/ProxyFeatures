@@ -114,6 +114,7 @@ public class QueueManager {
             String server = e.getKey();
             ServerStatus st = statusCache.get(server);
             if (st == null || !st.isOnline()) continue;
+            if (st.onlinePlayers < 0 || st.maxPlayers <= 0) continue;
 
             int capacity = Math.max(0, st.maxPlayers - st.onlinePlayers);
             if (capacity == 0) continue;
@@ -249,7 +250,11 @@ public class QueueManager {
         }
 
         ServerStatus st = getStatus(server);
-        boolean isFull = st.isOnline() && st.onlinePlayers >= st.maxPlayers;
+        boolean hasKnownCapacity = st.isOnline() && st.onlinePlayers >= 0 && st.maxPlayers > 0;
+        if (!hasKnownCapacity) {
+            return EnqueueDecision.ALLOW;
+        }
+        boolean isFull = st.onlinePlayers >= st.maxPlayers;
 
         if (!isFull) {
             return EnqueueDecision.ALLOW;

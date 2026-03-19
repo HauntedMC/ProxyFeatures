@@ -57,6 +57,9 @@ public class HLink extends VelocityBaseFeature<Meta> {
     @Override
     public void disable() {
         LuckPermsHook.unsubscribeLuckPermsHook();
+        if (hlinkHandler != null) {
+            hlinkHandler.shutdown();
+        }
     }
 
     public HLinkHandler getHLinkHandler() {

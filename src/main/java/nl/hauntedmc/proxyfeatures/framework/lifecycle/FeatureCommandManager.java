@@ -43,8 +43,9 @@ public class FeatureCommandManager {
             return;
         }
         try {
+            String[] aliases = sanitizeAliases(command.getAliases(), commandName);
             CommandMeta meta = commandManager.metaBuilder(commandName)
-                    .aliases(command.getAliases())
+                    .aliases(aliases)
                     .plugin(plugin)
                     .build();
 
@@ -191,5 +192,25 @@ public class FeatureCommandManager {
         names.addAll(registeredCommands.keySet());
         names.addAll(registeredBrigadierCommands.keySet());
         return Collections.unmodifiableSet(names);
+    }
+
+    private static String[] sanitizeAliases(String[] aliases, String commandName) {
+        if (aliases == null || aliases.length == 0) {
+            return new String[0];
+        }
+        List<String> out = new ArrayList<>();
+        for (String alias : aliases) {
+            if (alias == null) {
+                continue;
+            }
+            String trimmed = alias.trim();
+            if (trimmed.isEmpty() || trimmed.equalsIgnoreCase(commandName)) {
+                continue;
+            }
+            if (!out.contains(trimmed)) {
+                out.add(trimmed);
+            }
+        }
+        return out.toArray(String[]::new);
     }
 }

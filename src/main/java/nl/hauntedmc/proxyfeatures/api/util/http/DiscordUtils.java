@@ -27,7 +27,7 @@ public class DiscordUtils {
 
             URI uri = URI.create(webhookUrl.trim());
             String scheme = uri.getScheme();
-            if (scheme == null || (!scheme.equalsIgnoreCase("https") && !scheme.equalsIgnoreCase("http"))) {
+            if (scheme == null || !scheme.equalsIgnoreCase("https")) {
                 return false;
             }
 

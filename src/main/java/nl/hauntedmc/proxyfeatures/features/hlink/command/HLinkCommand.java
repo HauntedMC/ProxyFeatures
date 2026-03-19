@@ -69,13 +69,24 @@ public class HLinkCommand implements FeatureCommand {
 
         // 3) Actually sync
         Player target = playerOpt.get();
-        handler.updatePlayerData(target);
-        source.sendMessage(
-                feature.getLocalizationHandler()
-                        .getMessage("hlink.syncSuccess")
-                        .with("player", target.getUsername())
-                        .forAudience(source)
-                        .build()
+        String targetUsername = target.getUsername();
+        handler.updatePlayerDataAsync(target).whenComplete((ok, err) ->
+                feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
+                    if (err != null || !Boolean.TRUE.equals(ok)) {
+                        source.sendMessage(feature.getLocalizationHandler()
+                                .getMessage("hlink.errorCreatingKey")
+                                .forAudience(source)
+                                .build());
+                        return;
+                    }
+                    source.sendMessage(
+                            feature.getLocalizationHandler()
+                                    .getMessage("hlink.syncSuccess")
+                                    .with("player", targetUsername)
+                                    .forAudience(source)
+                                    .build()
+                    );
+                })
         );
     }
 

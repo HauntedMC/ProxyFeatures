@@ -23,19 +23,23 @@ public class LuckPermsHook {
      * @param feature The HLink feature instance.
      */
     public static void subscribeLuckPermsHook(HLink feature) {
-        LuckPerms api = LuckPermsProvider.get();
-        EventBus eventBus = api.getEventBus();
+        try {
+            LuckPerms api = LuckPermsProvider.get();
+            EventBus eventBus = api.getEventBus();
 
-        EventSubscription<NodeMutateEvent> nodeSubscription = eventBus.subscribe(
-                feature.getPlugin(),
-                NodeMutateEvent.class,
-                event -> {
-                    String friendlyName = event.getTarget().getFriendlyName();
-                    Optional<Player> playerOpt = ProxyFeatures.getProxyInstance().getPlayer(friendlyName);
-                    playerOpt.ifPresent(player -> feature.getHLinkHandler().updatePlayerData(player));
-                }
-        );
-        subscriptions.add(nodeSubscription);
+            EventSubscription<NodeMutateEvent> nodeSubscription = eventBus.subscribe(
+                    feature.getPlugin(),
+                    NodeMutateEvent.class,
+                    event -> {
+                        String friendlyName = event.getTarget().getFriendlyName();
+                        Optional<Player> playerOpt = ProxyFeatures.getProxyInstance().getPlayer(friendlyName);
+                        playerOpt.ifPresent(player -> feature.getHLinkHandler().updatePlayerData(player));
+                    }
+            );
+            subscriptions.add(nodeSubscription);
+        } catch (Throwable t) {
+            feature.getLogger().warn("HLink: LuckPerms hook unavailable; continuing without group sync hook.");
+        }
     }
 
     /**
