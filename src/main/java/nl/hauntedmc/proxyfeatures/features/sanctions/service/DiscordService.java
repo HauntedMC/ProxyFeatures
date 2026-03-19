@@ -127,7 +127,12 @@ public class DiscordService {
                         + "}]"
                         + "}";
 
-        DiscordUtils.sendPayload(webhookUrl, payload);
+        feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
+            boolean delivered = DiscordUtils.sendPayload(webhookUrl, payload);
+            if (!delivered) {
+                feature.getLogger().warn("[Sanctions/Discord] Failed to deliver webhook payload.");
+            }
+        });
     }
 
     private String field(String name, String value) {
@@ -166,7 +171,7 @@ public class DiscordService {
     private String getWebhookUrl() {
         try {
             Object v = feature.getConfigHandler().get("discordWebhookURL");
-            return v == null ? "" : String.valueOf(v);
+            return v == null ? "" : String.valueOf(v).trim();
         } catch (Throwable ignored) {
         }
         return "";

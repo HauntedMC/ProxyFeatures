@@ -22,14 +22,20 @@ public class MainConfigHandler extends ConfigView {
     public MainConfigHandler(ProxyFeatures plugin) {
         super(new ConfigService(plugin).open("config.yml", true), "");
         this.logger = plugin.getLogger();
-        injectGlobalDefaults(Map.of("server_name", "proxy"));
+        injectGlobalDefaults(Map.of(
+                "server_name", "proxy",
+                "dataprovider_token", ""
+        ));
     }
 
     /** Optional: if you already created a ConfigService elsewhere, use it here. */
     public MainConfigHandler(ProxyFeatures plugin, ConfigService service) {
         super(service.open("config.yml", true), "");
         this.logger = plugin.getLogger();
-        injectGlobalDefaults(Map.of("server_name", "proxy"));
+        injectGlobalDefaults(Map.of(
+                "server_name", "proxy",
+                "dataprovider_token", ""
+        ));
     }
 
     public void reloadConfig() { file.reload(); }

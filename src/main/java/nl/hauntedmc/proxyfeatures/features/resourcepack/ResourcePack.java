@@ -67,6 +67,9 @@ public class ResourcePack extends VelocityBaseFeature<Meta> {
 
     @Override
     public void disable() {
+        if (handler != null) {
+            handler.unblockAllConfigurations();
+        }
     }
 
     public ResourcePackHandler getResourcePackHandler() {

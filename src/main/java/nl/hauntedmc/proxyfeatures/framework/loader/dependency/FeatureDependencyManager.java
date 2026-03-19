@@ -48,10 +48,14 @@ public class FeatureDependencyManager implements Serializable {
             if (!featureLoadManager.getFeatureRegistry().isFeatureLoaded(dependency)) {
                 plugin.getLogger().info("Enabling dependency {} for {}", dependency, featureName);
 
-                VelocityBaseFeature<?> dependencyFeature = FeatureFactory.createFeature(
-                        featureLoadManager.getFeatureRegistry().getAvailableFeatures().get(dependency),
-                        this.plugin
-                );
+                Class<? extends VelocityBaseFeature<?>> dependencyClass =
+                        featureLoadManager.getFeatureRegistry().getAvailableFeatures().get(dependency);
+                if (dependencyClass == null) {
+                    plugin.getLogger().warn("Dependency {} for {} is not registered.", dependency, featureName);
+                    return false;
+                }
+
+                VelocityBaseFeature<?> dependencyFeature = FeatureFactory.createFeature(dependencyClass, this.plugin);
 
                 if (dependencyFeature == null) {
                     plugin.getLogger().warn("Failed to instantiate dependency {} for {}", dependency, featureName);

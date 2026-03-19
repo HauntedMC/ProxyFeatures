@@ -14,6 +14,7 @@ import nl.hauntedmc.proxyfeatures.features.versioncheck.VersionCheck;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -55,7 +56,8 @@ public class MotdHandler {
     }
 
     private ServerPing.@NotNull Players getAdjustedPlayers(ServerPing unmodifiedPing) {
-        double playerCountAdjustment = (double) feature.getConfigHandler().get("playerCountMultiplier");
+        Object multiplierRaw = feature.getConfigHandler().get("playerCountMultiplier");
+        double playerCountAdjustment = multiplierRaw instanceof Number number ? number.doubleValue() : 1.0D;
 
         if (playerCountAdjustment < 0) {
             playerCountAdjustment = 0;
@@ -66,7 +68,10 @@ public class MotdHandler {
                 .orElse(0);
         int vanishedAdjustedPlayers = onlinePlayers - vanishedPlayers;
         int playerCount = (int) (vanishedAdjustedPlayers * playerCountAdjustment);
-        return new ServerPing.Players(playerCount, unmodifiedPing.getPlayers().get().getMax(), unmodifiedPing.getPlayers().get().getSample());
+        Optional<ServerPing.Players> players = unmodifiedPing.getPlayers();
+        int maxPlayers = players.map(ServerPing.Players::getMax).orElse(playerCount);
+        List<ServerPing.SamplePlayer> sample = players.map(ServerPing.Players::getSample).orElse(List.of());
+        return new ServerPing.Players(playerCount, Math.max(playerCount, maxPlayers), sample);
     }
 
     private Component getMOTD() {
@@ -84,8 +89,16 @@ public class MotdHandler {
     }
 
     private Component readMOTDFromFile() {
-        String line1 = (String) feature.getConfigHandler().get("motdline1");
+        Object line1Raw = feature.getConfigHandler().get("motdline1");
+        String line1 = line1Raw == null ? "" : String.valueOf(line1Raw);
         List<String> words = CastUtils.safeCastToList(feature.getConfigHandler().get("motdline2"), String.class);
+
+        if (words.isEmpty()) {
+            return buildComponent(line1 + "\n" + centeredLine("HauntedMC."));
+        }
+        if (words.size() == 1) {
+            return buildComponent(line1 + "\n" + centeredLine(words.getFirst() + ". HauntedMC."));
+        }
 
         int size = words.size();
         int index1 = ThreadLocalRandom.current().nextInt(size);
@@ -95,8 +108,10 @@ public class MotdHandler {
         }
 
         String line2 = getLine2(words, index1, index2);
-        String completeMotd = line1 + "\n" + line2;
+        return buildComponent(line1 + "\n" + line2);
+    }
 
+    private Component buildComponent(String completeMotd) {
         return ComponentFormatter.deserialize(completeMotd)
                 .expect(TextFormatter.InputFormat.MIXED_INPUT)
                 .features(ComponentFormatter.ALL_DEFAULTS())
@@ -105,8 +120,10 @@ public class MotdHandler {
 
     private static @NotNull String getLine2(List<String> words, int index1, int index2) {
         String randomWords = words.get(index1) + ". " + words.get(index2) + ". ";
-        String content = randomWords + "HauntedMC.";
+        return centeredLine(randomWords + "HauntedMC.");
+    }
 
+    private static @NotNull String centeredLine(String content) {
         int targetWidth = 58;
         if (content.length() < targetWidth) {
             int totalPadding = targetWidth - content.length();

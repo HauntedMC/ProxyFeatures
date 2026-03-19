@@ -11,11 +11,14 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FeatureDataManager {
+    private static final String DATA_PROVIDER_TOKEN_ENV = "PROXYFEATURES_DATAPROVIDER_TOKEN";
+    private static final String DATA_PROVIDER_TOKEN_CONFIG_KEY = "dataprovider_token";
 
     private final ProxyFeatures plugin;
     private final DataProviderAPI dataProviderAPI;
     private ORMContext ormContext;
     private String featureName;
+    private boolean authenticated;
     private final ConcurrentHashMap<String, DatabaseProvider> databaseProviders;
 
 
@@ -37,8 +40,26 @@ public class FeatureDataManager {
      */
     public void initDataProvider(String featureName) {
         this.featureName = featureName;
-        dataProviderAPI.authenticate(featureName, "7ebbeae6-b52e-484a-ae61-8a215f8efc2b");
-        plugin.getLogger().info("DataProvider authenticated feature '{}' with token.", featureName);
+        this.authenticated = false;
+
+        String token = resolveDataProviderToken();
+        if (token == null) {
+            plugin.getLogger().error(
+                    "DataProvider token missing for feature '{}'. Set env {} or config key global.{}.",
+                    featureName,
+                    DATA_PROVIDER_TOKEN_ENV,
+                    DATA_PROVIDER_TOKEN_CONFIG_KEY
+            );
+            return;
+        }
+
+        try {
+            dataProviderAPI.authenticate(featureName, token);
+            authenticated = true;
+            plugin.getLogger().info("DataProvider authenticated feature '{}'.", featureName);
+        } catch (Throwable t) {
+            plugin.getLogger().error("Failed to authenticate DataProvider for feature '{}'.", featureName, t);
+        }
     }
 
     /**
@@ -54,6 +75,10 @@ public class FeatureDataManager {
 
         if (featureName == null) {
             plugin.getLogger().error("Feature name is not set. Did you call initDataProvider()?");
+            return Optional.empty();
+        }
+        if (!authenticated) {
+            plugin.getLogger().error("DataProvider is not authenticated for feature '{}'.", featureName);
             return Optional.empty();
         }
 
@@ -127,6 +152,7 @@ public class FeatureDataManager {
 
         databaseProviders.clear();
         ormContext = null;
+        authenticated = false;
     }
 
     /**
@@ -134,5 +160,21 @@ public class FeatureDataManager {
      */
     public int getActiveConnCount() {
         return databaseProviders.size();
+    }
+
+    private String resolveDataProviderToken() {
+        String env = System.getenv(DATA_PROVIDER_TOKEN_ENV);
+        if (env != null && !env.isBlank()) {
+            return env.trim();
+        }
+
+        if (plugin.getConfigHandler() != null) {
+            String cfg = plugin.getConfigHandler().getGlobalSetting(DATA_PROVIDER_TOKEN_CONFIG_KEY, String.class, "");
+            if (cfg != null && !cfg.isBlank()) {
+                return cfg.trim();
+            }
+        }
+
+        return null;
     }
 }

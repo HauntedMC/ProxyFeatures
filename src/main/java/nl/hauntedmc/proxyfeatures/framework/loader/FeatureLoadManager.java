@@ -97,10 +97,16 @@ public final class FeatureLoadManager {
         if (stack.contains(featureName)) return false; // Cycle detected
         if (visited.contains(featureName)) return true;
 
+        Class<? extends VelocityBaseFeature<?>> featureClass = featureRegistry.getAvailableFeatures().get(featureName);
+        if (featureClass == null) {
+            plugin.getLogger().error("Feature {} declares an unavailable dependency or was not registered.", featureName);
+            return false;
+        }
+
         stack.add(featureName);
         visited.add(featureName);
 
-        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
+        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureClass, plugin);
         if (feature != null) {
             for (String dependency : feature.getDependencies()) {
                 if (!resolveFeatureLoadOrder(dependency, stack, visited, loadOrder)) {
@@ -252,7 +258,13 @@ public final class FeatureLoadManager {
             return false;
         }
 
-        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureRegistry.getAvailableFeatures().get(featureName), plugin);
+        Class<? extends VelocityBaseFeature<?>> featureClass = featureRegistry.getAvailableFeatures().get(featureName);
+        if (featureClass == null) {
+            plugin.getLogger().error("Feature {} is not registered and cannot be loaded.", featureName);
+            return false;
+        }
+
+        VelocityBaseFeature<?> feature = FeatureFactory.createFeature(featureClass, plugin);
         if (feature == null) return false;
 
         mainConfigHandler.registerFeature(featureName);
@@ -265,10 +277,20 @@ public final class FeatureLoadManager {
                 return false;
             }
 
-            feature.initialize();
-            featureRegistry.registerLoadedFeature(featureName, feature);
-            plugin.getLogger().info("Feature loaded: {}", featureName);
-            return true;
+            try {
+                feature.initialize();
+                featureRegistry.registerLoadedFeature(featureName, feature);
+                plugin.getLogger().info("Feature loaded: {}", featureName);
+                return true;
+            } catch (Throwable t) {
+                plugin.getLogger().error("Feature {} failed during initialization.", featureName, t);
+                try {
+                    feature.cleanup();
+                } catch (Throwable cleanupFailure) {
+                    plugin.getLogger().error("Feature {} cleanup after failed initialization also failed.", featureName, cleanupFailure);
+                }
+                return false;
+            }
         }
 
         return false;
@@ -280,12 +302,18 @@ public final class FeatureLoadManager {
 
     public void unloadAllFeatures() {
         plugin.getLogger().info("Unloading all loaded features...");
-        List<VelocityBaseFeature<?>> loadedFeatures = featureRegistry.getLoadedFeatures();
-        for (VelocityBaseFeature<?> feature : loadedFeatures) {
+        List<String> loadedFeatureNames = new ArrayList<>(featureRegistry.getLoadedFeatureNames());
+        for (String featureName : loadedFeatureNames) {
+            VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
+            if (feature == null) {
+                continue;
+            }
             try {
                 feature.cleanup();
             } catch (Throwable t) {
                 plugin.getLogger().error("Error during cleanup of feature {}", feature.getFeatureName(), t);
+            } finally {
+                featureRegistry.deregisterLoadedFeature(featureName);
             }
         }
         plugin.getLogger().info("All features have been unloaded.");

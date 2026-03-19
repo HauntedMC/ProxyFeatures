@@ -11,9 +11,9 @@ import nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Loads resource pack definitions from local/resourcepacks.yml using the unified ConfigView API
@@ -32,8 +32,8 @@ public class ResourcePackHandler {
         this.feature = feature;
         this.server = feature.getPlugin().getProxy();
         this.logger = feature.getPlugin().getLogger();
-        this.configurationBlockMap = new HashMap<>();
-        this.packInfoMap = new HashMap<>();
+        this.configurationBlockMap = new ConcurrentHashMap<>();
+        this.packInfoMap = new ConcurrentHashMap<>();
         initializePacks();
     }
 
@@ -104,12 +104,33 @@ public class ResourcePackHandler {
     }
 
     public void blockConfiguration(UUID uniqueId, Continuation continuation) {
-        configurationBlockMap.put(uniqueId, continuation);
+        Continuation previous = configurationBlockMap.put(uniqueId, continuation);
+        if (previous != null && previous != continuation) {
+            try {
+                previous.resume();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     public void unblockConfiguration(UUID uniqueId) {
         Continuation cont = configurationBlockMap.remove(uniqueId);
-        if (cont != null) cont.resume();
+        if (cont != null) {
+            try {
+                cont.resume();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    public void unblockAllConfigurations() {
+        for (Continuation cont : configurationBlockMap.values()) {
+            try {
+                cont.resume();
+            } catch (Exception ignored) {
+            }
+        }
+        configurationBlockMap.clear();
     }
 
     /** Validate/normalize SHA-1 hex to 20-byte array, logging a warning and zero-filling if invalid. */
