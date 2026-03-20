@@ -141,6 +141,43 @@
                             </rules>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>jacoco-check-feature-logic-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.ServerQueue</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.QueueEntry</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.EnqueueDecision</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.ServerStatus</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.queue.util.PriorityResolver</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPCheckResult</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.MetricsCollector</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.CountryService</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.provider.ProviderChain</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.IpWhitelist</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.PersistentIpCache</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.util.IpAccessList</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.util.RSAUtil</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>1.00</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>

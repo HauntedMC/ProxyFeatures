@@ -87,32 +87,46 @@ public final class PersistentIpCache implements AutoCloseable {
     public CompletableFuture<IPCheckResult> getOrCompute(String ip, java.util.function.Supplier<CompletableFuture<IPCheckResult>> supplier) {
         // Fast path
         Optional<CacheHit> hit = getIfPresent(ip);
-        return hit.map(cacheHit -> CompletableFuture.completedFuture(cacheHit.result())).orElseGet(() -> inflight.computeIfAbsent(ip, k -> {
-            final CompletableFuture<IPCheckResult> supplied;
-            try {
-                supplied = Objects.requireNonNull(supplier.get(), "supplier returned null future");
-            } catch (Exception ex) {
-                CompletableFuture<IPCheckResult> failed = new CompletableFuture<>();
-                failed.completeExceptionally(ex);
-                return failed;
+        if (hit.isPresent()) {
+            return CompletableFuture.completedFuture(hit.get().result());
+        }
+
+        CompletableFuture<IPCheckResult> managed = new CompletableFuture<>();
+        CompletableFuture<IPCheckResult> existing = inflight.putIfAbsent(ip, managed);
+        if (existing != null) {
+            return existing;
+        }
+
+        final CompletableFuture<IPCheckResult> supplied;
+        try {
+            supplied = Objects.requireNonNull(supplier.get(), "supplier returned null future");
+        } catch (Exception ex) {
+            inflight.remove(ip, managed);
+            managed.completeExceptionally(ex);
+            return managed;
+        }
+
+        supplied.whenComplete((res, ex) -> {
+            inflight.remove(ip, managed);
+            if (ex != null) {
+                managed.completeExceptionally(ex);
+                return;
             }
 
-            return supplied.whenComplete((res, ex) -> {
-                inflight.remove(k);
-                if (ex != null || res == null) return;
+            managed.complete(res);
+            if (res == null) return;
 
-                mem.put(k, res);
-                if (persist) {
-                    try {
-                        store.put(k, toCacheValue(res));
-                    } catch (Exception t) {
-                        feature.getLogger().warn("Cache: disk put failed: " + t.getMessage());
-                    }
+            mem.put(ip, res);
+            if (persist) {
+                try {
+                    store.put(ip, toCacheValue(res));
+                } catch (Exception t) {
+                    feature.getLogger().warn("Cache: disk put failed: " + t.getMessage());
                 }
-            });
-        }));
+            }
+        });
 
-        // Inflight dedupe (Fix #4)
+        return managed;
     }
 
     public void invalidate(String ip) {

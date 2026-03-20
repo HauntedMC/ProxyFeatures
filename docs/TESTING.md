@@ -9,6 +9,7 @@ Tests live in a dedicated top-level source root:
 - `tests/java/nl/hauntedmc/proxyfeatures/features`
 
 Framework and API tests mirror the same internal package structure as production code.
+Feature tests also mirror internal package structure for targeted logic classes (for example `features/antivpn/internal`, `features/queue/model`, `features/votifier/util`).
 
 ## Local Commands
 
@@ -36,8 +37,31 @@ JaCoCo enforces **100% line coverage** for:
 
 - `nl.hauntedmc.proxyfeatures.framework*`
 - `nl.hauntedmc.proxyfeatures.api*`
+- selected feature logic classes (queue model/util, AntiVPN internals, votifier/resourcepack utilities)
 
 This keeps core platform contracts and extension APIs fully regression-tested.
+
+## Feature Test Strategy
+
+Feature tests focus on **feature-specific logic and edge handling**, not repeated scaffolding that is already covered by framework tests.
+
+Intentionally out of scope for feature package tests:
+
+- repetitive feature boilerplate (`Feature` main classes, `meta` classes, framework wiring patterns)
+- behavior that is already verified by framework contract tests
+
+Feature logic currently gated at 100% line coverage:
+
+- queue domain model/util: `ServerQueue`, `QueueEntry`, `EnqueueDecision`, `ServerStatus`, `PriorityResolver`
+- AntiVPN internals: `IPCheckResult`, `MetricsCollector`, `CountryService`, `ProviderChain`, `IpWhitelist`, `PersistentIpCache`
+- Votifier/resourcepack utilities: `IpAccessList`, `RSAUtil`, `ResourceUtils`
+
+The feature suite targets regression-sensitive paths such as:
+
+- queue ordering/requeue/grace semantics (including defensive stale-state handling)
+- AntiVPN provider aggregation, whitelist CIDR parsing/matching, cache persistence/inflight dedupe/failure paths
+- votifier IP ACL parsing + matching and RSA key handling utilities
+- resourcepack utility conversions
 
 ## Framework Breakage Detection
 
