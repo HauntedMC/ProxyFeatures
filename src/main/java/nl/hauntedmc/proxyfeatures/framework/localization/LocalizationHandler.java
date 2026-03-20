@@ -61,11 +61,7 @@ public class LocalizationHandler {
         for (Map.Entry<String, String> e : messageMap.getMessages().entrySet()) {
             String key = e.getKey();
             if (isMissing(root, key)) {
-                try {
-                    node(root, key).set(e.getValue());
-                } catch (Exception ex) {
-                    throw new RuntimeException("Failed to set default message for key: " + key, ex);
-                }
+                node(root, key).raw(e.getValue());
                 changes = true;
             }
         }

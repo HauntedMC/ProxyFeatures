@@ -9,6 +9,7 @@ import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class FeatureDataManager {
     private static final String DATA_PROVIDER_TOKEN_ENV = "PROXYFEATURES_DATAPROVIDER_TOKEN";
@@ -16,6 +17,7 @@ public class FeatureDataManager {
 
     private final ProxyFeatures plugin;
     private final DataProviderAPI dataProviderAPI;
+    private final Function<String, String> envLookup;
     private ORMContext ormContext;
     private String featureName;
     private boolean authenticated;
@@ -28,7 +30,12 @@ public class FeatureDataManager {
      * @param plugin your main plugin class (for logging, etc.)
      */
     public FeatureDataManager(ProxyFeatures plugin) {
-        dataProviderAPI = VelocityDataProvider.getDataProviderAPI();
+        this(plugin, resolveApiSafely(), System::getenv);
+    }
+
+    FeatureDataManager(ProxyFeatures plugin, DataProviderAPI dataProviderAPI, Function<String, String> envLookup) {
+        this.dataProviderAPI = dataProviderAPI;
+        this.envLookup = envLookup;
         databaseProviders = new ConcurrentHashMap<>();
         this.plugin = plugin;
     }
@@ -41,6 +48,11 @@ public class FeatureDataManager {
     public void initDataProvider(String featureName) {
         this.featureName = featureName;
         this.authenticated = false;
+
+        if (dataProviderAPI == null) {
+            plugin.getLogger().error("DataProviderAPI is not available for feature '{}'.", featureName);
+            return;
+        }
 
         String token = resolveDataProviderToken();
         if (token == null) {
@@ -119,7 +131,7 @@ public class FeatureDataManager {
         }
 
         // Create and store the ORMContext
-        this.ormContext = new ORMContext(featureName, provider.getDataSource(), entityClasses);
+        this.ormContext = newOrmContext(featureName, provider, entityClasses);
         plugin.getLogger().info("Created ORMContext for identifier '{}'", identifier);
         return Optional.of(ormContext);
     }
@@ -145,7 +157,7 @@ public class FeatureDataManager {
             plugin.getLogger().info("ORMContext has been shut down.");
         }
 
-        if (!databaseProviders.isEmpty() && featureName != null) {
+        if (!databaseProviders.isEmpty() && featureName != null && dataProviderAPI != null) {
             dataProviderAPI.unregisterAllDatabases(featureName);
             plugin.getLogger().info("Unregistered all databases for feature '{}'.", featureName);
         }
@@ -163,7 +175,7 @@ public class FeatureDataManager {
     }
 
     private String resolveDataProviderToken() {
-        String env = System.getenv(DATA_PROVIDER_TOKEN_ENV);
+        String env = envLookup.apply(DATA_PROVIDER_TOKEN_ENV);
         if (env != null && !env.isBlank()) {
             return env.trim();
         }
@@ -176,5 +188,17 @@ public class FeatureDataManager {
         }
 
         return null;
+    }
+
+    ORMContext newOrmContext(String featureName, DatabaseProvider provider, Class<?>... entityClasses) {
+        return new ORMContext(featureName, provider.getDataSource(), entityClasses);
+    }
+
+    private static DataProviderAPI resolveApiSafely() {
+        try {
+            return VelocityDataProvider.getDataProviderAPI();
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 }

@@ -15,7 +15,6 @@ import nl.hauntedmc.proxyfeatures.framework.loader.reload.FeatureReloadResult;
 import nl.hauntedmc.proxyfeatures.framework.loader.softreload.FeatureSoftReloadResponse;
 import nl.hauntedmc.proxyfeatures.framework.loader.softreload.FeatureSoftReloadResult;
 
-import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -53,16 +52,10 @@ public final class FeatureLoadManager {
                 .acceptPackages("nl.hauntedmc.proxyfeatures.features")
                 .scan()) {
             scanResult.getSubclasses(VelocityBaseFeature.class.getName()).forEach(classInfo -> {
-                try {
-                    Class<?> clazz = Class.forName(classInfo.getName());
-                    if (VelocityBaseFeature.class.isAssignableFrom(clazz)) {
-                        @SuppressWarnings("unchecked")
-                        Class<? extends VelocityBaseFeature<?>> featureClass = (Class<? extends VelocityBaseFeature<?>>) clazz;
-                        featureRegistry.registerAvailableFeature(classInfo.getSimpleName(), featureClass);
-                    }
-                } catch (ClassNotFoundException e) {
-                    plugin.getLogger().error("Failed to load feature class: {}", classInfo.getName(), e);
-                }
+                @SuppressWarnings("unchecked")
+                Class<? extends VelocityBaseFeature<?>> featureClass =
+                        (Class<? extends VelocityBaseFeature<?>>) (Class<?>) classInfo.loadClass();
+                featureRegistry.registerAvailableFeature(classInfo.getSimpleName(), featureClass);
             });
         }
         plugin.getLogger().info("Discovered features: {}", featureRegistry.getAvailableFeatures().keySet());
@@ -306,6 +299,7 @@ public final class FeatureLoadManager {
         for (String featureName : loadedFeatureNames) {
             VelocityBaseFeature<?> feature = featureRegistry.getLoadedFeature(featureName);
             if (feature == null) {
+                featureRegistry.deregisterLoadedFeature(featureName);
                 continue;
             }
             try {
@@ -329,18 +323,13 @@ public final class FeatureLoadManager {
         Set<String> missingFeatures = new LinkedHashSet<>();
 
         try {
-            Method m = feature.getClass().getMethod("getPluginDependencies");
-            Object o = m.invoke(feature);
-            if (o instanceof Collection<?> col) {
-                for (Object item : col) {
-                    String name = String.valueOf(item);
-                    var optional = plugin.getPluginManager().getPlugin(name);
-                    if (optional.isEmpty()) {
-                        missingPlugins.add(name);
-                    }
+            Collection<String> pluginDeps = Optional.ofNullable(feature.getPluginDependencies()).orElse(List.of());
+            for (String name : pluginDeps) {
+                var optional = plugin.getPluginManager().getPlugin(name);
+                if (optional.isEmpty()) {
+                    missingPlugins.add(name);
                 }
             }
-        } catch (NoSuchMethodException ignored) {
         } catch (Throwable t) {
             plugin.getLogger().warn("Failed to read plugin dependencies for {}", feature.getFeatureName(), t);
         }

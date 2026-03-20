@@ -15,6 +15,8 @@ It provides a large set of optional features (queueing, sanctions, votifier, Ant
 ```bash
 mvn -q -DskipTests compile
 mvn -q test
+mvn -B verify
+mvn -B -DskipTests checkstyle:check
 mvn -B package
 ```
 
@@ -51,6 +53,7 @@ See:
 - [Contributing Guide](CONTRIBUTING.md)
 - [Documentation Index](docs/README.md)
 - [Development Notes](docs/DEVELOPMENT.md)
+- [Testing and Quality](docs/TESTING.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Configuration](docs/CONFIGURATION.md)
 
@@ -64,5 +67,6 @@ See:
 
 - `src/main/java`: plugin source code
 - `src/main/resources`: config and localization defaults
+- `tests/java`: test sources (mirrors package structure)
 - `.github/`: CI workflow and community templates
 - `docs/`: operational and contributor documentation

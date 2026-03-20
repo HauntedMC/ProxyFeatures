@@ -5,6 +5,8 @@
 ```bash
 mvn -q -DskipTests compile
 mvn -q test
+mvn -B verify
+mvn -B -DskipTests checkstyle:check
 mvn -B package
 ```
 
