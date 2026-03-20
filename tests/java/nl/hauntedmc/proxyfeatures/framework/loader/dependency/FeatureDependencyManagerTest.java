@@ -151,4 +151,20 @@ class FeatureDependencyManagerTest {
 
         assertEquals(List.of("Friends"), manager.getDependentFeatures("Queue"));
     }
+
+    @Test
+    void getDependentFeaturesSkipsNullLoadedEntries() {
+        VelocityBaseFeature<?> queue = mock(VelocityBaseFeature.class);
+        when(queue.getDependencies()).thenReturn(List.of());
+
+        VelocityBaseFeature<?> friends = mock(VelocityBaseFeature.class);
+        when(friends.getDependencies()).thenReturn(List.of("Queue"));
+
+        registry.registerLoadedFeature("Queue", queue);
+        registry.registerLoadedFeature("Ghost", null);
+        registry.registerLoadedFeature("Friends", friends);
+
+        assertDoesNotThrow(() -> manager.getDependentFeatures("Queue"));
+        assertEquals(List.of("Friends"), manager.getDependentFeatures("Queue"));
+    }
 }

@@ -19,6 +19,8 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -55,6 +57,28 @@ class LocalizationHandlerTest {
         String file = Files.readString(tempDir.resolve("lang/messages.yml"));
         assertTrue(file.contains("general"));
         assertTrue(file.contains("extra"));
+    }
+
+    @Test
+    void registerDefaultMessagesAddsMissingButDoesNotOverwriteExistingValues() throws IOException {
+        writeLangFile("messages.yml", """
+                general:
+                  usage: "&aOriginal usage"
+                """);
+        writeLangFile("messages_EN.yml", "general:\n  usage: \"&bUse /proxyfeatures\"\n");
+        writeLangFile("messages_NL.yml", "general:\n  usage: \"&cGebruik /proxyfeatures\"\n");
+        writeLangFile("messages_DE.yml", "general:\n  usage: \"&6Nutze /proxyfeatures\"\n");
+
+        LocalizationHandler handler = new LocalizationHandler(mockPlugin());
+        MessageMap defaults = new MessageMap();
+        defaults.add("general.usage", "&fShould-not-overwrite");
+        defaults.add("general.extra", "&7Extra");
+        handler.registerDefaultMessages(defaults);
+
+        String file = Files.readString(tempDir.resolve("lang/messages.yml"));
+        assertTrue(file.contains("Original usage"));
+        assertTrue(file.contains("extra"));
+        assertFalse(file.contains("Should-not-overwrite"));
     }
 
     @Test
@@ -111,6 +135,33 @@ class LocalizationHandlerTest {
                 .forAudience(nonPlayer)
                 .build();
         assertTrue(PLAIN.serialize(nonPlayerMsg).contains("Default usage"));
+    }
+
+    @Test
+    void messageBuilderFallsBackToDefaultWhenSelectedLanguageResourceIsUnavailable() throws IOException {
+        writeLangFile("messages.yml", """
+                general:
+                  usage: "&aDefault usage"
+                """);
+        // Broken file means the EN resource is not loaded and should fall back to defaults.
+        writeLangFile("messages_EN.yml", "general:\n  usage: [broken");
+        writeLangFile("messages_NL.yml", "general:\n  usage: \"&cNederlandse usage\"\n");
+        writeLangFile("messages_DE.yml", "general:\n  usage: \"&6Deutsche usage\"\n");
+
+        nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI languageApi =
+                mock(nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI.class);
+        UUID uuid = UUID.randomUUID();
+        when(languageApi.get(uuid)).thenReturn(Language.EN);
+        APIRegistry.register(nl.hauntedmc.proxyfeatures.features.playerlanguage.api.LanguageAPI.class, languageApi);
+
+        LocalizationHandler handler = new LocalizationHandler(mockPlugin());
+        Player player = mock(Player.class);
+        when(player.getUniqueId()).thenReturn(uuid);
+
+        Component fallback = handler.getMessage("general.usage")
+                .forAudience(player)
+                .build();
+        assertEquals("Default usage", PLAIN.serialize(fallback));
     }
 
     @Test

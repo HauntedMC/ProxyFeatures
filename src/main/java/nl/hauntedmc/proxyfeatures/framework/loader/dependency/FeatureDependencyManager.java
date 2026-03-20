@@ -104,8 +104,10 @@ public class FeatureDependencyManager implements Serializable {
      */
     public List<String> getDependentFeatures(String featureName) {
         return featureLoadManager.getFeatureRegistry().getLoadedFeatureNames().stream()
-                .filter(name -> featureLoadManager.getFeatureRegistry().getLoadedFeature(name)
-                        .getDependencies().contains(featureName))
+                .filter(name -> {
+                    VelocityBaseFeature<?> loaded = featureLoadManager.getFeatureRegistry().getLoadedFeature(name);
+                    return loaded != null && loaded.getDependencies().contains(featureName);
+                })
                 .toList();
     }
 }

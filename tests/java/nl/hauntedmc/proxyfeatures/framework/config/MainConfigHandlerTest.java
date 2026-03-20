@@ -80,6 +80,27 @@ class MainConfigHandlerTest {
     }
 
     @Test
+    void cleanupUnusedFeaturesIsNoOpWhenFeaturesSectionMissing() {
+        MainConfigHandler handler = createHandler();
+        assertDoesNotThrow(() -> handler.cleanupUnusedFeatures(Set.of("keep")));
+    }
+
+    @Test
+    void injectFeatureDefaultsWithNullExpectedTypeDoesNotDeleteExistingValue() {
+        MainConfigHandler handler = createHandler();
+        handler.put("features.Queue.nullable", "keep-me");
+
+        ConfigMap defaults = new ConfigMap()
+                .put("nullable", null)
+                .put("enabled", true);
+
+        handler.injectFeatureDefaults("Queue", defaults);
+
+        assertEquals("keep-me", handler.get("features.Queue.nullable", String.class));
+        assertTrue(handler.isFeatureEnabled("Queue"));
+    }
+
+    @Test
     void globalAccessorsReturnTypedValuesAndNodes() {
         MainConfigHandler handler = createHandler();
         handler.put("global.answer", 42);

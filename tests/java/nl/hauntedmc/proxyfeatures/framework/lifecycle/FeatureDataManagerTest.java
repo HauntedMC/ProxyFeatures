@@ -185,6 +185,16 @@ class FeatureDataManagerTest {
         }
     }
 
+    @Test
+    void defaultConstructorHandlesVelocityApiLookupFailure() {
+        try (MockedStatic<VelocityDataProvider> mocked = mockStatic(VelocityDataProvider.class)) {
+            mocked.when(VelocityDataProvider::getDataProviderAPI).thenThrow(new RuntimeException("boom"));
+            FeatureDataManager manager = new FeatureDataManager(plugin);
+            manager.initDataProvider("Queue");
+            assertTrue(manager.registerConnection("main", DatabaseType.MYSQL, "default").isEmpty());
+        }
+    }
+
     private static final class TestableFeatureDataManager extends FeatureDataManager {
         private final ORMContext orm;
 

@@ -1,6 +1,7 @@
 package nl.hauntedmc.proxyfeatures.framework.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
@@ -28,6 +29,7 @@ import nl.hauntedmc.proxyfeatures.framework.loader.softreload.FeatureSoftReloadR
 import nl.hauntedmc.proxyfeatures.framework.localization.LocalizationHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -114,6 +116,12 @@ class ProxyFeaturesCommandTest {
         verify(loadManager, atLeastOnce()).reloadFeature("Queue");
         verify(loadManager).enableFeature("Friends");
         verify(loadManager).disableFeature("Queue");
+        verify(localization).getMessage("general.usage");
+        verify(localization).getMessage("command.reloadlocal.success");
+        verify(localization).getMessage("command.softreload.success");
+        verify(localization).getMessage("command.reload.success");
+        verify(localization).getMessage("command.enable.success");
+        verify(localization).getMessage("command.disable.success");
     }
 
     @SuppressWarnings("unchecked")
@@ -130,7 +138,18 @@ class ProxyFeaturesCommandTest {
         invoke("handleInfo", new Class[]{CommandSource.class, String.class}, sender, "friends");
         invoke("handleInfo", new Class[]{CommandSource.class, String.class}, sender, "missing");
 
-        verify(sender, atLeast(5)).sendMessage(any(Component.class));
+        ArgumentCaptor<Component> msgCaptor = ArgumentCaptor.forClass(Component.class);
+        verify(sender, times(6)).sendMessage(msgCaptor.capture());
+        List<String> messages = msgCaptor.getAllValues().stream().map(PLAIN::serialize).toList();
+        assertTrue(messages.get(0).contains("Please provide a feature name"));
+        assertTrue(messages.get(1).contains("Feature: Queue"));
+        assertTrue(messages.get(1).contains("Status: enabled"));
+        assertTrue(messages.get(1).contains("Version: v2.0"));
+        assertTrue(messages.get(2).contains("Feature: Queue"));
+        assertTrue(messages.get(3).contains("Feature: Friends"));
+        assertTrue(messages.get(3).contains("Status: disabled"));
+        assertTrue(messages.get(4).contains("Feature: Friends"));
+        assertTrue(messages.get(5).contains("Feature not found: missing"));
     }
 
     @Test
@@ -182,7 +201,30 @@ class ProxyFeaturesCommandTest {
         invoke("handleReload", new Class[]{CommandSource.class, String.class}, sender, "Queue");
         invoke("handleReload", new Class[]{CommandSource.class, String.class}, sender, "Queue");
 
-        verify(localization, atLeastOnce()).getMessage(anyString());
+        verify(localization).getMessage("command.enable.success");
+        verify(localization).getMessage("command.enable.not_found");
+        verify(localization).getMessage("command.enable.already_loaded");
+        verify(localization).getMessage("command.enable.missing_plugin_dependency");
+        verify(localization).getMessage("command.enable.missing_feature_dependency");
+        verify(localization).getMessage("command.enable.failed");
+
+        verify(localization).getMessage("command.disable.success_with_dependents");
+        verify(localization).getMessage("command.disable.success");
+        verify(localization).getMessage("command.disable.not_loaded");
+        verify(localization).getMessage("command.disable.failed");
+
+        verify(localization).getMessage("command.softreload.success");
+        verify(localization).getMessage("command.softreload.not_loaded");
+        verify(localization).getMessage("command.softreload.failed");
+
+        verify(localization).getMessage("command.reload.success_with_dependents");
+        verify(localization).getMessage("command.reload.success");
+        verify(localization).getMessage("command.reload.not_loaded");
+        verify(localization).getMessage("command.reload.failed");
+
+        verify(messageBuilder).with("plugins", "A");
+        verify(messageBuilder).with("features", "B");
+        verify(messageBuilder, atLeastOnce()).with("dependents", "Friends");
     }
 
     @SuppressWarnings("unchecked")
@@ -225,6 +267,15 @@ class ProxyFeaturesCommandTest {
                 true);
         assertTrue(PLAIN.serialize(none).contains("none"));
 
+        Component emptyHidden = (Component) invoke("renderCsvColored",
+                new Class[]{List.class, net.kyori.adventure.text.format.NamedTextColor.class,
+                        net.kyori.adventure.text.format.NamedTextColor.class, boolean.class},
+                List.of(),
+                net.kyori.adventure.text.format.NamedTextColor.GREEN,
+                net.kyori.adventure.text.format.NamedTextColor.GRAY,
+                false);
+        assertEquals("", PLAIN.serialize(emptyHidden));
+
         Component csv = (Component) invoke("renderCsvColored",
                 new Class[]{List.class, net.kyori.adventure.text.format.NamedTextColor.class,
                         net.kyori.adventure.text.format.NamedTextColor.class, boolean.class},
@@ -246,7 +297,16 @@ class ProxyFeaturesCommandTest {
         invoke("listLoadedFeaturesOneLine", new Class[]{CommandSource.class, boolean.class}, sender, false);
         invoke("listLoadedFeaturesOneLine", new Class[]{CommandSource.class, boolean.class}, sender, true);
 
-        verify(sender, atLeast(3)).sendMessage(any(Component.class));
+        ArgumentCaptor<Component> msgCaptor = ArgumentCaptor.forClass(Component.class);
+        verify(sender, times(9)).sendMessage(msgCaptor.capture());
+        List<String> messages = msgCaptor.getAllValues().stream().map(PLAIN::serialize).toList();
+        assertTrue(messages.stream().anyMatch(m -> m.contains("Number of loaded features: 2")));
+        assertTrue(messages.stream().anyMatch(m -> m.contains("Number of active database connections: 6")));
+        assertTrue(messages.stream().anyMatch(m -> m.contains("Number of active tasks: 2")));
+        assertTrue(messages.stream().anyMatch(m -> m.contains("Number of registered listeners: 4")));
+        assertTrue(messages.stream().anyMatch(m -> m.contains("Number of registered commands: 2")));
+        assertTrue(messages.stream().anyMatch(m -> m.contains("Enabled Features (2): Friends, Queue")));
+        assertTrue(messages.stream().anyMatch(m -> m.contains("Enabled Features (2): Friends (v2.0), Queue (v1.0)")));
     }
 
     @SuppressWarnings("unchecked")
@@ -260,7 +320,26 @@ class ProxyFeaturesCommandTest {
         dispatcher.execute("proxyfeatures reloadlocal", sender);
 
         verify(localization, atLeastOnce()).getMessage("command.reloadlocal.fail");
+        verify(localization, never()).getMessage("command.reloadlocal.success");
         verify(sender, atLeastOnce()).sendMessage(any(Component.class));
+    }
+
+    @Test
+    void commandTreeEnforcesRootAndSubcommandPermissions() {
+        CommandDispatcher<CommandSource> dispatcher = new CommandDispatcher<>();
+        dispatcher.getRoot().addChild(command.buildTree());
+
+        when(sender.hasPermission(anyString())).thenReturn(false);
+        assertThrows(CommandSyntaxException.class, () -> dispatcher.execute("proxyfeatures", sender));
+        verify(sender, never()).sendMessage(any(Component.class));
+
+        reset(sender);
+        when(sender.hasPermission(anyString())).thenReturn(false);
+        when(sender.hasPermission("proxyfeatures.use")).thenReturn(true);
+        when(sender.hasPermission("proxyfeatures.command.status")).thenReturn(false);
+        assertDoesNotThrow(() -> dispatcher.execute("proxyfeatures", sender));
+        assertThrows(CommandSyntaxException.class, () -> dispatcher.execute("proxyfeatures status", sender));
+        verify(sender, times(1)).sendMessage(any(Component.class));
     }
 
     private VelocityBaseFeature<?> feature(String name, String version, List<String> pluginDeps, List<String> featureDeps) {

@@ -17,6 +17,7 @@ import nl.hauntedmc.proxyfeatures.framework.loader.softreload.FeatureSoftReloadR
 import nl.hauntedmc.proxyfeatures.framework.localization.LocalizationHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import java.util.List;
@@ -55,9 +56,7 @@ class FeatureLoadManagerTest {
     void constructorDiscoversFeaturesAndCallsCleanupUnused() {
         FeatureLoadManager manager = new FeatureLoadManager(plugin);
         verify(mainConfig).cleanupUnusedFeatures(anySet());
-
-        Class<? extends VelocityBaseFeature<?>> token = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        manager.getFeatureRegistry().registerAvailableFeature("Queue", token);
+        assertFalse(manager.getFeatureRegistry().getAvailableFeatures().isEmpty());
         assertTrue(manager.getFeatureRegistry().getAvailableFeatures().containsKey("Queue"));
     }
 
@@ -161,6 +160,30 @@ class FeatureLoadManagerTest {
             doReturn(true).when(success).loadFeature("Queue");
             assertEquals(FeatureEnableResult.SUCCESS, success.enableFeature("Queue").result());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void enableFeatureRestoresPreviousConfigStateWhenLoadFails() {
+        FeatureLoadManager raw = new FeatureLoadManager(plugin);
+        FeatureLoadManager manager = spy(raw);
+        clearRegistry(manager);
+
+        Class<? extends VelocityBaseFeature<?>> token = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
+        manager.getFeatureRegistry().registerAvailableFeature("Queue", token);
+        when(mainConfig.isFeatureEnabled("Queue")).thenReturn(false);
+        doReturn(false).when(manager).loadFeature("Queue");
+        VelocityBaseFeature<?> queue = feature("Queue", List.of(), List.of());
+
+        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
+            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin)))
+                    .thenReturn(queue);
+            assertEquals(FeatureEnableResult.FAILED, manager.enableFeature("Queue").result());
+        }
+
+        InOrder order = inOrder(mainConfig);
+        order.verify(mainConfig).setFeatureEnabled("Queue", true);
+        order.verify(mainConfig).setFeatureEnabled("Queue", false);
     }
 
     @Test

@@ -36,14 +36,15 @@ public final class FormatInspector {
         boolean wantAmp = kinds.contains(TextFormatter.InputFormat.LEGACY_AMPERSAND) || kinds.contains(TextFormatter.InputFormat.HEX_BUNGEE_AMP);
         boolean wantSec = kinds.contains(TextFormatter.InputFormat.LEGACY_SECTION) || kinds.contains(TextFormatter.InputFormat.HEX_BUNGEE_SECTION);
 
+        if (kinds.contains(TextFormatter.InputFormat.HEX_BUNGEE_AMP) && TextPatterns.AMP_BUNGEE_HEX.matcher(s).find())
+            return true;
+        if (kinds.contains(TextFormatter.InputFormat.HEX_BUNGEE_SECTION) && TextPatterns.SEC_BUNGEE_HEX.matcher(s).find())
+            return true;
+
         if (wantAmp && TextPatterns.AMP_CODES.matcher(s).find()) return true;
         if (wantSec && TextPatterns.SEC_CODES.matcher(s).find()) return true;
 
         if (kinds.contains(TextFormatter.InputFormat.HEX_POUND) && (TextPatterns.POUND_HEX.matcher(s).find() || TextPatterns.SECTION_POUND_HEX.matcher(s).find()))
-            return true;
-        if (kinds.contains(TextFormatter.InputFormat.HEX_BUNGEE_AMP) && TextPatterns.AMP_BUNGEE_HEX.matcher(s).find())
-            return true;
-        if (kinds.contains(TextFormatter.InputFormat.HEX_BUNGEE_SECTION) && TextPatterns.SEC_BUNGEE_HEX.matcher(s).find())
             return true;
         if (kinds.contains(TextFormatter.InputFormat.HEX_MINI) && TextPatterns.MINI_HEX_TAG.matcher(s).find())
             return true;
