@@ -1,20 +1,36 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
-title: ''
-labels: ''
-assignees: ''
+name: Feature Request
+about: Propose an improvement or new capability
+title: "[Feature] "
+labels: enhancement
+assignees: ""
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Problem Statement
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+What problem are you trying to solve?
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## Proposed Solution
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+Describe the desired behavior in concrete terms.
+
+## Scope
+
+- Affected feature(s):
+- Backward compatibility impact:
+- Config changes needed:
+- Performance impact:
+- Security/privacy impact:
+
+## Alternatives Considered
+
+What alternatives did you consider and why were they rejected?
+
+## Acceptance Criteria
+
+How should we verify this feature is done?
+
+## Additional Context
+
+Anything else (examples, references, screenshots).

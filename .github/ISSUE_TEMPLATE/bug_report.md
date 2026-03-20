@@ -1,32 +1,49 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
+name: Bug Report
+about: Report a defect in ProxyFeatures
+title: "[Bug] "
+labels: bug
+assignees: ""
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Summary
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+Describe the issue clearly and briefly.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Impact
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+- What breaks?
+- How severe is it?
+- Is there a workaround?
 
-**Please complete the following information:**
- - Plugin versie:
- - Minecraft versie: 
- - Client versie:
+## Reproduction Steps
 
-**Additional context**
-Add any other context about the problem here.
+1. Configure:
+2. Run command/action:
+3. Observe result:
+
+## Expected Result
+
+What should have happened instead?
+
+## Actual Result
+
+What actually happened?
+
+## Environment
+
+- ProxyFeatures version:
+- Velocity version:
+- Java version:
+- DataProvider version:
+- DataRegistry version:
+- Proxy mode (dev/staging/prod):
+
+## Logs / Stack Trace
+
+Paste relevant logs (trim secrets/tokens).
+
+## Additional Context
+
+Any other context, screenshots, or config snippets.
