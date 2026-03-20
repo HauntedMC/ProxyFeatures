@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 public final class IpWhitelist {
 
     private static final Pattern IPV4_WITH_PORT = Pattern.compile("^\\d{1,3}(?:\\.\\d{1,3}){3}:\\d{1,5}$");
+    private static final Pattern IP_LITERAL = Pattern.compile("^[0-9a-fA-F:.%]+$");
 
     private final boolean allowPrivate;
     private final List<Entry> entries;
@@ -126,8 +127,10 @@ public final class IpWhitelist {
 
     private static InetAddress parseIpLoose(String s) {
         if (s == null || s.isBlank()) return null;
+        String trimmed = s.trim();
+        if (!IP_LITERAL.matcher(trimmed).matches()) return null;
         try {
-            return InetAddress.getByName(s.trim());
+            return InetAddress.getByName(trimmed);
         } catch (UnknownHostException ignored) {
             return null;
         }

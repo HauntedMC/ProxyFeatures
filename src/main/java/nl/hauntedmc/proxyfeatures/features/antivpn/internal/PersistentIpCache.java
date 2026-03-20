@@ -54,7 +54,7 @@ public final class PersistentIpCache implements AutoCloseable {
         // Ensure disk file removes expired entries opportunistically
         try {
             store.cleanupExpired();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().warn("Cache: failed cleanupExpired() on startup: " + t.getMessage());
         }
     }
@@ -69,7 +69,7 @@ public final class PersistentIpCache implements AutoCloseable {
         CacheValue cv = null;
         try {
             cv = store.get(ip);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().warn("Cache: disk get failed: " + t.getMessage());
         }
         if (cv == null) return Optional.empty();
@@ -87,19 +87,30 @@ public final class PersistentIpCache implements AutoCloseable {
     public CompletableFuture<IPCheckResult> getOrCompute(String ip, java.util.function.Supplier<CompletableFuture<IPCheckResult>> supplier) {
         // Fast path
         Optional<CacheHit> hit = getIfPresent(ip);
-        return hit.map(cacheHit -> CompletableFuture.completedFuture(cacheHit.result())).orElseGet(() -> inflight.computeIfAbsent(ip, k -> supplier.get().whenComplete((res, ex) -> {
-            inflight.remove(k);
-            if (ex != null || res == null) return;
-
-            mem.put(k, res);
-            if (persist) {
-                try {
-                    store.put(k, toCacheValue(res));
-                } catch (Throwable t) {
-                    feature.getLogger().warn("Cache: disk put failed: " + t.getMessage());
-                }
+        return hit.map(cacheHit -> CompletableFuture.completedFuture(cacheHit.result())).orElseGet(() -> inflight.computeIfAbsent(ip, k -> {
+            final CompletableFuture<IPCheckResult> supplied;
+            try {
+                supplied = Objects.requireNonNull(supplier.get(), "supplier returned null future");
+            } catch (Exception ex) {
+                CompletableFuture<IPCheckResult> failed = new CompletableFuture<>();
+                failed.completeExceptionally(ex);
+                return failed;
             }
-        })));
+
+            return supplied.whenComplete((res, ex) -> {
+                inflight.remove(k);
+                if (ex != null || res == null) return;
+
+                mem.put(k, res);
+                if (persist) {
+                    try {
+                        store.put(k, toCacheValue(res));
+                    } catch (Exception t) {
+                        feature.getLogger().warn("Cache: disk put failed: " + t.getMessage());
+                    }
+                }
+            });
+        }));
 
         // Inflight dedupe (Fix #4)
     }
@@ -112,7 +123,9 @@ public final class PersistentIpCache implements AutoCloseable {
             try {
                 store.put(ip, CacheValue.builder(0).with("deleted", true).build());
                 store.cleanupExpired();
-            } catch (Throwable ignored) {}
+            } catch (Exception t) {
+                feature.getLogger().debug("Cache: invalidate failed for " + ip + ": " + t.getMessage());
+            }
         }
     }
 
@@ -121,7 +134,9 @@ public final class PersistentIpCache implements AutoCloseable {
         inflight.clear();
         try {
             store.delete();
-        } catch (Throwable ignored) {}
+        } catch (Exception t) {
+            feature.getLogger().warn("Cache: clearAll delete failed: " + t.getMessage());
+        }
     }
 
     public long memEstimatedSize() {
@@ -132,7 +147,7 @@ public final class PersistentIpCache implements AutoCloseable {
         try {
             Map<String, CacheValue> all = store.listAll();
             return all.size();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             return -1;
         }
     }

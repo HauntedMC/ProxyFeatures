@@ -15,14 +15,19 @@ public class VersionHandler {
 
     public VersionHandler(VersionCheck feature) {
         this.feature = feature;
-        minimum_protocol_version = (int) feature.getConfigHandler().get("minimum_protocol_version");
-        friendly_protocol_name = (String) feature.getConfigHandler().get("friendly_protocol_name");
+        minimum_protocol_version = feature.getConfigHandler().get("minimum_protocol_version", Integer.class, 0);
+
+        String friendly = feature.getConfigHandler().get("friendly_protocol_name", String.class, "");
+        if (friendly == null || friendly.isBlank()) {
+            friendly = "unsupported";
+        }
+        friendly_protocol_name = friendly;
     }
 
     public void checkVersion(LoginEvent event) {
         Player player = event.getPlayer();
         int protocolVersion = player.getProtocolVersion().getProtocol();
-        if (isAllowedVersion(protocolVersion)) {
+        if (isUnsupportedVersion(protocolVersion)) {
             event.setResult(LoginEvent.ComponentResult.denied(
                     Component.join(
                             JoinConfiguration.separator(Component.text(" ")),
@@ -36,8 +41,16 @@ public class VersionHandler {
         }
     }
 
-    public boolean isAllowedVersion(int protocolVersion) {
+    public boolean isUnsupportedVersion(int protocolVersion) {
         return protocolVersion < minimum_protocol_version;
+    }
+
+    /**
+     * @deprecated use {@link #isUnsupportedVersion(int)}.
+     */
+    @Deprecated
+    public boolean isAllowedVersion(int protocolVersion) {
+        return isUnsupportedVersion(protocolVersion);
     }
 
     public int getMinimumProtcolVersion() {

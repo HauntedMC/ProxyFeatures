@@ -114,7 +114,7 @@ public final class IP2LocationProvider implements IPIntelligenceProvider {
         if (el == null || el.isJsonNull()) return "";
         try {
             return el.getAsString();
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             return "";
         }
     }
@@ -133,7 +133,7 @@ public final class IP2LocationProvider implements IPIntelligenceProvider {
                     if (s.equals("false") || s.equals("no") || s.equals("0")) return false;
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (RuntimeException ignored) {}
 
         return null;
     }

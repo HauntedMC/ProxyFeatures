@@ -33,10 +33,24 @@ public final class AntiVPNListener {
     public void onPreLogin(PreLoginEvent event) {
         InboundConnection connection = event.getConnection();
         InetSocketAddress address = connection.getRemoteAddress();
-        String ip = address.getAddress().getHostAddress();
+        if (address == null) {
+            return;
+        }
+        String ip = address.getAddress() != null
+                ? address.getAddress().getHostAddress()
+                : address.getHostString();
+        if (ip == null || ip.isBlank()) {
+            return;
+        }
         String playerName = event.getUsername();
 
-        AntiVPNService.Evaluation eval = service.evaluate(ip, playerName).join();
+        AntiVPNService.Evaluation eval;
+        try {
+            eval = service.evaluate(ip, playerName).join();
+        } catch (Exception ex) {
+            feature.getLogger().warn("[AntiVPN] Pre-login evaluation failed for '" + playerName + "': " + ex.getMessage());
+            return;
+        }
 
         if (!eval.allowed()) {
             Component msg = feature.getLocalizationHandler()
@@ -49,7 +63,7 @@ public final class AntiVPNListener {
 
         // Stage country if known (Fix #6 handled by TTL-based staging)
         String country = eval.countryUpper();
-        if (country != null && !country.isBlank()) {
+        if (country != null && !country.isBlank() && playerName != null && !playerName.isBlank()) {
             countryService.stageForUsername(playerName, country.toUpperCase(Locale.ROOT));
         }
     }

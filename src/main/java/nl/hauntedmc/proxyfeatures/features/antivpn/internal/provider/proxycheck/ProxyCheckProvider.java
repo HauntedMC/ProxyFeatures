@@ -95,16 +95,21 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
         // If you want to reduce false positives: set e.g. 85/90. 0 disables.
         int minConfidence = node.get("min_confidence").as(Integer.class, 0);
 
-        return new ProxyCheckProvider(
-                key.trim(),
-                baseUrl,
-                ver,
-                days,
-                timeout,
-                strict,
-                riskThreshold,
-                minConfidence
-        );
+        try {
+            return new ProxyCheckProvider(
+                    key.trim(),
+                    baseUrl,
+                    ver,
+                    days,
+                    timeout,
+                    strict,
+                    riskThreshold,
+                    minConfidence
+            );
+        } catch (IllegalArgumentException ex) {
+            feature.getLogger().warn("Providers.proxycheck.base_url is invalid; disabling proxycheck provider.");
+            return null;
+        }
     }
 
     @Override
@@ -224,6 +229,11 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
     private static String normalizeBase(String baseUrl) {
         String b = (baseUrl == null || baseUrl.isBlank()) ? "https://proxycheck.io/v3/" : baseUrl.trim();
         if (!b.endsWith("/")) b += "/";
+        URI uri = URI.create(b);
+        String scheme = uri.getScheme();
+        if (scheme == null || !(scheme.equalsIgnoreCase("https") || scheme.equalsIgnoreCase("http"))) {
+            throw new IllegalArgumentException("Unsupported proxycheck base_url scheme: " + scheme);
+        }
         return b;
     }
 
@@ -241,7 +251,7 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
         if (el == null || el.isJsonNull()) return "";
         try {
             return el.getAsString();
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             return "";
         }
     }
@@ -258,7 +268,7 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
                     return Integer.parseInt(s);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (RuntimeException ignored) {}
         return def;
     }
 
@@ -274,7 +284,7 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
                     return s.equals("true") || s.equals("yes") || s.equals("1");
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (RuntimeException ignored) {}
         return false;
     }
 
@@ -282,7 +292,7 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
         if (el == null || el.isJsonNull()) return null;
         try {
             return el.getAsJsonObject();
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             return null;
         }
     }

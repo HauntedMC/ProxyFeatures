@@ -18,6 +18,7 @@ import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.jetbrains.annotations.NotNull;
 
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
@@ -42,13 +43,13 @@ public class HLinkHandler {
 
     public HLinkHandler(HLink feature) {
         this.feature = feature;
-        Object apiKeyRaw = feature.getConfigHandler().get("api-key");
-        Object websiteUrlRaw = feature.getConfigHandler().get("website-url");
-        Object friendlyRaw = feature.getConfigHandler().get("full-friendly-urls-enabled");
-
-        this.apiKey = apiKeyRaw == null ? "" : String.valueOf(apiKeyRaw).trim();
-        this.friendly = friendlyRaw instanceof Boolean b ? b : true;
-        this.websiteUrl = websiteUrlRaw == null ? "" : String.valueOf(websiteUrlRaw).trim();
+        this.apiKey = feature.getConfigHandler().get("api-key", String.class, "").trim();
+        this.friendly = feature.getConfigHandler().get("full-friendly-urls-enabled", Boolean.class, true);
+        String configuredWebsiteUrl = feature.getConfigHandler().get("website-url", String.class, "");
+        this.websiteUrl = normalizeBaseUrl(configuredWebsiteUrl);
+        if (configuredWebsiteUrl != null && !configuredWebsiteUrl.isBlank() && this.websiteUrl.isBlank()) {
+            feature.getLogger().warn("HLink website-url is invalid; HTTP requests are disabled until it is corrected.");
+        }
 
         this.httpExecutor = Executors.newFixedThreadPool(2, r -> {
             Thread t = new Thread(r, "hlink-http");
@@ -59,6 +60,26 @@ public class HLinkHandler {
 
     private String buildApiUrl() {
         return friendly ? websiteUrl + "/msapi" : websiteUrl + "/index.php?msapi";
+    }
+
+    private static String normalizeBaseUrl(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String trimmed = raw.trim();
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        if (trimmed.isBlank()) return "";
+
+        try {
+            URI uri = URI.create(trimmed);
+            String scheme = uri.getScheme();
+            if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                return "";
+            }
+            return trimmed;
+        } catch (IllegalArgumentException ex) {
+            return "";
+        }
     }
 
     /**

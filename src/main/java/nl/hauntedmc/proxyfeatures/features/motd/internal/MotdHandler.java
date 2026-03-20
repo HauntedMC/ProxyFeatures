@@ -7,7 +7,6 @@ import net.kyori.adventure.text.Component;
 import nl.hauntedmc.proxyfeatures.api.APIRegistry;
 import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
 import nl.hauntedmc.proxyfeatures.api.util.text.format.TextFormatter;
-import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.motd.Motd;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 import nl.hauntedmc.proxyfeatures.features.versioncheck.VersionCheck;
@@ -42,7 +41,7 @@ public class MotdHandler {
 
         if (feature.getPlugin().getFeatureLoadManager().getFeatureRegistry().isFeatureLoaded("VersionCheck")) {
             VersionCheck versionCheck = (VersionCheck) feature.getPlugin().getFeatureLoadManager().getFeatureRegistry().getLoadedFeature("VersionCheck");
-            if (versionCheck.getVersionHandler().isAllowedVersion(unmodifiedPing.getVersion().getProtocol())) {
+            if (versionCheck.getVersionHandler().isUnsupportedVersion(unmodifiedPing.getVersion().getProtocol())) {
                 int minProtocol = versionCheck.getVersionHandler().getMinimumProtcolVersion();
                 String friendlyName = versionCheck.getVersionHandler().getFriendlyProtocolName() + "+";
                 version = new ServerPing.Version(minProtocol, friendlyName);
@@ -56,8 +55,7 @@ public class MotdHandler {
     }
 
     private ServerPing.@NotNull Players getAdjustedPlayers(ServerPing unmodifiedPing) {
-        Object multiplierRaw = feature.getConfigHandler().get("playerCountMultiplier");
-        double playerCountAdjustment = multiplierRaw instanceof Number number ? number.doubleValue() : 1.0D;
+        double playerCountAdjustment = feature.getConfigHandler().get("playerCountMultiplier", Double.class, 1.0D);
 
         if (playerCountAdjustment < 0) {
             playerCountAdjustment = 0;
@@ -89,9 +87,11 @@ public class MotdHandler {
     }
 
     private Component readMOTDFromFile() {
-        Object line1Raw = feature.getConfigHandler().get("motdline1");
-        String line1 = line1Raw == null ? "" : String.valueOf(line1Raw);
-        List<String> words = CastUtils.safeCastToList(feature.getConfigHandler().get("motdline2"), String.class);
+        String line1 = feature.getConfigHandler().get("motdline1", String.class, "");
+        if (line1 == null) {
+            line1 = "";
+        }
+        List<String> words = feature.getConfigHandler().getList("motdline2", String.class, List.of());
 
         if (words.isEmpty()) {
             return buildComponent(line1 + "\n" + centeredLine("HauntedMC."));

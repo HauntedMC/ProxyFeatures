@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class QueueManager {
 
@@ -34,6 +35,7 @@ public class QueueManager {
     private final Map<UUID, Integer> actionbarCycle = new ConcurrentHashMap<>();
 
     private final PriorityResolver priorityResolver;
+    private final int graceSeconds;
 
     private ScheduledTask pollTask;
     private ScheduledTask updateTask;
@@ -43,16 +45,18 @@ public class QueueManager {
         this.proxy = feature.getPlugin().getProxyInstance();
         this.logger = logger;
         this.priorityResolver = new PriorityResolver();
+        this.graceSeconds = Math.max(1, feature.getConfigHandler().get("grace-seconds", Integer.class, 60));
         initializeQueuesFromConfig();
     }
 
     private void initializeQueuesFromConfig() {
-        Object list = feature.getConfigHandler().get("servers-whitelist");
-        if (list instanceof List<?> servers) {
-            for (Object o : servers) {
-                String name = String.valueOf(o).toLowerCase(Locale.ROOT);
-                queues.put(name, new ServerQueue(name));
+        List<String> servers = feature.getConfigHandler().getList("servers-whitelist", String.class, List.of());
+        for (String server : servers) {
+            if (server == null || server.isBlank()) {
+                continue;
             }
+            String name = server.trim().toLowerCase(Locale.ROOT);
+            queues.put(name, new ServerQueue(name));
         }
     }
 
@@ -107,7 +111,15 @@ public class QueueManager {
                 return null;
             }));
         }
-        CompletableFuture.allOf(pings.toArray(CompletableFuture[]::new)).join();
+        if (!pings.isEmpty()) {
+            try {
+                CompletableFuture.allOf(pings.toArray(CompletableFuture[]::new))
+                        .orTimeout(5, TimeUnit.SECONDS)
+                        .join();
+            } catch (Throwable t) {
+                logger.warn("Queue ping round did not fully complete in time; using partial status cache.");
+            }
+        }
 
         // Drain queues where capacity exists
         for (Map.Entry<String, ServerQueue> e : queues.entrySet()) {
@@ -149,21 +161,30 @@ public class QueueManager {
                     .forAudience(player)
                     .build());
 
-            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() -> player.createConnectionRequest(target).connect().thenAccept(res -> {
-                if (!res.isSuccessful()) {
-                    res.getReasonComponent().ifPresent(reason -> player.sendMessage(feature.getLocalizationHandler()
-                            .getMessage("queue.join.connection_failure")
-                            .with("server", serverName)
-                            .with("reason", reason)
-                            .forAudience(player)
-                            .build()));
-                    // We intentionally do NOT requeue automatically to avoid duplicates / loops.
-                } else {
-                    queue.clearReservation(next.playerId());
-                    consumeAdvanceTicket(player.getUniqueId(), serverName);
-                    actionbarCycle.remove(player.getUniqueId());
-                }
-            }), Duration.ofSeconds(3));
+            feature.getLifecycleManager().getTaskManager().scheduleDelayedTask(() ->
+                    player.createConnectionRequest(target).connect().whenComplete((res, err) -> {
+                        if (err != null || res == null || !res.isSuccessful()) {
+                            if (res != null) {
+                                res.getReasonComponent().ifPresent(reason -> player.sendMessage(feature.getLocalizationHandler()
+                                        .getMessage("queue.join.connection_failure")
+                                        .with("server", serverName)
+                                        .with("reason", reason)
+                                        .forAudience(player)
+                                        .build()));
+                            }
+                            // Ensure one-shot bypass ticket cannot leak into a later manual connect.
+                            consumeAdvanceTicket(player.getUniqueId(), serverName);
+                            actionbarCycle.remove(player.getUniqueId());
+                            // We intentionally do NOT requeue automatically to avoid duplicates / loops.
+                            return;
+                        }
+
+                        queue.clearReservation(next.playerId());
+                        consumeAdvanceTicket(player.getUniqueId(), serverName);
+                        actionbarCycle.remove(player.getUniqueId());
+                    }),
+                    Duration.ofSeconds(3)
+            );
         }
     }
 
@@ -298,10 +319,9 @@ public class QueueManager {
                 .forAudience(player)
                 .build());
 
-        int grace = ((Number) feature.getConfigHandler().get("grace-seconds")).intValue();
         player.sendMessage(feature.getLocalizationHandler()
                 .getMessage("queue.grace.active")
-                .with("seconds", grace)
+                .with("seconds", graceSeconds)
                 .forAudience(player)
                 .build());
 
@@ -314,7 +334,7 @@ public class QueueManager {
     public void onDisconnect(UUID playerId) {
         findQueueOf(playerId).ifPresent(server -> queues.get(server).startGrace(
                 playerId,
-                Duration.ofSeconds(((Number) feature.getConfigHandler().get("grace-seconds")).intValue())
+                Duration.ofSeconds(graceSeconds)
         ));
         advanceTickets.remove(playerId);
         actionbarCycle.remove(playerId);

@@ -56,8 +56,8 @@ public final class AntiVPNService {
 
         this.whitelist = IpWhitelist.fromConfig(feature);
 
-        this.useRegionCheck = feature.getConfigHandler().get("use_region_check") instanceof Boolean b && b;
-        this.useVpnCheck = feature.getConfigHandler().get("use_vpn_check") instanceof Boolean b && b;
+        this.useRegionCheck = feature.getConfigHandler().get("use_region_check", Boolean.class, true);
+        this.useVpnCheck = feature.getConfigHandler().get("use_vpn_check", Boolean.class, true);
 
         List<String> allowed = feature.getConfigHandler().node("").get("allowed_countries").listOf(String.class);
         if (allowed == null) allowed = List.of();

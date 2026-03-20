@@ -21,7 +21,7 @@ public class PlayerInfoService {
     public PlayerInfoService(PlayerInfo feature) {
         this.feature = feature;
 
-        String tz = Objects.toString(feature.getConfigHandler().get("timezone"));
+        String tz = feature.getConfigHandler().get("timezone", String.class, "");
         ZoneId zoneId;
         if (tz == null || tz.isBlank()) {
             zoneId = ZoneId.systemDefault();
@@ -35,8 +35,19 @@ public class PlayerInfoService {
             zoneId = tmp;
         }
 
-        String pattern = Objects.toString(feature.getConfigHandler().get("datetimeFormat"));
-        formatter = DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
+        String pattern = feature.getConfigHandler().get("datetimeFormat", String.class, "dd-MM-yyyy HH:mm:ss");
+        if (pattern == null || pattern.isBlank()) {
+            pattern = "dd-MM-yyyy HH:mm:ss";
+        }
+
+        DateTimeFormatter fmt;
+        try {
+            fmt = DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
+        } catch (IllegalArgumentException ex) {
+            feature.getLogger().warn("[PlayerInfo] Invalid datetimeFormat '" + pattern + "', falling back to default.");
+            fmt = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss").withZone(zoneId);
+        }
+        formatter = fmt;
     }
 
     public record OnlineStatus(boolean online, String serverName) {

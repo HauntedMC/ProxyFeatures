@@ -285,19 +285,19 @@ public class Votifier extends VelocityBaseFeature<Meta> {
 
     public String currentHost() {
         VotifierService svc = service;
-        return svc != null ? svc.currentHost() : String.valueOf(getConfigHandler().get("host"));
+        return svc != null ? svc.currentHost() : getConfigHandler().get("host", String.class, "0.0.0.0");
     }
 
     public int currentPort() {
         VotifierService svc = service;
-        return svc != null ? svc.currentPort() : (int) getConfigHandler().get("port");
+        return svc != null ? svc.currentPort() : getConfigHandler().get("port", Integer.class, 8249);
     }
 
     public int currentTimeoutMs() {
-        return (int) getConfigHandler().get("readTimeoutMillis");
+        return getConfigHandler().get("readTimeoutMillis", Integer.class, 5000);
     }
 
     public int currentKeyBits() {
-        return (int) getConfigHandler().get("keyBits");
+        return getConfigHandler().get("keyBits", Integer.class, 2048);
     }
 }

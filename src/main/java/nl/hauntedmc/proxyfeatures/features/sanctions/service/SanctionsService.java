@@ -398,11 +398,9 @@ public class SanctionsService {
         String actorLabel = Optional.ofNullable(resolveUsername(s.getActorPlayer()))
                 .orElse(Optional.ofNullable(s.getActorName()).orElse("CONSOLE"));
 
-        String appealUrl = "-";
-        try {
-            Object v = feature.getConfigHandler().get("appealURL");
-            if (v != null) appealUrl = String.valueOf(v);
-        } catch (Throwable ignored) {
+        String appealUrl = feature.getConfigHandler().get("appealURL", String.class, "");
+        if (appealUrl == null || appealUrl.isBlank()) {
+            appealUrl = "-";
         }
 
         ph.add("reason", Optional.ofNullable(s.getReason()).orElse("-"));

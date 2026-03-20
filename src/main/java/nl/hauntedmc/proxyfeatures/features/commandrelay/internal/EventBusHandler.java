@@ -10,6 +10,9 @@ import nl.hauntedmc.proxyfeatures.features.commandrelay.CommandRelay;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.messaging.CommandRelayMessage;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class EventBusHandler {
 
@@ -58,8 +61,12 @@ public class EventBusHandler {
                         String.class
                 );
 
-        if (!whitelist.stream().map(String::toLowerCase).toList()
-                .contains(main.toLowerCase())) {
+        Set<String> allowed = whitelist.stream()
+                .filter(s -> s != null && !s.isBlank())
+                .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+
+        if (!allowed.contains(main.toLowerCase(Locale.ROOT))) {
             feature.getLogger().warn(Component.text("CommandRelay: received forbidden “" + main + "” from " + origin + " – ignoring"));
             return;
         }

@@ -19,7 +19,12 @@ public class ResourceHandler {
 
     public ResourceHandler(ProxyFeatures plugin, String fileName) {
         this.plugin = plugin;
-        this.file = plugin.getDataDirectory().resolve(fileName);
+        Path dataDir = plugin.getDataDirectory().toAbsolutePath().normalize();
+        Path resolved = dataDir.resolve(fileName).normalize();
+        if (!resolved.startsWith(dataDir)) {
+            throw new IllegalArgumentException("Resource path escapes data directory: " + fileName);
+        }
+        this.file = resolved;
         this.loader = YamlConfigurationLoader.builder()
                 .path(file)
                 .nodeStyle(NodeStyle.BLOCK)

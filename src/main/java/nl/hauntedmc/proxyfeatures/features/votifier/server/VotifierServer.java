@@ -22,8 +22,10 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public final class VotifierServer {
@@ -44,10 +46,14 @@ public final class VotifierServer {
     private final FeatureLogger logger;
 
     private final int rsaBlockBytes;
+    private static final int CLIENT_THREAD_CORE = 2;
+    private static final int CLIENT_THREAD_MAX = 32;
+    private static final int CLIENT_QUEUE_CAPACITY = 256;
 
     private volatile boolean running;
     private ServerSocket server;
     private ExecutorService pool;
+    private Thread acceptThread;
 
     public VotifierServer(
             String host,
@@ -91,20 +97,33 @@ public final class VotifierServer {
         this.server.setReuseAddress(true);
         this.server.bind(new InetSocketAddress(host, port), backlog);
 
-        this.pool = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "votifier-client");
-            t.setDaemon(true);
-            return t;
-        });
+        this.pool = new ThreadPoolExecutor(
+                CLIENT_THREAD_CORE,
+                CLIENT_THREAD_MAX,
+                30L,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(CLIENT_QUEUE_CAPACITY),
+                r -> {
+                    Thread t = new Thread(r, "votifier-client");
+                    t.setDaemon(true);
+                    return t;
+                },
+                new ThreadPoolExecutor.AbortPolicy()
+        );
 
         running = true;
 
-        pool.execute(() -> {
+        this.acceptThread = new Thread(() -> {
             logger.info("Listening on " + host + ":" + port + " (expect " + rsaBlockBytes + "B RSA blocks)");
             while (running) {
                 try {
                     Socket s = server.accept();
-                    pool.execute(() -> handleClient(s));
+                    try {
+                        pool.execute(() -> handleClient(s));
+                    } catch (RejectedExecutionException rejected) {
+                        logger.warn("Votifier worker queue is full; dropping connection from " + safeRemote(s.getRemoteSocketAddress()));
+                        safeClose(s);
+                    }
                 } catch (SocketException se) {
                     if (running) logger.warn("Socket exception: " + safeMsg(se));
                 } catch (Throwable t) {
@@ -112,7 +131,9 @@ public final class VotifierServer {
                 }
             }
             logger.info("Accept loop terminated.");
-        });
+        }, "votifier-accept");
+        this.acceptThread.setDaemon(true);
+        this.acceptThread.start();
     }
 
     public synchronized void stop() {
@@ -122,6 +143,10 @@ public final class VotifierServer {
                 server.close();
             } catch (IOException ignored) {
             }
+        }
+        if (acceptThread != null) {
+            acceptThread.interrupt();
+            acceptThread = null;
         }
         if (pool != null) {
             pool.shutdownNow();

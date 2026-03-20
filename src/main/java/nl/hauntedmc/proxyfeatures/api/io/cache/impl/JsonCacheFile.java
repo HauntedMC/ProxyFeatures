@@ -18,6 +18,7 @@ public class JsonCacheFile implements FileCacheStore {
 
     private final File file;
     private final Gson gson = new Gson();
+    private final Object lock = new Object();
     // key → single { "value": Map, "expirationTimestamp": long }
     private Map<String, Map<String, Object>> rawMap;
     private static final Type RAW_MAP_TYPE =
@@ -38,7 +39,10 @@ public class JsonCacheFile implements FileCacheStore {
     private void ensureFileExists() {
         if (!file.exists()) {
             try {
-                file.getParentFile().mkdirs();
+                File parent = file.getParentFile();
+                if (parent != null) {
+                    parent.mkdirs();
+                }
                 file.createNewFile();
             } catch (IOException ex) {
                 throw new IllegalStateException("Cannot create cache file " + file, ex);
@@ -47,15 +51,17 @@ public class JsonCacheFile implements FileCacheStore {
     }
 
     private void load() {
-        try (Reader r = new FileReader(file)) {
-            rawMap = gson.fromJson(r, RAW_MAP_TYPE);
-            if (rawMap == null) rawMap = new LinkedHashMap<>();
-        } catch (IOException ex) {
-            throw new IllegalStateException("Cannot load cache file " + file, ex);
+        synchronized (lock) {
+            try (Reader r = new FileReader(file)) {
+                rawMap = gson.fromJson(r, RAW_MAP_TYPE);
+                if (rawMap == null) rawMap = new LinkedHashMap<>();
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot load cache file " + file, ex);
+            }
         }
     }
 
-    private void save() {
+    private void saveLocked() {
         try (Writer w = new FileWriter(file)) {
             gson.toJson(rawMap, w);
         } catch (IOException ex) {
@@ -67,71 +73,129 @@ public class JsonCacheFile implements FileCacheStore {
     public void put(String key, CacheValue value) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(value, "value");
-        Map<String, Object> entry = new LinkedHashMap<>();
-        entry.put(VALUE, value.getData());
-        entry.put(EXP_TS, value.getExpirationTimestamp());
-        rawMap.put(key, entry);
-        save();
+        synchronized (lock) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put(VALUE, value.getData());
+            entry.put(EXP_TS, value.getExpirationTimestamp());
+            rawMap.put(key, entry);
+            saveLocked();
+        }
     }
 
     @Override
     public void cleanupExpired() {
+        synchronized (lock) {
+            cleanupExpiredLocked();
+        }
+    }
+
+    private void cleanupExpiredLocked() {
         long now = System.currentTimeMillis();
         rawMap.entrySet().removeIf(e -> {
             Map<String, Object> ent = e.getValue();
-            long ts = ((Number) ent.getOrDefault(EXP_TS, -1L)).longValue();
+            if (ent == null) return true;
+            long ts = asLong(ent.getOrDefault(EXP_TS, -1L), -1L);
             return ts >= 0 && now > ts;
         });
+
         if (rawMap.isEmpty()) {
-            delete();
+            if (!file.delete() && file.exists()) {
+                file.deleteOnExit();
+            }
         } else {
-            save();
+            saveLocked();
         }
     }
 
     @Override
     public CacheValue get(String key) {
-        cleanupExpired();
-        Map<String, Object> entry = rawMap.get(key);
-        if (entry == null) return null;
-        @SuppressWarnings("unchecked")
-        Map<String, Object> data = (Map<String, Object>) entry.get(VALUE);
-        long ts = ((Number) entry.getOrDefault(EXP_TS, -1L)).longValue();
-        return CacheValue.of(data, ts);
+        synchronized (lock) {
+            cleanupExpiredLocked();
+            return toCacheValue(rawMap.get(key));
+        }
     }
 
     @Override
     public Map<String, CacheValue> listAll() {
-        cleanupExpired();
-        Map<String, CacheValue> result = new LinkedHashMap<>();
-        for (String key : rawMap.keySet()) {
-            CacheValue cv = get(key);
-            if (cv != null) result.put(key, cv);
+        synchronized (lock) {
+            cleanupExpiredLocked();
+            Map<String, CacheValue> result = new LinkedHashMap<>();
+            for (Map.Entry<String, Map<String, Object>> e : rawMap.entrySet()) {
+                CacheValue cv = toCacheValue(e.getValue());
+                if (cv != null) {
+                    result.put(e.getKey(), cv);
+                }
+            }
+            return result;
         }
-        return result;
     }
 
     @Override
     public Map<String, CacheValue> find(String regex) {
-        cleanupExpired();
-        Pattern pat = Pattern.compile(regex);
-        Map<String, CacheValue> result = new LinkedHashMap<>();
-        for (String key : rawMap.keySet()) {
-            if (pat.matcher(key).matches()) {
-                CacheValue cv = get(key);
-                if (cv != null) result.put(key, cv);
+        synchronized (lock) {
+            cleanupExpiredLocked();
+            Pattern pat = Pattern.compile(regex);
+            Map<String, CacheValue> result = new LinkedHashMap<>();
+            for (Map.Entry<String, Map<String, Object>> e : rawMap.entrySet()) {
+                if (!pat.matcher(e.getKey()).matches()) {
+                    continue;
+                }
+                CacheValue cv = toCacheValue(e.getValue());
+                if (cv != null) {
+                    result.put(e.getKey(), cv);
+                }
             }
+            return result;
         }
-        return result;
     }
 
     @Override
     public boolean isEmpty() {
-        return rawMap.isEmpty();
+        synchronized (lock) {
+            return rawMap.isEmpty();
+        }
     }
 
     @Override
     public void delete() {
-        if (!file.delete()) file.deleteOnExit();
+        synchronized (lock) {
+            rawMap.clear();
+            if (!file.delete() && file.exists()) {
+                file.deleteOnExit();
+            }
+        }
+    }
+
+    private CacheValue toCacheValue(Map<String, Object> entry) {
+        if (entry == null) return null;
+        Map<String, Object> data = asDataMap(entry.get(VALUE));
+        long ts = asLong(entry.getOrDefault(EXP_TS, -1L), -1L);
+        return CacheValue.of(data, ts);
+    }
+
+    private static Map<String, Object> asDataMap(Object raw) {
+        if (!(raw instanceof Map<?, ?> m)) {
+            return Map.of();
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> e : m.entrySet()) {
+            if (e.getKey() == null) continue;
+            out.put(String.valueOf(e.getKey()), e.getValue());
+        }
+        return out;
+    }
+
+    private static long asLong(Object raw, long def) {
+        if (raw instanceof Number n) {
+            return n.longValue();
+        }
+        if (raw instanceof String s) {
+            try {
+                return Long.parseLong(s.trim());
+            } catch (NumberFormatException ignored) {
+                return def;
+            }
+        }
+        return def;
     }
 }

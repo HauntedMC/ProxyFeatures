@@ -44,6 +44,9 @@ public final class ConfigService {
     public YamlFile open(String relativePath, boolean copyDefaultsIfPresent) {
         Objects.requireNonNull(relativePath, "relativePath");
         Path abs = dataDir.resolve(relativePath).normalize();
+        if (!abs.startsWith(dataDir)) {
+            throw new IllegalArgumentException("Config path escapes data directory: " + relativePath);
+        }
 
         return cache.computeIfAbsent(abs, p -> {
             try {

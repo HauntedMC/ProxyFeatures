@@ -17,14 +17,20 @@ public class ChatChannelHandler {
     public ChatChannelHandler(StaffChat feature) {
         this.channels = new HashMap<>();
 
-        String staffPrefix = (String) feature.getConfigHandler().get("staff_prefix");
+        String staffPrefix = prefixOrDefault(feature.getConfigHandler().get("staff_prefix", String.class, "!"), "!");
         channels.put(staffPrefix, new ChatChannel("staff", staffPrefix));
 
-        String teamPrefix = (String) feature.getConfigHandler().get("team_prefix");
+        String teamPrefix = prefixOrDefault(feature.getConfigHandler().get("team_prefix", String.class, "?"), "?");
         channels.put(teamPrefix, new ChatChannel("team", teamPrefix));
 
-        String adminPrefix = (String) feature.getConfigHandler().get("admin_prefix");
+        String adminPrefix = prefixOrDefault(feature.getConfigHandler().get("admin_prefix", String.class, "#"), "#");
         channels.put(adminPrefix, new ChatChannel("admin", adminPrefix));
+    }
+
+    private static String prefixOrDefault(String value, String def) {
+        if (value == null) return def;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? def : trimmed;
     }
 
     public Map<String, ChatChannel> getChannels() {
