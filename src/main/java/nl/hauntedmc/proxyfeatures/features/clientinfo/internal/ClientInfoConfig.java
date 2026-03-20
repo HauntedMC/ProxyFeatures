@@ -107,7 +107,7 @@ public record ClientInfoConfig(
             ConfigNode p = profilesNode.get(profileName);
 
             List<String> servers = p.get("servers").listOf(String.class);
-            if (servers.isEmpty() && profileName != null && !profileName.isBlank()) {
+            if ((servers == null || servers.isEmpty()) && profileName != null && !profileName.isBlank()) {
                 servers = List.of(profileName);
             }
 

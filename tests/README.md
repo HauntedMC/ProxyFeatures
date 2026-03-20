@@ -20,7 +20,13 @@ Feature logic is also coverage-gated at 100% line coverage for selected classes:
 
 - queue model/util (`ServerQueue`, `QueueEntry`, `EnqueueDecision`, `ServerStatus`, `PriorityResolver`)
 - AntiVPN internals (`IPCheckResult`, `MetricsCollector`, `CountryService`, `ProviderChain`, `IpWhitelist`, `PersistentIpCache`)
-- votifier/resourcepack utilities (`IpAccessList`, `RSAUtil`, `ResourceUtils`)
+- commandhider/clientinfo internals (`HiderHandler`, `ClientInfoConfig`)
+- friends/staffchat internals (`FriendsCache`, `ChatChannel`, `ChatChannelHandler`)
+- connectioninfo/messager/sanctions entities (`SessionHandler`, `PlayerMessageSettingsEntity`, `SanctionEntity`)
+- votifier internals/entities/utilities (`VotifierConfig`, `PlayerVoteStatsEntity`, `PlayerVoteMonthlyEntity`, `PlayerVoteMonthlyKey`, `VotifierRolloverStateEntity`, `IpAccessList`, `RSAUtil`)
+- resourcepack utility (`ResourceUtils`)
+- feature runtime logic (`AntiVPNService`, `VanishRegistry`, `ServiceLookup`, `FeatureFactory`, `ServerLinksHandler`)
+- feature event-bus handlers (`commandrelay.internal.EventBusHandler`, `staffchat.internal.messaging.EventBusHandler`, `vanish.internal.messaging.EventBusHandler`, `votifier.messaging.EventBusHandler`)
 
 Feature tests intentionally skip repetitive framework-covered boilerplate such as feature main/meta wrappers and focus on feature-specific behavior that should detect breakage.
 

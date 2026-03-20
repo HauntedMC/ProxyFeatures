@@ -124,18 +124,21 @@ public record VotifierConfig(
     }
 
     private static String safeFile(String s) {
-        if (s == null || s.isBlank()) return "key.pem";
-        String t = s.trim().replace("\\", "/");
-        while (t.startsWith("/")) t = t.substring(1);
-        if (t.contains("..")) t = t.replace("..", "");
-        return t.isBlank() ? "key.pem" : t;
+        return sanitizePathLike(s, "key.pem");
     }
 
     private static String safePrefix(String s) {
-        if (s == null || s.isBlank()) return "votifier-top100";
-        String t = s.trim().replace("\\", "/");
+        return sanitizePathLike(s, "votifier-top100");
+    }
+
+    private static String sanitizePathLike(String raw, String def) {
+        if (raw == null || raw.isBlank()) return def;
+
+        String t = raw.trim().replace("\\", "/");
         while (t.startsWith("/")) t = t.substring(1);
         if (t.contains("..")) t = t.replace("..", "");
-        return t.isBlank() ? "votifier-top100" : t;
+        while (t.startsWith("/")) t = t.substring(1);
+
+        return t.isBlank() ? def : t;
     }
 }

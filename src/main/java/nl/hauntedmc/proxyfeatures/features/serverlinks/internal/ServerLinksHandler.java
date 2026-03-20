@@ -18,7 +18,7 @@ public class ServerLinksHandler {
 
     private void initializeServerLinks() {
         serverLinks.add(ServerLink.serverLink(Component.text("Discord"), "https://www.hauntedmc.nl/discord"));
-        serverLinks.add(ServerLink.serverLink(Component.text("Store"), "https:/store.hauntedmc.nl"));
+        serverLinks.add(ServerLink.serverLink(Component.text("Store"), "https://store.hauntedmc.nl"));
         serverLinks.add(ServerLink.serverLink(Component.text("Vote"), "https://www.hauntedmc.nl/vote"));
         serverLinks.add(ServerLink.serverLink(ServerLink.Type.WEBSITE, "https://www.hauntedmc.nl"));
         serverLinks.add(ServerLink.serverLink(ServerLink.Type.SUPPORT, "https://www.hauntedmc.nl/support"));

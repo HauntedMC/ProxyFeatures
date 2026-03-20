@@ -166,6 +166,28 @@
                                         <include>nl.hauntedmc.proxyfeatures.features.votifier.util.IpAccessList</include>
                                         <include>nl.hauntedmc.proxyfeatures.features.votifier.util.RSAUtil</include>
                                         <include>nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.commandhider.internal.HiderHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.clientinfo.internal.ClientInfoConfig</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.friends.support.FriendsCache</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannel</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.connectioninfo.internal.SessionHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.messager.entity.PlayerMessageSettingsEntity</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierConfig</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEntity</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyKey</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.VotifierRolloverStateEntity</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.AntiVPNService</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.commandrelay.internal.EventBusHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.staffchat.internal.messaging.EventBusHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishRegistry</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.vanish.internal.messaging.EventBusHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.messaging.EventBusHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.sanctions.service.ServiceLookup</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.serverlinks.internal.ServerLinksHandler</include>
+                                        <include>nl.hauntedmc.proxyfeatures.features.FeatureFactory</include>
                                     </includes>
                                     <limits>
                                         <limit>

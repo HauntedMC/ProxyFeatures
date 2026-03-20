@@ -37,7 +37,7 @@ JaCoCo enforces **100% line coverage** for:
 
 - `nl.hauntedmc.proxyfeatures.framework*`
 - `nl.hauntedmc.proxyfeatures.api*`
-- selected feature logic classes (queue model/util, AntiVPN internals, votifier/resourcepack utilities)
+- selected feature logic classes across queue, AntiVPN, votifier/resourcepack, commandhider, clientinfo, friends, staffchat, connectioninfo, messager, and sanctions
 
 This keeps core platform contracts and extension APIs fully regression-tested.
 
@@ -54,14 +54,27 @@ Feature logic currently gated at 100% line coverage:
 
 - queue domain model/util: `ServerQueue`, `QueueEntry`, `EnqueueDecision`, `ServerStatus`, `PriorityResolver`
 - AntiVPN internals: `IPCheckResult`, `MetricsCollector`, `CountryService`, `ProviderChain`, `IpWhitelist`, `PersistentIpCache`
-- Votifier/resourcepack utilities: `IpAccessList`, `RSAUtil`, `ResourceUtils`
+- commandhider/clientinfo internals: `HiderHandler`, `ClientInfoConfig`
+- friends/staffchat internals: `FriendsCache`, `ChatChannel`, `ChatChannelHandler`
+- connectioninfo/messager/sanctions entities: `SessionHandler`, `PlayerMessageSettingsEntity`, `SanctionEntity`
+- votifier/resourcepack internals/entities/utilities: `VotifierConfig`, `PlayerVoteStatsEntity`, `PlayerVoteMonthlyEntity`, `PlayerVoteMonthlyKey`, `VotifierRolloverStateEntity`, `IpAccessList`, `RSAUtil`, `ResourceUtils`
+- feature runtime logic: `AntiVPNService`, `VanishRegistry`, `ServiceLookup`, `FeatureFactory`, `ServerLinksHandler`
+- feature event-bus handlers: `commandrelay.internal.EventBusHandler`, `staffchat.internal.messaging.EventBusHandler`, `vanish.internal.messaging.EventBusHandler`, `votifier.messaging.EventBusHandler`
 
 The feature suite targets regression-sensitive paths such as:
 
 - queue ordering/requeue/grace semantics (including defensive stale-state handling)
 - AntiVPN provider aggregation, whitelist CIDR parsing/matching, cache persistence/inflight dedupe/failure paths
-- votifier IP ACL parsing + matching and RSA key handling utilities
+- command hiding normalization/deduplication snapshot behavior
+- profile-based clientinfo config overrides and fallback behavior
+- friends caching and invalidation semantics
+- staffchat channel prefix normalization, channel membership, and permission-gated broadcast delivery
+- session/message/sanction entity state transitions and invariants
+- votifier config clamps/sanitization + vote stats/monthly entity invariants + IP ACL parsing and RSA handling
 - resourcepack utility conversions
+- AntiVPN policy decisions and cache/provider interaction paths
+- cross-proxy event-bus subscription/disable/error handling for command relay, staffchat, vanish, and votifier
+- vanish online-registry correctness and serverlinks payload validity
 
 ## Framework Breakage Detection
 
