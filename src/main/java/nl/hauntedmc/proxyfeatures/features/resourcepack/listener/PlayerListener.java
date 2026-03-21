@@ -17,46 +17,55 @@ public class PlayerListener {
     @Subscribe
     public void onConfigurate(PlayerConfigurationEvent event, Continuation continuation) {
         Player player = event.player();
+        boolean hasPreviousServer = event.server().getPreviousServer().isPresent();
+        String currentServer = event.server().getServer().getServerInfo().getName();
 
-        if (event.server().getPreviousServer().isEmpty()) {
-            sendResourcePackOffer(continuation, player, "global");
-        } else {
+        ResourcePackInfo previousPackInfo = null;
+        ResourcePackInfo currentPackInfo = null;
 
-            String prevServer = event.server().getPreviousServer().get().getServerInfo().getName();
-            ResourcePackInfo oldPackInfo = feature.getResourcePackHandler().getPackInfo(prevServer);
-            if (oldPackInfo != null) {
-                player.removeResourcePacks(oldPackInfo);
-            }
-
-            String curServer = event.server().getServer().getServerInfo().getName();
-            ResourcePackInfo packInfo = feature.getResourcePackHandler().getPackInfo(curServer);
-            if (packInfo != null) {
-                sendResourcePackOffer(continuation, player, curServer);
-            } else {
-                continuation.resume();
-            }
+        if (hasPreviousServer) {
+            String previousServer = event.server().getPreviousServer().get().getServerInfo().getName();
+            previousPackInfo = feature.getResourcePackHandler().getPackInfo(previousServer);
+            currentPackInfo = feature.getResourcePackHandler().getPackInfo(currentServer);
         }
+
+        ResourcePackTransitionPolicy.TransitionPlan transitionPlan = ResourcePackTransitionPolicy.plan(
+                hasPreviousServer,
+                currentServer,
+                previousPackInfo != null,
+                currentPackInfo != null
+        );
+
+        if (transitionPlan.removePreviousPack() && previousPackInfo != null) {
+            player.removeResourcePacks(previousPackInfo);
+        }
+
+        if (transitionPlan.resumeImmediately()) {
+            continuation.resume();
+            return;
+        }
+
+        sendResourcePackOffer(continuation, player, transitionPlan.offerPackIdentifier());
     }
 
 
     private void sendResourcePackOffer(Continuation continuation, Player player, String packIdentifier) {
         ResourcePackInfo packInfo = feature.getResourcePackHandler().getPackInfo(packIdentifier);
-        if (packInfo == null) {
+        boolean packExists = packInfo != null;
+        boolean alreadyApplied = packExists && player.getAppliedResourcePacks().contains(packInfo);
+
+        if (ResourcePackOfferPolicy.resolve(packExists, alreadyApplied) == ResourcePackOfferPolicy.Action.RESUME) {
             continuation.resume();
             return;
         }
 
-        if (!player.getAppliedResourcePacks().contains(packInfo)) {
-            try {
-                feature.getResourcePackHandler().blockConfiguration(player.getUniqueId(), continuation);
-                player.sendResourcePackOffer(packInfo);
-            } catch (Throwable t) {
-                feature.getResourcePackHandler().unblockConfiguration(player.getUniqueId());
-                feature.getLogger().warn("[ResourcePack] Failed to send resource pack offer to "
-                        + player.getUsername() + ": " + t.getClass().getSimpleName());
-            }
-        } else {
-            continuation.resume();
+        try {
+            feature.getResourcePackHandler().blockConfiguration(player.getUniqueId(), continuation);
+            player.sendResourcePackOffer(packInfo);
+        } catch (Throwable t) {
+            feature.getResourcePackHandler().unblockConfiguration(player.getUniqueId());
+            feature.getLogger().warn("[ResourcePack] Failed to send resource pack offer to "
+                    + player.getUsername() + ": " + t.getClass().getSimpleName());
         }
     }
 

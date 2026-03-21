@@ -25,15 +25,14 @@ public class PlayerListener {
 
         final String SPY_PERM = "proxyfeatures.feature.messager.command.spy";
 
-        // If player has permission and isn't already spying -> enable and persist
-        if (player.hasPermission(SPY_PERM) && !handler.isSpy(id)) {
-            handler.setSpy(id, true); // persist + in-memory
-        }
-
-        // If player lacks permission but somehow is spying -> disable and persist (belt & suspenders)
-        if (!player.hasPermission(SPY_PERM) && handler.isSpy(id)) {
-            handler.setSpy(id, false); // persist + in-memory
+        SpyStatePolicy.Action action = SpyStatePolicy.reconcile(
+                player.hasPermission(SPY_PERM),
+                handler.isSpy(id)
+        );
+        if (action == SpyStatePolicy.Action.ENABLE) {
+            handler.setSpy(id, true);
+        } else if (action == SpyStatePolicy.Action.DISABLE) {
+            handler.setSpy(id, false);
         }
     }
 }
-

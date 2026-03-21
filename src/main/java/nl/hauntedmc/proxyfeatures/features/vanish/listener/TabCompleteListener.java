@@ -6,9 +6,7 @@ import com.velocitypowered.api.proxy.Player;
 import nl.hauntedmc.proxyfeatures.features.vanish.Vanish;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TabCompleteListener {
 
@@ -32,16 +30,15 @@ public class TabCompleteListener {
             return;
         }
 
-        Set<String> vanishedNamesLower = feature.getVanishAPI().getVanishedPlayers().stream()
-                .map(p -> p.getUsername().toLowerCase(Locale.ROOT))
-                .collect(Collectors.toSet());
+        Set<String> vanishedNamesLower = VanishTabCompletePolicy.normalizeNamesLower(
+                feature.getVanishAPI().getVanishedPlayers().stream()
+                        .map(Player::getUsername)
+                        .toList()
+        );
         if (vanishedNamesLower.isEmpty()) {
             return;
         }
 
-        suggestions.removeIf(s -> {
-            String ls = s.toLowerCase(Locale.ROOT);
-            return vanishedNamesLower.contains(ls);
-        });
+        VanishTabCompletePolicy.removeVanishedSuggestions(suggestions, vanishedNamesLower);
     }
 }

@@ -43,7 +43,7 @@ public class HLinkCommand implements FeatureCommand {
         List<String> args = List.of(invocation.arguments());
 
         // 1) Usage check
-        if (args.size() != 2 || !args.get(0).equalsIgnoreCase("sync")) {
+        if (!HLinkCommandPolicy.isValidSyncUsage(args)) {
             source.sendMessage(
                     feature.getLocalizationHandler()
                             .getMessage("hlink.syncUsage")
@@ -93,24 +93,12 @@ public class HLinkCommand implements FeatureCommand {
 
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         List<String> args = List.of(invocation.arguments());
-
-        if (args.size() == 1) {
-            return CompletableFuture.completedFuture(List.of("sync"));
-        }
-
-        if (args.size() == 2 && args.get(0).equalsIgnoreCase("sync")) {
-            String partial = args.get(1).toLowerCase();
-            return CompletableFuture.completedFuture(
-                    feature.getPlugin()
-                            .getProxyInstance()
-                            .getAllPlayers()
-                            .stream()
-                            .map(Player::getUsername)
-                            .filter(name -> name.toLowerCase().startsWith(partial))
-                            .collect(Collectors.toList())
-            );
-        }
-
-        return CompletableFuture.completedFuture(List.of());
+        List<String> onlinePlayers = feature.getPlugin()
+                .getProxyInstance()
+                .getAllPlayers()
+                .stream()
+                .map(Player::getUsername)
+                .collect(Collectors.toList());
+        return CompletableFuture.completedFuture(HLinkCommandPolicy.suggestions(args, onlinePlayers));
     }
 }

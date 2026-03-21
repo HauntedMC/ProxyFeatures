@@ -7,9 +7,12 @@ import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.api.io.localization.Language;
 import nl.hauntedmc.proxyfeatures.features.playerlanguage.PlayerLanguage;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class LanguageCommand implements FeatureCommand {
 
@@ -49,7 +52,7 @@ public class LanguageCommand implements FeatureCommand {
         }
 
         // Staff QoL: /language <player>  -> show that player's current language (if arg is not a language token)
-        if (args.length == 1 && src.hasPermission(PERM_OTHERS) && !isLanguageToken(args[0])) {
+        if (args.length == 1 && src.hasPermission(PERM_OTHERS) && !LanguageCommandPolicy.isLanguageToken(args[0])) {
             String targetName = args[0];
             Optional<UUID> targetUuid = feature.getService().resolveUuidByName(targetName);
             if (targetUuid.isEmpty()) {
@@ -68,13 +71,11 @@ public class LanguageCommand implements FeatureCommand {
 
         // /language <LANG>   -> set own
         if (args.length == 1) {
-            String token = args[0].trim().toUpperCase(Locale.ROOT);
-            Language chosen;
-            try {
-                chosen = Language.valueOf(token);
-            } catch (IllegalArgumentException ex) {
+            String token = args[0].trim();
+            Language chosen = LanguageCommandPolicy.parseLanguage(token).orElse(null);
+            if (chosen == null) {
                 src.sendMessage(feature.getLocalizationHandler().getMessage("language.invalid")
-                        .with("input", token)
+                        .with("input", token.toUpperCase(Locale.ROOT))
                         .forAudience(src).build());
                 return;
             }
@@ -93,7 +94,7 @@ public class LanguageCommand implements FeatureCommand {
         }
 
         String targetName = args[0];
-        String token = args[1].trim().toUpperCase(Locale.ROOT);
+        String token = args[1].trim();
 
         Optional<UUID> targetUuid = feature.getService().resolveUuidByName(targetName);
         if (targetUuid.isEmpty()) {
@@ -103,12 +104,10 @@ public class LanguageCommand implements FeatureCommand {
             return;
         }
 
-        Language chosen;
-        try {
-            chosen = Language.valueOf(token);
-        } catch (IllegalArgumentException ex) {
+        Language chosen = LanguageCommandPolicy.parseLanguage(token).orElse(null);
+        if (chosen == null) {
             src.sendMessage(feature.getLocalizationHandler().getMessage("language.invalid")
-                    .with("input", token)
+                    .with("input", token.toUpperCase(Locale.ROOT))
                     .forAudience(src).build());
             return;
         }
@@ -148,51 +147,8 @@ public class LanguageCommand implements FeatureCommand {
                 .toList()
                 : List.of();
 
-        if (a.length == 0) {
-            // Suggest both languages and (if staff) online player names
-            List<String> out = new ArrayList<>(languages);
-            out.addAll(players);
-            return CompletableFuture.completedFuture(out);
-        }
-
-        if (a.length == 1) {
-            String partial = a[0].toUpperCase(Locale.ROOT);
-            List<String> langMatches = languages.stream()
-                    .filter(s -> s.startsWith(partial))
-                    .collect(Collectors.toList());
-
-            if (!canOthers) {
-                return CompletableFuture.completedFuture(langMatches);
-            }
-
-            String partialRaw = a[0];
-            List<String> playerMatches = players.stream()
-                    .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partialRaw.toLowerCase(Locale.ROOT)))
-                    .toList();
-
-            // Combine: languages first, then players
-            List<String> out = new ArrayList<>(langMatches);
-            out.addAll(playerMatches);
-            return CompletableFuture.completedFuture(out);
-        }
-
-        if (a.length == 2 && canOthers) {
-            String partial = a[1].toUpperCase(Locale.ROOT);
-            List<String> langMatches = languages.stream()
-                    .filter(s -> s.startsWith(partial))
-                    .collect(Collectors.toList());
-            return CompletableFuture.completedFuture(langMatches);
-        }
-
-        return CompletableFuture.completedFuture(List.of());
-    }
-
-    private boolean isLanguageToken(String s) {
-        try {
-            Language.valueOf(s.trim().toUpperCase(Locale.ROOT));
-            return true;
-        } catch (Exception ignored) {
-            return false;
-        }
+        return CompletableFuture.completedFuture(
+                LanguageCommandPolicy.suggestions(canOthers, a, languages, players)
+        );
     }
 }

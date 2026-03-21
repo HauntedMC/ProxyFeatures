@@ -43,20 +43,17 @@ public class RegisterCommand implements FeatureCommand {
                     }
                     Player live = liveOpt.get();
 
-                    if (err != null || result == null || result.type() == HLinkHandler.LinkResultType.ERROR) {
+                    HLinkResultPolicy.Decision decision = HLinkResultPolicy.evaluate(result, err);
+                    if (decision.outcome() == HLinkResultPolicy.Outcome.ERROR) {
                         live.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorCreatingKey").forAudience(live).build());
                         return;
                     }
-                    if (result.type() == HLinkHandler.LinkResultType.ALREADY_REGISTERED) {
+                    if (decision.outcome() == HLinkResultPolicy.Outcome.ALREADY_REGISTERED) {
                         live.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorAlreadyRegistered").forAudience(live).build());
                         return;
                     }
 
-                    String token = result.token();
-                    if (token == null || token.isBlank()) {
-                        live.sendMessage(feature.getLocalizationHandler().getMessage("hlink.errorCreatingKey").forAudience(live).build());
-                        return;
-                    }
+                    String token = decision.token();
                     String link = handler.getLink(token);
 
                     live.sendMessage(feature.getLocalizationHandler().getMessage("hlink.header").forAudience(live).build());

@@ -29,18 +29,22 @@ public class ConnectListener {
             var uuidBanOpt = playerOpt.flatMap(feature.getService()::findActiveBanByPlayer);
             var ipBanOpt = feature.getService().findActiveBanByIp(ip);
 
-            // Prefer UUID ban over IP ban
-            SanctionEntity ban = uuidBanOpt.orElse(ipBanOpt.orElse(null));
+            LoginBanDecisionPolicy.Decision decision = LoginBanDecisionPolicy.decide(
+                    uuidBanOpt,
+                    ipBanOpt,
+                    Instant.now()
+            );
 
-            if (ban != null) {
-                // If ban expired right now, deactivate and allow login
-                if (ban.isExpired(Instant.now())) {
-                    feature.getService().deactivateExpiredSanction(ban.getId());
-                    return;
-                }
-                String key = ban.isPermanent() ? "sanctions.disconnect.banned.perm" : "sanctions.disconnect.banned.temp";
+            if (decision.outcome() == LoginBanDecisionPolicy.Outcome.DEACTIVATE_EXPIRED) {
+                SanctionEntity expired = decision.sanction();
+                feature.getService().deactivateExpiredSanction(expired != null ? expired.getId() : null);
+                return;
+            }
+
+            if (decision.outcome() == LoginBanDecisionPolicy.Outcome.DENY) {
+                SanctionEntity ban = decision.sanction();
                 e.setResult(LoginEvent.ComponentResult.denied(
-                        feature.getLocalizationHandler().getMessage(key)
+                        feature.getLocalizationHandler().getMessage(decision.messageKey())
                                 .withPlaceholders(feature.getService().placeholdersFor(ban))
                                 .forAudience(e.getPlayer()).build()));
                 return;

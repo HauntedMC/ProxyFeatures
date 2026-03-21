@@ -5,11 +5,8 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.command.CommandExecuteEvent;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import nl.hauntedmc.proxyfeatures.features.commandlogger.CommandLogger;
-
-import java.util.Locale;
 
 public class CommandListener {
 
@@ -23,10 +20,8 @@ public class CommandListener {
     public void onCommandExecute(CommandExecuteEvent event) {
         String full = event.getCommand();
 
-        String trimmed = full.stripLeading();
-        if (trimmed.isEmpty()) return;
-
-        String alias = trimmed.split("\\s+", 2)[0];
+        String alias = CommandExecutionPolicy.extractAlias(full).orElse(null);
+        if (alias == null) return;
 
         ProxyServer proxy = feature.getPlugin().getProxyInstance();
         CommandManager cmdMgr = proxy.getCommandManager();
@@ -37,13 +32,7 @@ public class CommandListener {
             return;
         }
 
-        // Human-readable "who" string for log output
-        String who;
-        if (source instanceof Player p) {
-            who = p.getUsername() + " (" + p.getUniqueId() + ")";
-        } else {
-            who = source.getClass().getSimpleName().toLowerCase(Locale.ROOT);
-        }
+        String who = CommandExecutionPolicy.describeSource(source);
 
         // Console/info logger
         feature.getLogHandler().logProxyCommand(who, full);

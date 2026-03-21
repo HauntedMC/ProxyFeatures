@@ -34,17 +34,16 @@ public final class FriendActivityListener {
         // Do not leak vanished presence/switches of the subject
         if (isVanished(subject)) return;
 
-        String to = event.getServer().getServerInfo().getName();
-        Optional<RegisteredServer> prev = event.getPreviousServer();
+        String currentServer = event.getServer().getServerInfo().getName();
+        Optional<String> previousServer = event.getPreviousServer()
+                .map(RegisteredServer::getServerInfo)
+                .map(info -> info.getName());
 
-        if (prev.isPresent()) {
-            String from = prev.get().getServerInfo().getName();
-            if (!from.equalsIgnoreCase(to)) {
-                notifyFriendsSwitch(subject, from, to);
-            }
-        } else {
-            // First successful connect after login → “now online”
-            notifyFriendsOnline(subject, to);
+        FriendActivityPolicy.ConnectPlan plan = FriendActivityPolicy.classifyServerConnect(previousServer, currentServer);
+        if (plan.type() == FriendActivityPolicy.ConnectType.ONLINE) {
+            notifyFriendsOnline(subject, plan.to());
+        } else if (plan.type() == FriendActivityPolicy.ConnectType.SWITCH) {
+            notifyFriendsSwitch(subject, plan.from(), plan.to());
         }
     }
 
@@ -100,13 +99,12 @@ public final class FriendActivityListener {
         List<FriendSnapshot> snaps = svc.acceptedFriendSnapshots(subjRefOpt.get());
         if (snaps.isEmpty()) return Collections.emptyList();
 
-        List<Player> result = new ArrayList<>(snaps.size());
-        for (FriendSnapshot s : snaps) {
-            try {
-                UUID fid = UUID.fromString(s.uuid());
-                ProxyFeatures.getProxyInstance().getPlayer(fid).ifPresent(result::add);
-            } catch (IllegalArgumentException ignored) {
-            }
+        List<UUID> friendIds = FriendActivityPolicy.parseFriendUuids(snaps);
+        if (friendIds.isEmpty()) return Collections.emptyList();
+
+        List<Player> result = new ArrayList<>(friendIds.size());
+        for (UUID friendId : friendIds) {
+            ProxyFeatures.getProxyInstance().getPlayer(friendId).ifPresent(result::add);
         }
         return result;
     }

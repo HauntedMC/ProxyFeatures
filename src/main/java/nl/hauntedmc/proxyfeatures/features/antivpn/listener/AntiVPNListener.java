@@ -11,7 +11,6 @@ import nl.hauntedmc.proxyfeatures.features.antivpn.internal.AntiVPNService;
 import nl.hauntedmc.proxyfeatures.features.antivpn.internal.CountryService;
 
 import java.net.InetSocketAddress;
-import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -33,13 +32,8 @@ public final class AntiVPNListener {
     public void onPreLogin(PreLoginEvent event) {
         InboundConnection connection = event.getConnection();
         InetSocketAddress address = connection.getRemoteAddress();
-        if (address == null) {
-            return;
-        }
-        String ip = address.getAddress() != null
-                ? address.getAddress().getHostAddress()
-                : address.getHostString();
-        if (ip == null || ip.isBlank()) {
+        String ip = AntiVPNPreLoginPolicy.resolveIp(address);
+        if (ip == null) {
             return;
         }
         String playerName = event.getUsername();
@@ -63,8 +57,8 @@ public final class AntiVPNListener {
 
         // Stage country if known (Fix #6 handled by TTL-based staging)
         String country = eval.countryUpper();
-        if (country != null && !country.isBlank() && playerName != null && !playerName.isBlank()) {
-            countryService.stageForUsername(playerName, country.toUpperCase(Locale.ROOT));
+        if (AntiVPNPreLoginPolicy.shouldStageCountry(country, playerName)) {
+            countryService.stageForUsername(playerName, AntiVPNPreLoginPolicy.normalizeCountry(country));
         }
     }
 

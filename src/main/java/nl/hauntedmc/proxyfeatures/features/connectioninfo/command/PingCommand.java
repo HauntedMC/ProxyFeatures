@@ -72,15 +72,7 @@ public class PingCommand implements FeatureCommand {
         Player target = optTarget.get();
         int ping = Math.toIntExact(target.getPing());
 
-        // determine color code
-        String color;
-        if (ping <= greenThreshold) {
-            color = "&a";
-        } else if (ping <= yellowThreshold) {
-            color = "&e";
-        } else {
-            color = "&c";
-        }
+        String color = PingCommandPolicy.colorCodeForPing(ping, greenThreshold, yellowThreshold);
 
         // pick message key and placeholders
         String key = other ? "connectioninfo.ping_other" : "connectioninfo.ping_self";
@@ -103,17 +95,10 @@ public class PingCommand implements FeatureCommand {
 
     public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
         String[] args = invocation.arguments();
-
-        // If no argument or empty, suggest all online players
-        if (args.length == 0 || args[0].isEmpty()) {
-            List<String> allNames = ProxyFeatures.getProxyInstance().getAllPlayers().stream().map(Player::getUsername).collect(Collectors.toList());
-            return CompletableFuture.completedFuture(allNames);
-        }
-
-        // Otherwise, filter by what they've started typing
-        String partial = args[0].toLowerCase();
-        List<String> matching = ProxyFeatures.getProxyInstance().getAllPlayers().stream().map(Player::getUsername).filter(name -> name.toLowerCase().startsWith(partial)).collect(Collectors.toList());
-        return CompletableFuture.completedFuture(matching);
+        List<String> allNames = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
+                .map(Player::getUsername)
+                .collect(Collectors.toList());
+        return CompletableFuture.completedFuture(PingCommandPolicy.suggestions(args, allNames));
     }
 
 }
