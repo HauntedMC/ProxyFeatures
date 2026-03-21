@@ -140,4 +140,38 @@ class MessagingSettingsServiceTest {
         assertTrue(found.isPresent());
         assertEquals("Player", found.get().getUsername());
     }
+
+    @Test
+    void loadSettingsCreatesPlayerAndSettingsWhenBothMissing() {
+        Messenger feature = mock(Messenger.class);
+        ORMContext orm = mock(ORMContext.class);
+        Session session = mock(Session.class);
+        @SuppressWarnings("unchecked")
+        Query<PlayerEntity> playerQuery = mock(Query.class);
+        @SuppressWarnings("unchecked")
+        Query<PlayerMessageSettingsEntity> settingsQuery = mock(Query.class);
+        when(feature.getOrmContext()).thenReturn(orm);
+        when(orm.runInTransaction(any())).thenAnswer(invocation -> {
+            ORMContext.TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.execute(session);
+        });
+
+        UUID uuid = UUID.randomUUID();
+        when(session.createQuery("FROM PlayerEntity p WHERE p.uuid = :uuid", PlayerEntity.class))
+                .thenReturn(playerQuery);
+        when(playerQuery.setParameter("uuid", uuid.toString())).thenReturn(playerQuery);
+        when(playerQuery.uniqueResultOptional()).thenReturn(Optional.empty());
+
+        when(session.createQuery("FROM PlayerMessageSettingsEntity s WHERE s.playerId = :pid",
+                PlayerMessageSettingsEntity.class)).thenReturn(settingsQuery);
+        when(settingsQuery.setParameter(eq("pid"), any())).thenReturn(settingsQuery);
+        when(settingsQuery.uniqueResultOptional()).thenReturn(Optional.empty());
+
+        MessagingSettingsService service = new MessagingSettingsService(feature);
+        PlayerMessageSettingsEntity loaded = service.loadSettings(uuid, "Remy");
+
+        assertNotNull(loaded);
+        verify(session, atLeastOnce()).persist(any(PlayerEntity.class));
+        verify(session, atLeastOnce()).persist(any(PlayerMessageSettingsEntity.class));
+    }
 }

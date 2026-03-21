@@ -27,6 +27,7 @@ Feature logic is also coverage-gated at 100% line coverage for selected classes:
 - resourcepack utility (`ResourceUtils`)
 - feature runtime logic (`AntiVPNService`, `VanishRegistry`, `ServiceLookup`, `FeatureFactory`, `ServerLinksHandler`)
 - feature event-bus handlers (`commandrelay.internal.EventBusHandler`, `staffchat.internal.messaging.EventBusHandler`, `vanish.internal.messaging.EventBusHandler`, `votifier.messaging.EventBusHandler`)
+- additional feature services/hooks (`NotificationService`, `CommandLogService`, `ClientInfoSettingsService`, `MessagingSettingsService`, `DiscordService`, `VersionHandler`, `PlayerInfoService`, `LuckPermsHook`)
 
 Feature tests intentionally skip repetitive framework-covered boilerplate such as feature main/meta wrappers and focus on feature-specific behavior that should detect breakage.
 

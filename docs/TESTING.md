@@ -60,6 +60,7 @@ Feature logic currently gated at 100% line coverage:
 - votifier/resourcepack internals/entities/utilities: `VotifierConfig`, `PlayerVoteStatsEntity`, `PlayerVoteMonthlyEntity`, `PlayerVoteMonthlyKey`, `VotifierRolloverStateEntity`, `IpAccessList`, `RSAUtil`, `ResourceUtils`
 - feature runtime logic: `AntiVPNService`, `VanishRegistry`, `ServiceLookup`, `FeatureFactory`, `ServerLinksHandler`
 - feature event-bus handlers: `commandrelay.internal.EventBusHandler`, `staffchat.internal.messaging.EventBusHandler`, `vanish.internal.messaging.EventBusHandler`, `votifier.messaging.EventBusHandler`
+- additional feature services/hooks: `NotificationService`, `CommandLogService`, `ClientInfoSettingsService`, `MessagingSettingsService`, `DiscordService`, `VersionHandler`, `PlayerInfoService`, `LuckPermsHook`
 
 The feature suite targets regression-sensitive paths such as:
 

@@ -12,6 +12,7 @@ import nl.hauntedmc.proxyfeatures.framework.log.FeatureLogger;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -90,40 +91,48 @@ class DiscordServiceTest {
         PlayerEntity target = new PlayerEntity();
         target.setUsername("Remy");
         SanctionEntity sanction = new SanctionEntity();
+        java.util.List<String> payloads = new java.util.ArrayList<>();
 
         try (MockedStatic<DiscordUtils> mocked = mockStatic(DiscordUtils.class)) {
-            mocked.when(() -> DiscordUtils.sendPayload(anyString(), anyString())).thenReturn(true);
+            mocked.when(() -> DiscordUtils.sendPayload(anyString(), anyString()))
+                    .thenAnswer(invocation -> {
+                        payloads.add(invocation.getArgument(1, String.class));
+                        return true;
+                    });
 
             DiscordService service = new DiscordService(feature);
             service.sendBan(sanction);
             service.sendMute(sanction);
             service.sendUnmute(target, "Admin");
-
-            mocked.verify(() -> DiscordUtils.sendPayload(
-                    eq("https://discord.example/hook"),
-                    argThat(payload -> payload.contains("Ban")
-                            && payload.contains("Mute")
-                            && payload.contains("Unmute"))), atLeast(1));
         }
+
+        verify(feature.getLifecycleManager().getTaskManager(), times(3)).scheduleTask(any(Runnable.class));
+        assertTrue(payloads.stream().anyMatch(p -> p.contains("\"value\":\"Ban\"")));
+        assertTrue(payloads.stream().anyMatch(p -> p.contains("\"value\":\"Mute\"")));
+        assertTrue(payloads.stream().anyMatch(p -> p.contains("\"value\":\"Unmute\"")));
     }
 
     @Test
     void sendWarnAndKickHandleNullTargetAndBlankReasonWithDashFallback() {
         Sanctions feature = configuredFeature("https://discord.example/hook");
+        java.util.List<String> payloads = new java.util.ArrayList<>();
 
         try (MockedStatic<DiscordUtils> mocked = mockStatic(DiscordUtils.class)) {
-            mocked.when(() -> DiscordUtils.sendPayload(anyString(), anyString())).thenReturn(true);
+            mocked.when(() -> DiscordUtils.sendPayload(anyString(), anyString()))
+                    .thenAnswer(invocation -> {
+                        payloads.add(invocation.getArgument(1, String.class));
+                        return true;
+                    });
 
             DiscordService service = new DiscordService(feature);
             service.sendWarn(null, " ", "Admin");
             service.sendKick(null, null, "Admin");
-
-            mocked.verify(() -> DiscordUtils.sendPayload(
-                    eq("https://discord.example/hook"),
-                    argThat(payload -> payload.contains("Warn")
-                            && payload.contains("Kick")
-                            && payload.contains("-"))), atLeast(1));
         }
+
+        verify(feature.getLifecycleManager().getTaskManager(), times(2)).scheduleTask(any(Runnable.class));
+        assertTrue(payloads.stream().anyMatch(p -> p.contains("\"value\":\"Warn\"")));
+        assertTrue(payloads.stream().anyMatch(p -> p.contains("\"value\":\"Kick\"")));
+        assertTrue(payloads.stream().allMatch(p -> p.contains("\"value\":\"-\"")));
     }
 
     private static Sanctions configuredFeature(String webhookUrl) {

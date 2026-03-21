@@ -113,4 +113,37 @@ class ClientInfoSettingsServiceTest {
         assertTrue(found.isPresent());
         assertEquals("Remy", found.get().getUsername());
     }
+
+    @Test
+    void createsPlayerAndDefaultSettingsWhenMissing() {
+        ORMContext orm = mock(ORMContext.class);
+        Session session = mock(Session.class);
+        @SuppressWarnings("unchecked")
+        Query<PlayerEntity> playerQuery = mock(Query.class);
+        @SuppressWarnings("unchecked")
+        Query<PlayerClientInfoSettingsEntity> settingsQuery = mock(Query.class);
+
+        UUID uuid = UUID.randomUUID();
+
+        when(orm.runInTransaction(any())).thenAnswer(invocation -> {
+            ORMContext.TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.execute(session);
+        });
+        when(session.createQuery("FROM PlayerEntity p WHERE p.uuid = :uuid", PlayerEntity.class))
+                .thenReturn(playerQuery);
+        when(playerQuery.setParameter("uuid", uuid.toString())).thenReturn(playerQuery);
+        when(playerQuery.uniqueResultOptional()).thenReturn(Optional.empty());
+
+        when(session.createQuery("FROM PlayerClientInfoSettingsEntity s WHERE s.playerId = :pid",
+                PlayerClientInfoSettingsEntity.class)).thenReturn(settingsQuery);
+        when(settingsQuery.setParameter(eq("pid"), any())).thenReturn(settingsQuery);
+        when(settingsQuery.uniqueResultOptional()).thenReturn(Optional.empty());
+
+        ClientInfoSettingsService service = new ClientInfoSettingsService(orm);
+        boolean enabled = service.isNotificationsEnabled(uuid, "Remy");
+
+        assertTrue(enabled); // defaults true
+        verify(session, atLeastOnce()).persist(any(PlayerEntity.class));
+        verify(session, atLeastOnce()).persist(any(PlayerClientInfoSettingsEntity.class));
+    }
 }

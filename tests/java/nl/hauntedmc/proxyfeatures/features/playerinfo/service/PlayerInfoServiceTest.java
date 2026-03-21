@@ -8,6 +8,7 @@ import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.PlayerInfo;
+import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 import nl.hauntedmc.proxyfeatures.framework.config.FeatureConfigHandler;
 import nl.hauntedmc.proxyfeatures.framework.log.FeatureLogger;
 import org.hibernate.Session;
@@ -44,6 +45,38 @@ class PlayerInfoServiceTest {
         assertEquals("01-01-1970 00:00:00", service.fmt(Instant.EPOCH));
         assertEquals("—", service.fmt(null));
         verify(logger).warn(contains("Invalid datetimeFormat"));
+    }
+
+    @Test
+    void constructorHandlesBlankTimezoneAndBlankPattern() {
+        PlayerInfo feature = mock(PlayerInfo.class);
+        FeatureConfigHandler cfg = mock(FeatureConfigHandler.class);
+        FeatureLogger logger = mock(FeatureLogger.class);
+        ORMContext orm = mock(ORMContext.class);
+        when(feature.getConfigHandler()).thenReturn(cfg);
+        when(feature.getLogger()).thenReturn(logger);
+        when(feature.getOrmContext()).thenReturn(orm);
+        when(cfg.get("timezone", String.class, "")).thenReturn(" ");
+        when(cfg.get("datetimeFormat", String.class, "dd-MM-yyyy HH:mm:ss")).thenReturn(" ");
+
+        PlayerInfoService service = new PlayerInfoService(feature);
+        assertNotNull(service.fmt(Instant.EPOCH));
+    }
+
+    @Test
+    void constructorHandlesInvalidTimezone() {
+        PlayerInfo feature = mock(PlayerInfo.class);
+        FeatureConfigHandler cfg = mock(FeatureConfigHandler.class);
+        FeatureLogger logger = mock(FeatureLogger.class);
+        ORMContext orm = mock(ORMContext.class);
+        when(feature.getConfigHandler()).thenReturn(cfg);
+        when(feature.getLogger()).thenReturn(logger);
+        when(feature.getOrmContext()).thenReturn(orm);
+        when(cfg.get("timezone", String.class, "")).thenReturn("Not/AZone");
+        when(cfg.get("datetimeFormat", String.class, "dd-MM-yyyy HH:mm:ss")).thenReturn("dd-MM-yyyy HH:mm:ss");
+
+        PlayerInfoService service = new PlayerInfoService(feature);
+        assertNotNull(service.fmt(Instant.EPOCH));
     }
 
     @Test
@@ -126,6 +159,59 @@ class PlayerInfoServiceTest {
 
         assertEquals(List.of(), service.findUsernamesByLastIp(" ", 5L));
         assertEquals(List.of("Alpha", "Beta"), service.findUsernamesByLastIp("1.2.3.4", 5L));
+    }
+
+    @Test
+    void queryHelpersForUuidConnectionInfoAndActiveSanctionsDelegateCorrectly() {
+        PlayerInfo feature = playerInfoWithDefaults();
+        ORMContext orm = feature.getOrmContext();
+        Session session = mock(Session.class);
+        @SuppressWarnings("unchecked")
+        Query<PlayerEntity> uuidQuery = mock(Query.class);
+        @SuppressWarnings("unchecked")
+        Query<nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity> connQuery = mock(Query.class);
+        @SuppressWarnings("unchecked")
+        Query<SanctionEntity> sanctionQuery = mock(Query.class);
+
+        when(orm.runInTransaction(any())).thenAnswer(invocation -> {
+            ORMContext.TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.execute(session);
+        });
+
+        PlayerEntity player = new PlayerEntity();
+        player.setId(99L);
+        player.setUuid("uuid");
+
+        when(session.createQuery("SELECT p FROM PlayerEntity p WHERE p.uuid = :uuid", PlayerEntity.class))
+                .thenReturn(uuidQuery);
+        when(uuidQuery.setParameter("uuid", "uuid")).thenReturn(uuidQuery);
+        when(uuidQuery.setMaxResults(1)).thenReturn(uuidQuery);
+        when(uuidQuery.uniqueResultOptional()).thenReturn(Optional.of(player));
+
+        when(session.createQuery(
+                "SELECT c FROM PlayerConnectionInfoEntity c WHERE c.playerId = :pid",
+                nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity.class)).thenReturn(connQuery);
+        when(connQuery.setParameter("pid", 99L)).thenReturn(connQuery);
+        when(connQuery.setMaxResults(1)).thenReturn(connQuery);
+        nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity conn =
+                mock(nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity.class);
+        when(connQuery.uniqueResultOptional()).thenReturn(Optional.of(conn));
+
+        when(session.createQuery(
+                "SELECT s FROM SanctionEntity s " +
+                        "WHERE s.targetPlayer = :player AND s.active = true " +
+                        "AND (s.expiresAt IS NULL OR s.expiresAt > :now) " +
+                        "ORDER BY s.createdAt DESC",
+                SanctionEntity.class)).thenReturn(sanctionQuery);
+        when(sanctionQuery.setParameter("player", player)).thenReturn(sanctionQuery);
+        when(sanctionQuery.setParameter(eq("now"), any(Instant.class))).thenReturn(sanctionQuery);
+        when(sanctionQuery.getResultList()).thenReturn(List.of(mock(SanctionEntity.class)));
+
+        PlayerInfoService service = new PlayerInfoService(feature);
+
+        assertTrue(service.findPlayerEntityByUuid("uuid").isPresent());
+        assertTrue(service.getConnectionInfo(player).isPresent());
+        assertEquals(1, service.getActiveSanctions(player).size());
     }
 
     private static PlayerInfo playerInfoWithDefaults() {
