@@ -13,12 +13,14 @@ import java.nio.file.Path;
 
 public class ResourceHandler {
     private final ProxyFeatures plugin;
+    private final String resourcePath;
     private final Path file;
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
     private CommentedConfigurationNode config;
 
     public ResourceHandler(ProxyFeatures plugin, String fileName) {
         this.plugin = plugin;
+        this.resourcePath = fileName;
         Path dataDir = plugin.getDataDirectory().toAbsolutePath().normalize();
         Path resolved = dataDir.resolve(fileName).normalize();
         if (!resolved.startsWith(dataDir)) {
@@ -41,13 +43,15 @@ public class ResourceHandler {
         try {
             Files.createDirectories(file.getParent());
             if (!Files.exists(file)) {
-                try (InputStream in = plugin.getClass().getResourceAsStream("/" + file.getFileName().toString())) {
+                try (InputStream in = openResourceStream()) {
                     if (in != null) {
                         Files.copy(in, file);
+                        return;
                     } else {
-                        plugin.getLogger().error("Default {} not found in resources!", file.getFileName());
+                        plugin.getLogger().warn("Default '{}' not found in resources. Creating empty file '{}'.", resourcePath, file);
                     }
                 }
+                Files.createFile(file);
             }
         } catch (IOException e) {
             plugin.getLogger().error("Error ensuring file exists: {}", file, e);
@@ -62,6 +66,7 @@ public class ResourceHandler {
             this.config = loader.load();
         } catch (IOException e) {
             plugin.getLogger().error("Error loading file: {}", file, e);
+            this.config = CommentedConfigurationNode.root();
         }
     }
 
@@ -88,5 +93,16 @@ public class ResourceHandler {
         } catch (IOException e) {
             plugin.getLogger().error("Error saving file: {}", file, e);
         }
+    }
+
+    private InputStream openResourceStream() {
+        ClassLoader classLoader = plugin.getClass().getClassLoader();
+        InputStream in = classLoader.getResourceAsStream(resourcePath);
+        if (in != null) {
+            return in;
+        }
+
+        String fallback = file.getFileName().toString();
+        return classLoader.getResourceAsStream(fallback);
     }
 }

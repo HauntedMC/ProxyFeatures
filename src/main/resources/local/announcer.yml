@@ -1,3 +1,17 @@
+# =====================================================================
+# Announcer message pool
+# =====================================================================
+# Each entry under messages.* supports:
+# - key: optional localization key (defaults to announcer.<entry-id>)
+# - weight: optional positive integer (defaults to 1)
+#
+# Example:
+# messages:
+#   pvp:
+#     key: "announcer.pvp"
+#     weight: 2
+# =====================================================================
+
 messages:
   default:
     weight: 1

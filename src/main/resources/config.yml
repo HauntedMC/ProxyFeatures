@@ -1,0 +1,11 @@
+# =====================================================================
+# ProxyFeatures main configuration
+# =====================================================================
+# This file intentionally starts minimal.
+# Missing defaults are injected automatically on startup under:
+# - global.*
+# - features.<FeatureName>.*
+#
+# For sensitive values, prefer environment variables where available:
+# - PROXYFEATURES_DATAPROVIDER_TOKEN
+# =====================================================================

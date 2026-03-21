@@ -14,7 +14,7 @@ import java.util.Map;
 public final class AnnouncerRegistry {
 
     private static final String RESOURCE_FILE = "local/announcer.yml";
-    public static final String FALLBACK_KEY = "announcer.text1";
+    public static final String FALLBACK_KEY = "announcer.default";
 
     public record Announcement(String key, int weight) {
     }

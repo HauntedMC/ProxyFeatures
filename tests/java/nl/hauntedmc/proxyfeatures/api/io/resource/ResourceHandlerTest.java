@@ -54,6 +54,45 @@ class ResourceHandlerTest {
     }
 
     @Test
+    void copiesNestedDefaultResourceWhenMissing() throws Exception {
+        ProxyFeatures plugin = mockPlugin();
+        Path copied = tempDir.resolve("nested/resource-default.yml");
+        assertFalse(Files.exists(copied));
+
+        ResourceHandler handler = new ResourceHandler(plugin, "nested/resource-default.yml");
+
+        assertNotNull(handler.getConfig());
+        assertTrue(Files.exists(copied));
+        assertTrue(Files.readString(copied).contains("from-nested-test-resource"));
+    }
+
+    @Test
+    void createsEmptyFileWhenDefaultResourceIsMissing() throws Exception {
+        ProxyFeatures plugin = mockPlugin();
+        Path copied = tempDir.resolve("missing-resource.yml");
+        assertFalse(Files.exists(copied));
+
+        ResourceHandler handler = new ResourceHandler(plugin, "missing-resource.yml");
+
+        assertNotNull(handler.getConfig());
+        assertTrue(Files.exists(copied));
+        assertEquals("", Files.readString(copied));
+    }
+
+    @Test
+    void fallsBackToBasenameResourceWhenScopedPathIsMissing() throws Exception {
+        ProxyFeatures plugin = mockPlugin();
+        Path copied = tempDir.resolve("scoped/resource-default.yml");
+        assertFalse(Files.exists(copied));
+
+        ResourceHandler handler = new ResourceHandler(plugin, "scoped/resource-default.yml");
+
+        assertNotNull(handler.getConfig());
+        assertTrue(Files.exists(copied));
+        assertTrue(Files.readString(copied).contains("from-test-resource"));
+    }
+
+    @Test
     void ensureAndSaveErrorBranchesAreHandled() throws Exception {
         ProxyFeatures plugin = mockPlugin();
 

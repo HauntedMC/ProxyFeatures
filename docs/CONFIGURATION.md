@@ -9,6 +9,9 @@ Primary configuration file:
 Feature-local files may also be created under:
 
 - `local/*.yml`
+- Included templates:
+  - `local/announcer.yml`
+  - `local/resourcepacks.yml`
 
 ## Global Keys
 
@@ -48,7 +51,12 @@ Localization files are under:
 
 - `src/main/resources/lang/`
 
-At runtime, localized outputs are resolved through the localization handler.
+Runtime files in the plugin data directory:
+
+- `lang/messages.yml`: default message set
+- `lang/messages_EN.yml`, `lang/messages_NL.yml`, `lang/messages_DE.yml`: optional partial overrides
+
+Override files can stay mostly empty; missing keys automatically fall back to `messages.yml`.
 
 ## Operational Advice
 
