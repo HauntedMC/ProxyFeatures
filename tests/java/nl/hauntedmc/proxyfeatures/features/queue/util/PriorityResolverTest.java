@@ -24,4 +24,14 @@ class PriorityResolverTest {
         Player player = mock(Player.class);
         assertEquals(0, new PriorityResolver().resolve(player));
     }
+
+    @Test
+    void resolveHandlesMiddlePriorityWithoutHigherPermission() {
+        Player player = mock(Player.class);
+        when(player.hasPermission("proxyfeatures.feature.queue.priority.1")).thenReturn(false);
+        when(player.hasPermission("proxyfeatures.feature.queue.priority.2")).thenReturn(true);
+        when(player.hasPermission("proxyfeatures.feature.queue.priority.3")).thenReturn(false);
+
+        assertEquals(2, new PriorityResolver().resolve(player));
+    }
 }

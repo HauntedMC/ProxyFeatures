@@ -50,7 +50,7 @@ public class VersionHandler {
      */
     @Deprecated
     public boolean isAllowedVersion(int protocolVersion) {
-        return isUnsupportedVersion(protocolVersion);
+        return !isUnsupportedVersion(protocolVersion);
     }
 
     public int getMinimumProtcolVersion() {

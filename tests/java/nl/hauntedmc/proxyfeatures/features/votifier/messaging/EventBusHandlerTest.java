@@ -41,4 +41,20 @@ class EventBusHandlerTest {
 
         verify(logger).error(contains("Failed to publish vote message"));
     }
+
+    @Test
+    void publishSuccessDoesNotLogErrors() {
+        MessagingDataAccess redis = mock(MessagingDataAccess.class);
+        Votifier feature = mock(Votifier.class);
+        FeatureLogger logger = mock(FeatureLogger.class);
+        when(feature.getLogger()).thenReturn(logger);
+
+        VoteMessage message = new VoteMessage("site", "Remy", "127.0.0.1", 1L);
+        when(redis.publish("votes", message)).thenReturn(CompletableFuture.completedFuture(null));
+
+        EventBusHandler handler = new EventBusHandler(feature, redis);
+        handler.publishVote(message, "votes");
+
+        verifyNoInteractions(logger);
+    }
 }

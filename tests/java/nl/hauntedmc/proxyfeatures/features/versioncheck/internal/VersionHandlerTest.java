@@ -31,7 +31,8 @@ class VersionHandlerTest {
         assertEquals("unsupported", handler.getFriendlyProtocolName());
         assertTrue(handler.isUnsupportedVersion(762));
         assertFalse(handler.isUnsupportedVersion(763));
-        assertEquals(handler.isUnsupportedVersion(100), handler.isAllowedVersion(100));
+        assertFalse(handler.isAllowedVersion(762));
+        assertTrue(handler.isAllowedVersion(763));
     }
 
     @Test

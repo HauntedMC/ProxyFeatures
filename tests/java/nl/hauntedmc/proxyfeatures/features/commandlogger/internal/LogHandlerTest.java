@@ -19,4 +19,16 @@ class LogHandlerTest {
 
         verify(logger).info("Console executed command: /velocity info");
     }
+
+    @Test
+    void logProxyCommandDoesNotDuplicateLeadingSlash() {
+        CommandLogger feature = mock(CommandLogger.class);
+        FeatureLogger logger = mock(FeatureLogger.class);
+        when(feature.getLogger()).thenReturn(logger);
+
+        LogHandler handler = new LogHandler(feature);
+        handler.logProxyCommand("Console", "/velocity info");
+
+        verify(logger).info("Console executed command: /velocity info");
+    }
 }

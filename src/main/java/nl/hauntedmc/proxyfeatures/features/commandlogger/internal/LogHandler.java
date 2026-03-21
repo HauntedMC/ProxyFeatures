@@ -17,6 +17,8 @@ public class LogHandler {
      * @param full volledige commandline zonder leading slash, bv. "velocity info"
      */
     public void logProxyCommand(String who, String full) {
-        feature.getLogger().info(who + " executed command: " + "/" + full);
+        String value = full == null ? "" : full;
+        String normalized = value.startsWith("/") ? value : "/" + value;
+        feature.getLogger().info(who + " executed command: " + normalized);
     }
 }
