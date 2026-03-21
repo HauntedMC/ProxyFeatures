@@ -26,6 +26,11 @@ public class SimpleHttpClient {
             .build();
 
     public static String post(String url, List<NameValuePair> args) throws Exception {
+        return post(url, args, client);
+    }
+
+    static String post(String url, List<NameValuePair> args, HttpClient httpClient) throws Exception {
+        Objects.requireNonNull(httpClient, "httpClient");
         List<NameValuePair> safeArgs = args == null ? List.of() : args;
         String form = safeArgs.stream()
                 .filter(Objects::nonNull)
@@ -44,7 +49,7 @@ public class SimpleHttpClient {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form))
                 .build();
-        HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
         String body;
         try (InputStream stream = response.body()) {
             byte[] bytes = stream.readNBytes(MAX_RESPONSE_BYTES + 1);

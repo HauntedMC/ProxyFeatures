@@ -20,6 +20,13 @@ class ResourceUtilsTest {
     }
 
     @Test
+    void hexToBytesReturnsEmptyForInvalidPayload() {
+        assertArrayEquals(new byte[0], ResourceUtils.hexToBytes(null));
+        assertArrayEquals(new byte[0], ResourceUtils.hexToBytes("A"));
+        assertArrayEquals(new byte[0], ResourceUtils.hexToBytes("ZZ"));
+    }
+
+    @Test
     void getResourcePackNameStripsZipExtensionCaseInsensitive() {
         assertEquals("pack-v1", ResourceUtils.getResourcePackName("https://cdn.example/pack-v1.zip"));
         assertEquals("pack-v2", ResourceUtils.getResourcePackName("https://cdn.example/pack-v2.ZIP"));

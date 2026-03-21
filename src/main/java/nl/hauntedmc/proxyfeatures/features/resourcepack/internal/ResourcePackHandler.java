@@ -11,6 +11,8 @@ import nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,20 +81,20 @@ public class ResourcePackHandler {
 
             byte[] hash = normalizedSha1(hashHex, "mode:" + mode);
             ResourcePackInfo info = buildPackInfo(url, hash, force, promptKey);
-            packInfoMap.put(mode.toLowerCase(), info);
+            packInfoMap.put(mode.toLowerCase(Locale.ROOT), info);
         }
     }
 
     /** Retrieve a pre-built ResourcePackInfo by key ("global" or gamemode name). */
     public ResourcePackInfo getPackInfo(@NotNull String key) {
-        return packInfoMap.get(key.toLowerCase());
+        return packInfoMap.get(key.toLowerCase(Locale.ROOT));
     }
 
     /** Build a pack from arbitrary url+hash with force + localized prompt key. */
     public @NotNull ResourcePackInfo buildPackInfo(String url, byte[] hash, boolean force, String promptKey) {
         return server.createResourcePackBuilder(url)
                 .setHash(hash)
-                .setId(UUID.nameUUIDFromBytes(url.getBytes()))
+                .setId(UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8)))
                 .setPrompt(feature.getLocalizationHandler().getMessage(promptKey).build())
                 .setShouldForce(force)
                 .build();

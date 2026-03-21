@@ -36,6 +36,20 @@ class FeatureTaskManagerTest {
     }
 
     @Test
+    void oneShotTaskAutoRemovesEvenWhenExecutedBeforeScheduleReturns() {
+        ProxyFeatures plugin = mock(ProxyFeatures.class);
+        FakeScheduler scheduler = new FakeScheduler();
+        scheduler.runImmediatelyOnSchedule = true;
+        when(plugin.getScheduler()).thenReturn(scheduler);
+
+        FeatureTaskManager manager = new FeatureTaskManager(plugin);
+        manager.scheduleTask(() -> {
+        });
+
+        assertEquals(0, manager.getActiveTaskCount());
+    }
+
+    @Test
     void delayedTaskClampsNegativeAndNullToZero() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         FakeScheduler scheduler = new FakeScheduler();
@@ -110,6 +124,7 @@ class FeatureTaskManagerTest {
         private Runnable lastRunnable;
         private Duration lastDelay;
         private Duration lastRepeat;
+        private boolean runImmediatelyOnSchedule;
 
         @Override
         public TaskBuilder buildTask(Object plugin, Runnable runnable) {
@@ -169,6 +184,9 @@ class FeatureTaskManagerTest {
         public ScheduledTask schedule() {
             FakeTask task = new FakeTask();
             owner.tasks.add(task);
+            if (owner.runImmediatelyOnSchedule && owner.lastRunnable != null) {
+                owner.lastRunnable.run();
+            }
             return task;
         }
     }

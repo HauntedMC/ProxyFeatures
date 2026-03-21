@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -123,16 +124,24 @@ public class FeatureTaskManager {
      */
     private ScheduledTask scheduleOnce(Function<Runnable, ScheduledTask> submitter, Runnable task) {
         AtomicReference<ScheduledTask> ref = new AtomicReference<>();
+        AtomicBoolean completed = new AtomicBoolean(false);
         Runnable wrapped = () -> {
             try {
                 task.run();
             } finally {
-                scheduledTasks.remove(ref.get());
+                completed.set(true);
+                ScheduledTask scheduled = ref.get();
+                if (scheduled != null) {
+                    scheduledTasks.remove(scheduled);
+                }
             }
         };
         ScheduledTask scheduled = submitter.apply(wrapped);
         ref.set(scheduled);
         scheduledTasks.add(scheduled);
+        if (completed.get()) {
+            scheduledTasks.remove(scheduled);
+        }
         return scheduled;
     }
 
@@ -156,7 +165,7 @@ public class FeatureTaskManager {
     }
 
     /**
-     * Clamp period to at least 1 millisecond (Velocity requires a positive repeat period).
+     * Clamp period to at least 1 second to avoid accidental hot-loop schedules.
      */
     private static Duration clampPeriod(Duration p) {
         if (p == null || p.isZero() || p.isNegative()) return Duration.ofMillis(1000);

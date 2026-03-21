@@ -1,5 +1,7 @@
 package nl.hauntedmc.proxyfeatures.features.antivpn.internal;
 
+import java.util.Locale;
+
 /**
  * Final resolved information for an IP.
  * timestamp is when we fetched it (useful for debugging/metrics).
@@ -11,6 +13,6 @@ public record IPCheckResult(String countryCode, Boolean vpn, String providerId, 
     }
 
     public String countryUpper() {
-        return countryCode == null ? "" : countryCode.trim().toUpperCase();
+        return countryCode == null ? "" : countryCode.trim().toUpperCase(Locale.ROOT);
     }
 }
