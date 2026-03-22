@@ -28,6 +28,8 @@ public class Queue extends VelocityBaseFeature<Meta> {
         cfg.put("servers-whitelist", List.of("survival", "skyblock", "kitpvp", "creative", "minigames"));
         cfg.put("poll-interval-seconds", 2);
         cfg.put("update-interval-seconds", 15);
+        cfg.put("ping-timeout-seconds", 3);
+        cfg.put("ping-timeout-warn-cooldown-seconds", 60);
         cfg.put("grace-seconds", 60);
         return cfg;
     }

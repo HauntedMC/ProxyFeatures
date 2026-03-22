@@ -18,6 +18,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class QueueManager {
 
@@ -36,6 +38,12 @@ public class QueueManager {
 
     private final PriorityResolver priorityResolver;
     private final int graceSeconds;
+    private final long pingTimeoutMillis;
+    private final long pingWarnCooldownMillis;
+    private final AtomicBoolean pollInProgress = new AtomicBoolean(false);
+
+    private volatile boolean pingTimeoutActive;
+    private volatile long lastPingTimeoutWarnAtMillis;
 
     private ScheduledTask pollTask;
     private ScheduledTask updateTask;
@@ -46,6 +54,10 @@ public class QueueManager {
         this.logger = logger;
         this.priorityResolver = new PriorityResolver();
         this.graceSeconds = Math.max(1, feature.getConfigHandler().get("grace-seconds", Integer.class, 60));
+        int pingTimeoutSeconds = Math.max(1, feature.getConfigHandler().get("ping-timeout-seconds", Integer.class, 3));
+        int pingWarnCooldownSeconds = Math.max(10, feature.getConfigHandler().get("ping-timeout-warn-cooldown-seconds", Integer.class, 60));
+        this.pingTimeoutMillis = TimeUnit.SECONDS.toMillis(pingTimeoutSeconds);
+        this.pingWarnCooldownMillis = TimeUnit.SECONDS.toMillis(pingWarnCooldownSeconds);
         initializeQueuesFromConfig();
     }
 
@@ -65,10 +77,15 @@ public class QueueManager {
     // ------------------------------------------------------------
     public void startSchedulers(Duration pollEvery, Duration updateEvery) {
         pollTask = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
+            if (!pollInProgress.compareAndSet(false, true)) {
+                return;
+            }
             try {
                 tick();
             } catch (Exception t) {
                 logger.error("Queue poll tick failed", t);
+            } finally {
+                pollInProgress.set(false);
             }
         }, pollEvery, pollEvery);
 
@@ -96,12 +113,16 @@ public class QueueManager {
     private void tick() {
         // Refresh pings for all whitelisted servers
         List<CompletableFuture<Void>> pings = new ArrayList<>();
+        List<String> timedOutServers = Collections.synchronizedList(new ArrayList<>());
         for (String server : queues.keySet()) {
             RegisteredServer rs = proxy.getServer(server).orElse(null);
             if (rs == null) continue;
-            pings.add(rs.ping().handle((ping, err) -> {
+            pings.add(rs.ping().orTimeout(pingTimeoutMillis, TimeUnit.MILLISECONDS).handle((ping, err) -> {
                 if (err != null || ping == null) {
                     statusCache.put(server, ServerStatus.offline());
+                    if (isTimeout(err)) {
+                        timedOutServers.add(server);
+                    }
                 } else {
                     ServerPing.Players players = ping.getPlayers().orElse(null);
                     int online = players != null ? players.getOnline() : -1;
@@ -113,13 +134,12 @@ public class QueueManager {
         }
         if (!pings.isEmpty()) {
             try {
-                CompletableFuture.allOf(pings.toArray(CompletableFuture[]::new))
-                        .orTimeout(5, TimeUnit.SECONDS)
-                        .join();
+                CompletableFuture.allOf(pings.toArray(CompletableFuture[]::new)).join();
             } catch (Exception t) {
-                logger.warn("Queue ping round did not fully complete in time; using partial status cache.");
+                logger.debug("Queue ping round completion raised an exception; using partial status cache.", t);
             }
         }
+        handlePingTimeoutLogging(timedOutServers);
 
         // Drain queues where capacity exists
         for (Map.Entry<String, ServerQueue> e : queues.entrySet()) {
@@ -135,6 +155,39 @@ public class QueueManager {
 
         // Expire grace reservations
         expireGraces();
+    }
+
+    private void handlePingTimeoutLogging(List<String> timedOutServers) {
+        if (timedOutServers == null || timedOutServers.isEmpty()) {
+            if (pingTimeoutActive) {
+                pingTimeoutActive = false;
+                logger.info("Queue ping recovered; backend timeout condition ended.");
+            }
+            return;
+        }
+
+        pingTimeoutActive = true;
+        long now = System.currentTimeMillis();
+        if (lastPingTimeoutWarnAtMillis == 0L || (now - lastPingTimeoutWarnAtMillis) >= pingWarnCooldownMillis) {
+            lastPingTimeoutWarnAtMillis = now;
+            Set<String> unique = new TreeSet<>(timedOutServers);
+            logger.warn("Queue ping timed out for backend(s): {}. During restarts this can be expected; using partial status cache.",
+                    String.join(", ", unique));
+        }
+    }
+
+    private static boolean isTimeout(Throwable error) {
+        if (error == null) {
+            return false;
+        }
+        Throwable t = error;
+        while (t != null) {
+            if (t instanceof TimeoutException) {
+                return true;
+            }
+            t = t.getCause();
+        }
+        return false;
     }
 
     private void drain(@NotNull String serverName, int slots) {
