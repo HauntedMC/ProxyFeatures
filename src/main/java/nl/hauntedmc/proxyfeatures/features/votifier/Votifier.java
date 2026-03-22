@@ -254,7 +254,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         if (MESSAGE_TYPE_REGISTERED.compareAndSet(false, true)) {
             try {
                 MessageRegistry.register("votifier", VoteMessage.class);
-            } catch (Throwable t) {
+            } catch (RuntimeException t) {
                 getLogger().warn("Failed to register VoteMessage type: " + t.getMessage());
             }
         }

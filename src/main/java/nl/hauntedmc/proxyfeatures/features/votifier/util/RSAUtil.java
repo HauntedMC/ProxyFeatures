@@ -50,7 +50,7 @@ public final class RSAUtil {
             byte[] der = Base64.getDecoder().decode(b64);
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(der);
             return Optional.of(KeyFactory.getInstance("RSA").generatePrivate(spec));
-        } catch (Throwable t) {
+        } catch (IOException | GeneralSecurityException | IllegalArgumentException t) {
             return Optional.empty();
         }
     }

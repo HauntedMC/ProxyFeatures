@@ -134,7 +134,7 @@ public record ClientInfoConfig(
         if (s == null) return PlayerSettings.ChatMode.SHOWN;
         try {
             return PlayerSettings.ChatMode.valueOf(s.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (IllegalArgumentException ex) {
             return PlayerSettings.ChatMode.SHOWN;
         }
     }
@@ -143,7 +143,7 @@ public record ClientInfoConfig(
         if (s == null) return PlayerSettings.ParticleStatus.ALL;
         try {
             return PlayerSettings.ParticleStatus.valueOf(s.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (IllegalArgumentException ex) {
             return PlayerSettings.ParticleStatus.ALL;
         }
     }

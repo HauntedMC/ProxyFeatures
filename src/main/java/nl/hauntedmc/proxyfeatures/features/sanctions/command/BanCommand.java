@@ -100,7 +100,7 @@ public class BanCommand implements FeatureCommand {
             feature.getDiscordService().sendBan(s);
         } catch (IllegalStateException dup) {
             sendMsg(src, "sanctions.already_banned");
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("[Sanctions] Failed to create player ban for " + target.getUsername() + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
         }

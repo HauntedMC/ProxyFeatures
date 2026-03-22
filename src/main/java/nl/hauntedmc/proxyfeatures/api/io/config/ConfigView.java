@@ -50,7 +50,7 @@ public class ConfigView {
 
     public <T> List<T> getList(String key, Class<T> elemType, List<T> def) {
         try { return ConfigTypes.convertList(get(key), elemType); }
-        catch (Exception ignored) { return def; }
+        catch (RuntimeException ignored) { return def; }
     }
 
     public <V> Map<String, V> getMapValues(String key, Class<V> valueType) {
@@ -59,7 +59,7 @@ public class ConfigView {
 
     public <V> Map<String, V> getMapValues(String key, Class<V> valueType, Map<String, V> def) {
         try { return ConfigTypes.convertMapValues(get(key), valueType); }
-        catch (Exception ignored) { return def; }
+        catch (RuntimeException ignored) { return def; }
     }
 
     public ConfigNode node() {
@@ -111,7 +111,7 @@ public class ConfigView {
             T cur;
             try {
                 cur = n.virtual() ? null : ConfigTypes.convert(n.get(Object.class), type);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 cur = null;
             }
             if (cur == null && init != null) cur = init.get();
@@ -136,7 +136,8 @@ public class ConfigView {
             list.add(value);
             n.set(list);
             file.saveNow();
-        } catch (Exception ignored) {
+        } catch (SerializationException | RuntimeException ex) {
+            // Keep legacy behavior for list nodes lacking serializer support.
         } finally {
             file.lock().writeLock().unlock();
         }
@@ -158,7 +159,7 @@ public class ConfigView {
                 file.saveNow();
             }
             return before - list.size();
-        } catch (Exception e) {
+        } catch (SerializationException | RuntimeException e) {
             return 0;
         } finally {
             file.lock().writeLock().unlock();
@@ -210,7 +211,7 @@ public class ConfigView {
             CommentedConfigurationNode n = root.node(YamlFile.splitPath(base(dottedPath)));
             T cur;
             try { cur = n.virtual() ? null : ConfigTypes.convert(n.get(Object.class), type); }
-            catch (Exception e) { cur = null; }
+            catch (RuntimeException e) { cur = null; }
             if (cur == null && init != null) cur = init.get();
             T next = Objects.requireNonNull(updateFn.apply(cur));
             n.set(next);

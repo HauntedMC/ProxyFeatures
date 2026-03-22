@@ -74,7 +74,7 @@ public class PlayerInfoCommand implements FeatureCommand {
                 try {
                     UUID uuid = UUID.fromString(query);
                     playerEntityOpt = feature.getService().findPlayerEntityByUuid(uuid.toString());
-                } catch (Exception ignored) {
+                } catch (IllegalArgumentException ignored) {
                 }
             }
         }

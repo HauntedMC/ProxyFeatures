@@ -650,7 +650,7 @@ public final class VoteStatsService {
                 });
                 return null;
             });
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().warn("Vote remind schema guard failed: " + (t.getMessage() == null ? "unknown" : t.getMessage()));
         }
     }
@@ -667,7 +667,7 @@ public final class VoteStatsService {
         if (year < 1970 || month < 1 || month > 12) return null;
         try {
             return YearMonth.of(year, month);
-        } catch (Throwable ignored) {
+        } catch (RuntimeException ex) {
             return null;
         }
     }

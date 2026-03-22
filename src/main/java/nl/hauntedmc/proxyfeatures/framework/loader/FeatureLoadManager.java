@@ -175,7 +175,7 @@ public final class FeatureLoadManager {
             featureRegistry.deregisterLoadedFeature(featureName);
             plugin.getLogger().info("Feature disabled: {}", featureName);
             return new FeatureDisableResponse(FeatureDisableResult.SUCCESS, featureName, dependents);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().error("Disable failed: {}", featureName, t);
             return new FeatureDisableResponse(FeatureDisableResult.FAILED, featureName, dependents);
         }
@@ -195,7 +195,7 @@ public final class FeatureLoadManager {
             feature.getLocalizationHandler().reloadLocalization();
             plugin.getLogger().info("Feature {} soft reloaded.", featureName);
             return new FeatureSoftReloadResponse(FeatureSoftReloadResult.SUCCESS, featureName);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().error("Soft reload failed for: {}", featureName, t);
             return new FeatureSoftReloadResponse(FeatureSoftReloadResult.FAILED, featureName);
         }
@@ -235,7 +235,7 @@ public final class FeatureLoadManager {
             }
 
             return new FeatureReloadResponse(FeatureReloadResult.SUCCESS, featureName, reloadedDependents);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().error("Reload failed for: {}", featureName, t);
             return new FeatureReloadResponse(FeatureReloadResult.FAILED, featureName, reloadedDependents);
         }
@@ -275,11 +275,11 @@ public final class FeatureLoadManager {
                 featureRegistry.registerLoadedFeature(featureName, feature);
                 plugin.getLogger().info("Feature loaded: {}", featureName);
                 return true;
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 plugin.getLogger().error("Feature {} failed during initialization.", featureName, t);
                 try {
                     feature.cleanup();
-                } catch (Throwable cleanupFailure) {
+                } catch (Exception cleanupFailure) {
                     plugin.getLogger().error("Feature {} cleanup after failed initialization also failed.", featureName, cleanupFailure);
                 }
                 return false;
@@ -304,7 +304,7 @@ public final class FeatureLoadManager {
             }
             try {
                 feature.cleanup();
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 plugin.getLogger().error("Error during cleanup of feature {}", feature.getFeatureName(), t);
             } finally {
                 featureRegistry.deregisterLoadedFeature(featureName);
@@ -330,7 +330,7 @@ public final class FeatureLoadManager {
                     missingPlugins.add(name);
                 }
             }
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().warn("Failed to read plugin dependencies for {}", feature.getFeatureName(), t);
         }
 

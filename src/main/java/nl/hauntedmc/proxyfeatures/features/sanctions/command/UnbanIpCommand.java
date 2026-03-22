@@ -38,7 +38,7 @@ public class UnbanIpCommand implements FeatureCommand {
         boolean changed;
         try {
             changed = feature.getService().deactivateActiveBanByIp(ip);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("[Sanctions] Failed to unban IP " + ip + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
             return;

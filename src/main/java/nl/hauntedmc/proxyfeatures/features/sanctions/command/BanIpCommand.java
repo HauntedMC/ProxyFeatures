@@ -79,13 +79,15 @@ public class BanIpCommand implements FeatureCommand {
                         pl.disconnect(feature.getLocalizationHandler().getMessage(key)
                                 .withPlaceholders(ph).forAudience(pl).build());
                     }
-                } catch (Throwable ignored) {
+                } catch (Exception ex) {
+                    feature.getLogger().warn("[Sanctions] Failed to disconnect player during IP ban enforcement: "
+                            + ex.getMessage());
                 }
             });
 
         } catch (IllegalStateException dup) {
             sendMsg(src, "sanctions.already_banned");
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("[Sanctions] Failed to create IP ban for " + normalizedIp + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
         }

@@ -90,7 +90,7 @@ public final class VotifierService {
             worker.execute(() -> {
                 try {
                     maybeRollover(cfg);
-                } catch (Throwable t) {
+                } catch (Exception t) {
                     feature.getLogger().warn("Rollover bootstrap failed: " + safeMsg(t));
                 }
             });
@@ -105,7 +105,9 @@ public final class VotifierService {
         worker.shutdownNow();
         try {
             worker.awaitTermination(2, TimeUnit.SECONDS);
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+            feature.getLogger().warn("Interrupted while shutting down votifier worker.");
         }
     }
 
@@ -322,7 +324,7 @@ public final class VotifierService {
                                 }
                             }
                             notifyOk = true;
-                        } catch (Throwable t) {
+                        } catch (Exception t) {
                             feature.getLogger().warn("Vote month notify failed: " + safeMsg(t));
                         }
 
@@ -331,7 +333,7 @@ public final class VotifierService {
                                 grantMonthlyWinnerReward(target, notif);
                             }
                             rewardOk = true;
-                        } catch (Throwable t) {
+                        } catch (Exception t) {
                             feature.getLogger().warn("Vote month reward failed: " + safeMsg(t));
                         }
 
@@ -353,7 +355,7 @@ public final class VotifierService {
                         ));
                     });
 
-                } catch (Throwable t) {
+                } catch (Exception t) {
                     feature.getLogger().warn("Vote month handler failed: " + safeMsg(t));
                 }
             });
@@ -598,7 +600,7 @@ public final class VotifierService {
             feature.getLogger().error("Key error: " + safeMsg(gse));
         } catch (IOException ioe) {
             feature.getLogger().error("Bind or start error: " + safeMsg(ioe));
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("Unexpected error during start: " + safeMsg(t));
         }
     }
@@ -609,7 +611,7 @@ public final class VotifierService {
         if (s != null) {
             try {
                 s.stop();
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 feature.getLogger().warn("Error while stopping server: " + safeMsg(t));
             }
         }
@@ -649,7 +651,7 @@ public final class VotifierService {
 
             try {
                 stats.recordVote(player, vote, cfg);
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 feature.getLogger().error("Failed to record vote stats for " + username + ": " + safeMsg(t));
             }
         } else {
@@ -690,7 +692,7 @@ public final class VotifierService {
             worker.execute(() -> {
                 try {
                     maybeRollover(cfg);
-                } catch (Throwable t) {
+                } catch (Exception t) {
                     feature.getLogger().warn("Monthly rollover check failed: " + safeMsg(t));
                 }
             });
@@ -730,7 +732,7 @@ public final class VotifierService {
         if (year < 1970 || month < 1 || month > 12) return null;
         try {
             return YearMonth.of(year, month);
-        } catch (Throwable ignored) {
+        } catch (RuntimeException ex) {
             return null;
         }
     }

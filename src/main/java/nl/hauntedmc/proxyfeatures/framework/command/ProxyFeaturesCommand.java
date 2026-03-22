@@ -99,7 +99,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
                                 .getMessage("command.reloadlocal.success")
                                 .forAudience(sender)
                                 .build());
-                    } catch (Throwable t) {
+                    } catch (Exception t) {
                         plugin.getLogger().warn("Localization reload failed: {}", t.getMessage());
                         sender.sendMessage(plugin.getLocalizationHandler()
                                 .getMessage("command.reloadlocal.fail")

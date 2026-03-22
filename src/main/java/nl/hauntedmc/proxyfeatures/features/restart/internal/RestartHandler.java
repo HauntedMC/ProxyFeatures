@@ -9,6 +9,7 @@ import nl.hauntedmc.proxyfeatures.features.restart.Restart;
 import nl.hauntedmc.proxyfeatures.framework.lifecycle.FeatureTaskManager;
 
 import java.time.Duration;
+import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -170,7 +171,7 @@ public class RestartHandler {
             if (v.isEmpty() || "system".equalsIgnoreCase(v)) return ZoneId.systemDefault();
             try {
                 return ZoneId.of(v);
-            } catch (Exception ignored) {
+            } catch (DateTimeException ex) {
                 feature.getPlugin().getLogger().warn("Invalid schedule_time_zone value '{}', using system default.", v);
                 return ZoneId.systemDefault();
             }
@@ -319,7 +320,7 @@ public class RestartHandler {
             }
             feature.getPlugin().getLogger().info("Initiating Velocity shutdown.");
             proxy.shutdown();
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             feature.getPlugin().getLogger().error("Failed to shutdown proxy, forcing exit.", t);
             System.exit(0);
         }

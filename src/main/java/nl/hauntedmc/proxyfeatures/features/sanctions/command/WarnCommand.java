@@ -61,7 +61,7 @@ public class WarnCommand implements FeatureCommand {
                             .with("reason", reason)
                             .forAudience(pl).build()));
             feature.getDiscordService().sendWarn(target, reason, actorName);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("[Sanctions] Failed to warn " + target.getUsername() + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
         }

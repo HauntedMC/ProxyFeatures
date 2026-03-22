@@ -37,7 +37,7 @@ public class LuckPermsHook {
                     }
             );
             subscriptions.add(nodeSubscription);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().warn("HLink: LuckPerms hook unavailable; continuing without group sync hook.");
         }
     }

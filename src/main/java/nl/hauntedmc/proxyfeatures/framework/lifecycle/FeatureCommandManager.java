@@ -53,7 +53,7 @@ public class FeatureCommandManager {
             registeredCommands.put(commandName, command);
 
             plugin.getLogger().info("Registered command: {}", commandName);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().warn("Failed to register command {}: {}", commandName, t.getMessage());
         }
     }
@@ -68,7 +68,7 @@ public class FeatureCommandManager {
         }
         try {
             commandManager.unregister(commandName);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().warn("Failed to unregister {}: {}", commandName, t.getMessage());
         } finally {
             registeredCommands.remove(commandName);
@@ -122,7 +122,7 @@ public class FeatureCommandManager {
             brigadierMetas.put(key, meta);
 
             plugin.getLogger().info("[Brigadier] Registered /{} ({} aliases)", key, command.aliases().size());
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().warn("[Brigadier] Failed to register /{}: {}", key, t.getMessage());
         }
     }
@@ -148,7 +148,7 @@ public class FeatureCommandManager {
                 }
             }
             plugin.getLogger().info("[Brigadier] Unregistered /{}", name);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().warn("[Brigadier] detach failed for /{}: {}", name, t.getMessage());
         }
     }

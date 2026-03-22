@@ -105,7 +105,7 @@ public class PlayerInfoService {
             try {
                 UUID uuid = UUID.fromString(nameOrUuid);
                 opt = ProxyFeatures.getProxyInstance().getPlayer(uuid);
-            } catch (Exception ignored) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
         if (opt.isEmpty()) return new OnlineStatus(false, null);

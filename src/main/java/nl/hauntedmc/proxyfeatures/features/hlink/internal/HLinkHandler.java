@@ -153,8 +153,9 @@ public class HLinkHandler {
 
             return String.join(",", highestPerTrack);
 
-        } catch (Throwable e) {
-            feature.getLogger().error(Component.text("Error retrieving LuckPerms groups for " + username));
+        } catch (RuntimeException e) {
+            feature.getLogger().error(Component.text("Error retrieving LuckPerms groups for "
+                    + username + ": " + e.getMessage()));
             return "default";
         }
     }

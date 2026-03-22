@@ -590,7 +590,7 @@ public class SanctionsService {
             return ProxyFeatures.getProxyInstance().getPlayer(uuid)
                     .map(p -> p.hasPermission("proxyfeatures.feature.sanctions.bypass"))
                     .orElse(false);
-        } catch (Throwable ignored) {
+        } catch (IllegalArgumentException ignored) {
             return false;
         }
     }

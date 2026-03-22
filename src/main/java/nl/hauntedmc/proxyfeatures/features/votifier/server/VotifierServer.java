@@ -81,7 +81,8 @@ public final class VotifierServer {
             if (privateKey instanceof RSAPrivateKey rsa) {
                 keyBytes = (rsa.getModulus().bitLength() + 7) / 8;
             }
-        } catch (Throwable ignored) {
+        } catch (RuntimeException ex) {
+            logger.debug("Unable to introspect RSA modulus: " + safeMsg(ex));
         }
         if (keyBytes <= 0) {
             keyBytes = 256;
@@ -126,7 +127,7 @@ public final class VotifierServer {
                     }
                 } catch (SocketException se) {
                     if (running) logger.warn("Socket exception: " + safeMsg(se));
-                } catch (Throwable t) {
+                } catch (Exception t) {
                     if (running) logger.warn("Accept error: " + safeMsg(t) + "\n" + stackTrace(t));
                 }
             }
@@ -141,7 +142,8 @@ public final class VotifierServer {
         if (server != null && !server.isClosed()) {
             try {
                 server.close();
-            } catch (IOException ignored) {
+            } catch (IOException ioe) {
+                logger.debug("Error while closing Votifier server socket: " + safeMsg(ioe));
             }
         }
         if (acceptThread != null) {
@@ -152,7 +154,9 @@ public final class VotifierServer {
             pool.shutdownNow();
             try {
                 pool.awaitTermination(2, TimeUnit.SECONDS);
-            } catch (InterruptedException ignored) {
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                logger.warn("Interrupted while awaiting Votifier worker shutdown.");
             }
         }
     }
@@ -188,7 +192,8 @@ public final class VotifierServer {
             try {
                 s.getOutputStream().write("VOTIFIER 1\n".getBytes(StandardCharsets.US_ASCII));
                 s.getOutputStream().flush();
-            } catch (Throwable ignored) {
+            } catch (IOException ioe) {
+                logger.debug("Failed to write Votifier banner to " + ip + ": " + safeMsg(ioe));
             }
 
             byte[] enc = readExactWithDeadline(s.getInputStream(), rsaBlockBytes, maxPacketBytes, readTimeoutMillis);
@@ -227,7 +232,7 @@ public final class VotifierServer {
             logger.warn("Read timeout from " + safeRemote(remote));
         } catch (GeneralSecurityException gse) {
             logger.warn("Decryption error from " + safeRemote(remote) + ": " + safeMsg(gse));
-        } catch (Throwable t) {
+        } catch (Exception t) {
             logger.warn("Error handling " + safeRemote(remote) + ": " + safeMsg(t) + "\n" + stackTrace(t));
         } finally {
             safeClose(s);
@@ -272,7 +277,8 @@ public final class VotifierServer {
         try {
             int avail = Math.min(in.available(), Math.max(0, cap - expectedBytes));
             if (avail > 0) in.skipNBytes(avail);
-        } catch (Throwable ignored) {
+        } catch (IOException ioe) {
+            logger.debug("Failed to drain trailing input bytes: " + safeMsg(ioe));
         }
 
         return out;
@@ -281,7 +287,8 @@ public final class VotifierServer {
     private void safeClose(Socket s) {
         try {
             s.close();
-        } catch (Throwable ignored) {
+        } catch (IOException ioe) {
+            logger.debug("Failed to close client socket: " + safeMsg(ioe));
         }
     }
 
@@ -310,7 +317,7 @@ public final class VotifierServer {
             StringWriter sw = new StringWriter();
             t.printStackTrace(new PrintWriter(sw));
             return sw.toString();
-        } catch (Throwable ignored) {
+        } catch (RuntimeException ex) {
             return "(no stack trace)";
         }
     }

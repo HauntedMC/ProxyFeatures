@@ -45,7 +45,7 @@ public class EventBusHandler {
 
         try {
             feature.getVanishRegistry().applyUpdate(uuid, msg.getPlayerName(), msg.isVanished());
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("Error applying vanish update for " + msg.getPlayerName() + ": " + t.getMessage());
         }
     }
@@ -54,7 +54,8 @@ public class EventBusHandler {
         if (subscription != null) {
             try {
                 subscription.unsubscribe();
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                feature.getLogger().warn("Failed to unsubscribe from vanish channel: " + ex.getMessage());
             }
             subscription = null;
         }

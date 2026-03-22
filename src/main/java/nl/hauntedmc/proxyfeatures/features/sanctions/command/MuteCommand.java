@@ -99,7 +99,7 @@ public class MuteCommand implements FeatureCommand {
             feature.getDiscordService().sendMute(s);
         } catch (IllegalStateException dup) {
             sendMsg(src, "sanctions.already_muted");
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("[Sanctions] Failed to create mute for " + target.getUsername() + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
         }

@@ -42,7 +42,7 @@ public class UnmuteCommand implements FeatureCommand {
         boolean changed;
         try {
             changed = feature.getService().deactivateActiveMuteForPlayer(target);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("[Sanctions] Failed to unmute " + target.getUsername() + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
             return;

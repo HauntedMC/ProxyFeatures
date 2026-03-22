@@ -67,7 +67,7 @@ public class QueueManager {
         pollTask = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
             try {
                 tick();
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 logger.error("Queue poll tick failed", t);
             }
         }, pollEvery, pollEvery);
@@ -75,7 +75,7 @@ public class QueueManager {
         updateTask = feature.getLifecycleManager().getTaskManager().scheduleRepeatingTask(() -> {
             try {
                 sendActionBarUpdates();
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 logger.error("Queue actionbar tick failed", t);
             }
         }, updateEvery, updateEvery);
@@ -116,7 +116,7 @@ public class QueueManager {
                 CompletableFuture.allOf(pings.toArray(CompletableFuture[]::new))
                         .orTimeout(5, TimeUnit.SECONDS)
                         .join();
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 logger.warn("Queue ping round did not fully complete in time; using partial status cache.");
             }
         }

@@ -69,7 +69,7 @@ public class KickCommand implements FeatureCommand {
                         .forAudience(targetOnline).build());
             }
             feature.getDiscordService().sendKick(target, reason, actorName);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getLogger().error("[Sanctions] Failed to kick " + target.getUsername() + ": " + t.getMessage());
             sendMsg(src, "sanctions.internal_error");
         }

@@ -30,7 +30,7 @@ public class FeatureDataManager {
      * @param plugin your main plugin class (for logging, etc.)
      */
     public FeatureDataManager(ProxyFeatures plugin) {
-        this(plugin, resolveApiSafely(), System::getenv);
+        this(plugin, resolveApiSafely(plugin), System::getenv);
     }
 
     FeatureDataManager(ProxyFeatures plugin, DataProviderAPI dataProviderAPI, Function<String, String> envLookup) {
@@ -69,7 +69,7 @@ public class FeatureDataManager {
             dataProviderAPI.authenticate(featureName, token);
             authenticated = true;
             plugin.getLogger().info("DataProvider authenticated feature '{}'.", featureName);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             plugin.getLogger().error("Failed to authenticate DataProvider for feature '{}'.", featureName, t);
         }
     }
@@ -194,10 +194,13 @@ public class FeatureDataManager {
         return new ORMContext(featureName, provider.getDataSource(), entityClasses);
     }
 
-    private static DataProviderAPI resolveApiSafely() {
+    private static DataProviderAPI resolveApiSafely(ProxyFeatures plugin) {
         try {
             return VelocityDataProvider.getDataProviderAPI();
-        } catch (Throwable ignored) {
+        } catch (RuntimeException ex) {
+            if (plugin != null) {
+                plugin.getLogger().warn("DataProviderAPI unavailable: {}", ex.getMessage());
+            }
             return null;
         }
     }

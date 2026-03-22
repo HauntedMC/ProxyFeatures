@@ -419,7 +419,7 @@ public final class VotifierCommand implements BrigadierCommand {
                     .with("file", file)
                     .forAudience(src)
                     .build());
-        } catch (Throwable t) {
+        } catch (Exception t) {
             src.sendMessage(feature.getLocalizationHandler()
                     .getMessage("votifier.command.dump.fail")
                     .with("error", safeMsg(t))

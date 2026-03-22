@@ -118,7 +118,7 @@ public record VotifierConfig(
         try {
             if (raw == null || raw.isBlank()) return ZoneId.systemDefault();
             return ZoneId.of(raw.trim());
-        } catch (Exception ignored) {
+        } catch (RuntimeException ex) {
             return ZoneId.systemDefault();
         }
     }

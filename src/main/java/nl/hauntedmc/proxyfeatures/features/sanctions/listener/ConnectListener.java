@@ -52,9 +52,9 @@ public class ConnectListener {
 
             // Load mute into cache by playerId if we can resolve
             playerOpt.ifPresent(pEnt -> feature.getService().loadActiveMuteIntoCache(pEnt.getId()));
-        } catch (Throwable t) {
+        } catch (Exception t) {
             // Defensive: never break login flow because of sanctions code
-            feature.getLogger().error("[Sanctions/ConnectListener] Error during login checks");
+            feature.getLogger().error("[Sanctions/ConnectListener] Error during login checks: " + t.getMessage());
         }
     }
 }

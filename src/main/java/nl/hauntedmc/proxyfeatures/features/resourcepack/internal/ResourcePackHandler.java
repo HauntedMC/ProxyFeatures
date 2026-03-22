@@ -110,7 +110,8 @@ public class ResourcePackHandler {
         if (previous != null && previous != continuation) {
             try {
                 previous.resume();
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                logger.debug("[ProxyFeatures] ResourcePacks: failed to resume previous continuation: {}", ex.getMessage());
             }
         }
     }
@@ -120,7 +121,8 @@ public class ResourcePackHandler {
         if (cont != null) {
             try {
                 cont.resume();
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                logger.debug("[ProxyFeatures] ResourcePacks: failed to resume continuation: {}", ex.getMessage());
             }
         }
     }
@@ -129,7 +131,8 @@ public class ResourcePackHandler {
         for (Continuation cont : configurationBlockMap.values()) {
             try {
                 cont.resume();
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                logger.debug("[ProxyFeatures] ResourcePacks: failed to resume continuation during shutdown: {}", ex.getMessage());
             }
         }
         configurationBlockMap.clear();

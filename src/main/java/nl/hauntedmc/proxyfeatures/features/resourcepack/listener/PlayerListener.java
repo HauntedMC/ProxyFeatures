@@ -62,7 +62,7 @@ public class PlayerListener {
         try {
             feature.getResourcePackHandler().blockConfiguration(player.getUniqueId(), continuation);
             player.sendResourcePackOffer(packInfo);
-        } catch (Throwable t) {
+        } catch (Exception t) {
             feature.getResourcePackHandler().unblockConfiguration(player.getUniqueId());
             feature.getLogger().warn("[ResourcePack] Failed to send resource pack offer to "
                     + player.getUsername() + ": " + t.getClass().getSimpleName());

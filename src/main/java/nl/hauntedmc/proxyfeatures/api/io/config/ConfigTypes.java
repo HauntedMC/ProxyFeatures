@@ -95,7 +95,7 @@ public final class ConfigTypes {
         try {
             T v = convert(value, type);
             return v != null ? v : defaultValue;
-        } catch (Exception ignored) {
+        } catch (RuntimeException ignored) {
             return defaultValue;
         }
     }
@@ -113,7 +113,7 @@ public final class ConfigTypes {
             Object el = src.get(i);
             try {
                 out.add(convert(el, elemType));
-            } catch (Exception ex) {
+            } catch (RuntimeException ex) {
                 throw new IllegalArgumentException(
                         "Invalid element at index " + i + " in list — expected " + elemType.getSimpleName() +
                                 " but got " + (el == null ? "null" : el.getClass().getName()));
@@ -137,7 +137,7 @@ public final class ConfigTypes {
 
     private static <T> T tryConvert(Object v, Class<T> type) {
         try { return convert(v, type); }
-        catch (Exception ignored) { return null; }
+        catch (RuntimeException ignored) { return null; }
     }
 
     private static IllegalArgumentException typeError(String expected, Object got) {

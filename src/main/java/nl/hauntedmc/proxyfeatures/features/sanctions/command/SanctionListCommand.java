@@ -248,7 +248,7 @@ public class SanctionListCommand implements FeatureCommand {
             else if (raw instanceof String s) v = Integer.parseInt(s);
             else v = 5;
             return Math.max(1, v);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return 5;
         }
     }
@@ -257,7 +257,7 @@ public class SanctionListCommand implements FeatureCommand {
         try {
             int v = Integer.parseInt(s);
             return v >= 1 ? Optional.of(v) : Optional.empty();
-        } catch (Exception ignored) {
+        } catch (NumberFormatException ignored) {
             return Optional.empty();
         }
     }
