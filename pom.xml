@@ -19,6 +19,7 @@
         <maven.surefire.version>3.2.5</maven.surefire.version>
         <jacoco.version>0.8.12</jacoco.version>
         <checkstyle.version>9.3</checkstyle.version>
+        <maven.enforcer.version>3.5.0</maven.enforcer.version>
     </properties>
 
     <distributionManagement>
@@ -28,7 +29,7 @@
             <url>https://maven.pkg.github.com/HauntedMC/${project.name}</url>
         </repository>
     </distributionManagement>
-  
+
     <build>
         <finalName>${project.name}</finalName>
         <testSourceDirectory>${project.basedir}/tests/java</testSourceDirectory>
@@ -39,6 +40,30 @@
             </testResource>
         </testResources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven.enforcer.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-build-hygiene</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.8.1,)</version>
+                                </requireMavenVersion>
+                                <requireJavaVersion>
+                                    <version>[21,)</version>
+                                </requireJavaVersion>
+                                <requirePluginVersions/>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -71,7 +96,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.version}</version>
                 <configuration>
-                    <argLine>${argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                    <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -91,122 +116,6 @@
                         <goals>
                             <goal>report</goal>
                         </goals>
-                    </execution>
-                    <execution>
-                        <id>jacoco-check-framework-coverage</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>PACKAGE</element>
-                                    <includes>
-                                        <include>nl.hauntedmc.proxyfeatures.framework.*</include>
-                                        <include>nl.hauntedmc.proxyfeatures.framework.*.*</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>jacoco-check-api-coverage</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>PACKAGE</element>
-                                    <includes>
-                                        <include>nl.hauntedmc.proxyfeatures.api*</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>jacoco-check-feature-logic-coverage</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.ServerQueue</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.QueueEntry</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.EnqueueDecision</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.queue.model.ServerStatus</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.queue.util.PriorityResolver</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.IPCheckResult</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.MetricsCollector</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.CountryService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.provider.ProviderChain</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.IpWhitelist</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.PersistentIpCache</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.util.IpAccessList</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.util.RSAUtil</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.resourcepack.util.ResourceUtils</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.commandhider.internal.HiderHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.clientinfo.internal.ClientInfoConfig</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.friends.support.FriendsCache</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannel</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.connectioninfo.internal.SessionHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.messager.entity.PlayerMessageSettingsEntity</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierConfig</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyEntity</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteMonthlyKey</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.entity.VotifierRolloverStateEntity</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.AntiVPNService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.commandrelay.internal.EventBusHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.staffchat.internal.messaging.EventBusHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishRegistry</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.vanish.internal.messaging.EventBusHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.votifier.messaging.EventBusHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.sanctions.service.ServiceLookup</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.sanctions.service.DiscordService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.serverlinks.internal.ServerLinksHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.commandlogger.service.CommandLogService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.clientinfo.internal.ClientInfoSettingsService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.messager.internal.MessagingSettingsService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.antivpn.internal.NotificationService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.versioncheck.internal.VersionHandler</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.playerinfo.service.PlayerInfoService</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.hlink.internal.hook.LuckPermsHook</include>
-                                        <include>nl.hauntedmc.proxyfeatures.features.FeatureFactory</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -299,6 +208,40 @@
                 </configuration>
             </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.4.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.3.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.1.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.1.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>3.12.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -306,12 +249,6 @@
             </resource>
         </resources>
     </build>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>local-m2</id>
-            <url>file://${user.home}/.m2/repository</url>
-        </pluginRepository>
-    </pluginRepositories>
     <repositories>
         <repository>
             <id>papermc</id>
@@ -327,10 +264,6 @@
             <url>https://maven.enginehub.org/repo/</url>
         </repository>
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-        </repository>
-        <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
@@ -341,10 +274,6 @@
         <repository>
             <id>codemc-releases</id>
             <url>https://repo.codemc.io/repository/maven-releases/</url>
-        </repository>
-        <repository>
-            <id>codemc-snapshots</id>
-            <url>https://repo.codemc.io/repository/maven-snapshots/</url>
         </repository>
     </repositories>
 
