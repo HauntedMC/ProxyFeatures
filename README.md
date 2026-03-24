@@ -1,68 +1,70 @@
 # ProxyFeatures
 
-`ProxyFeatures` is a modular Velocity proxy plugin for HauntedMC.
-It provides a large set of optional features (queueing, sanctions, votifier, AntiVPN, messaging, friends, localization, and more) that are loaded dynamically from configuration.
+One modular plugin for your entire Velocity network.
+
+`ProxyFeatures` helps you run a smoother, safer, and more engaging proxy without stitching together a dozen separate plugins. Enable only the modules you need and scale up as your network grows.
+
+## Why Server Owners Choose ProxyFeatures
+
+- **Do more with fewer plugins:** replace plugin sprawl with one consistent system.
+- **Improve player experience:** cleaner onboarding, better communication, and stronger social tools.
+- **Protect your network:** built-in security and moderation features for day-to-day operations.
+- **Stay flexible:** feature-by-feature toggles let you roll out changes safely.
+
+## Major Benefits
+
+### Better Retention and Player Experience
+
+- Queue management, MOTD, announcer, broadcast, player list, and proxy info tools.
+- Hub and slash-server flows to make navigation easy.
+- Resource pack and UX-focused features to improve first impressions.
+
+### Stronger Safety and Moderation
+
+- AntiVPN controls and sanctions tooling.
+- Command logging and moderation-focused visibility.
+- Vanish and staff-oriented operational features.
+
+### Better Staff and Community Operations
+
+- Staff chat and command relay for cross-network coordination.
+- Messaging, friends, player info, and language tooling for community support.
+- Votifier and engagement-focused modules for network activity.
+
+## Quick Start
+
+1. Place `ProxyFeatures.jar` in your Velocity `plugins/` directory.
+2. Install dependencies: `dataregistry` and `dataprovider`.
+3. Start the proxy once to generate defaults.
+4. Enable the features you want in `config.yml`.
+5. Restart and go live.
 
 ## Requirements
 
 - Java 21
-- Velocity 3.x (current project API target: `3.5.0-SNAPSHOT`)
+- Velocity 3.x
 - HauntedMC `dataregistry` plugin
 - HauntedMC `dataprovider` plugin
 
-## Build
+## Build From Source
 
 ```bash
-mvn -q -DskipTests compile
-mvn -q test
-mvn -B verify
-mvn -B -DskipTests checkstyle:check
 mvn -B package
 ```
 
-Build output:
+Output jar: `target/ProxyFeatures.jar`
 
-- `target/ProxyFeatures.jar`
+## Learn More
 
-## Install
-
-1. Build (or download) the plugin jar.
-2. Place it in your Velocity `plugins/` directory.
-3. Ensure dependency plugins (`dataregistry`, `dataprovider`) are installed.
-4. Start the proxy once to generate configuration.
-5. Configure `config.yml` and enable the features you need.
-6. Restart the proxy.
-
-## Configuration Model
-
-- Global settings are in `global.*` (inside `config.yml`).
-- Each feature has its own section in `features.<FeatureName>.*`.
-- Feature defaults are injected automatically on startup.
-- Features can be enabled/disabled individually by config.
-- Some features also use dedicated local files under `local/*.yml`.
-
-
-## Development
-
-See:
-
-- [Contributing Guide](CONTRIBUTING.md)
+- [Configuration Guide](docs/CONFIGURATION.md)
 - [Documentation Index](docs/README.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [Development Notes](docs/DEVELOPMENT.md)
 - [Testing and Quality](docs/TESTING.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Configuration](docs/CONFIGURATION.md)
+- [Contributing](CONTRIBUTING.md)
 
-## Community and Governance
+## Community
 
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Security Policy](SECURITY.md)
 - [Support](SUPPORT.md)
-
-## Repository Structure
-
-- `src/main/java`: plugin source code
-- `src/main/resources`: config and localization defaults
-- `tests/java`: test sources (mirrors package structure)
-- `.github/`: CI workflow and community templates
-- `docs/`: operational and contributor documentation
+- [Security Policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)

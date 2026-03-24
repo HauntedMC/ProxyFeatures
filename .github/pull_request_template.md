@@ -1,36 +1,23 @@
-## Summary
+## What Changed
 
-Describe what changed and why.
+Describe the change in a few sentences.
 
-## Type of Change
+## Why
 
-- [ ] Bug fix
-- [ ] Feature
-- [ ] Refactor
-- [ ] Documentation
-- [ ] Security hardening
+Why is this needed?
 
 ## Validation
 
 - [ ] `mvn -q -DskipTests compile`
 - [ ] `mvn -q test` (or explain why skipped)
-- [ ] Manual testing completed
+- [ ] Manual testing done (if applicable)
 
-## Risks
+## Related Issues
 
-List behavior/regression risks and mitigations.
+List related issues (example: `Closes #123`).
 
-## Configuration Impact
+## Notes
 
-- [ ] No config changes
-- [ ] New config keys
-- [ ] Changed config behavior
-
-If config changed, document migration notes.
-
-## Checklist
-
-- [ ] No secrets/tokens committed
-- [ ] Error handling and logging reviewed
-- [ ] Threading/async paths reviewed
-- [ ] Documentation updated if needed
+- Breaking changes:
+- Config/API changes:
+- Anything reviewers should pay extra attention to:

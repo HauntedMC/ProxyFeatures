@@ -1,23 +1,23 @@
 # Support
 
-## Where to Get Help
+## Get Help
 
-- Setup/configuration help: https://www.hauntedmc.nl/support
-- Bug reports: GitHub Issues (use issue templates)
-- Feature proposals: GitHub Issues (feature request template)
-- Security concerns: [SECURITY.md](SECURITY.md)
+- Setup and configuration help: https://www.hauntedmc.nl/support
+- Bugs and feature requests: GitHub Issues
+- Security reports: follow [SECURITY.md](SECURITY.md) (private channels only)
 
-## Before Opening an Issue
+## How to Write a Useful Issue
 
-Please provide:
+Include the basics so maintainers can reproduce quickly:
 
 - ProxyFeatures version
 - Velocity version
 - Java version
-- Relevant feature config section
-- Logs / stack traces
-- Clear reproduction steps
+- Relevant config section (redact secrets)
+- Logs or stack traces
+- Reproduction steps
+- What you expected vs what happened
 
-## Response Notes
+## Triage Notes
 
-Support and review are best-effort and prioritized by impact and reproducibility.
+Support is best-effort. Issues with clear reproduction steps and operational impact are usually handled first.

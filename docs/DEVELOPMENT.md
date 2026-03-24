@@ -1,36 +1,41 @@
 # Development Notes
 
-## Build and Test
+This page is for contributors who want a fast, reliable local workflow.
+
+## Local Setup
 
 ```bash
 mvn -q -DskipTests compile
+```
+
+Useful commands during development:
+
+```bash
 mvn -q test
 mvn -B verify
 mvn -B -DskipTests checkstyle:check
 mvn -B package
 ```
 
-## Local Workflow
+## Recommended Workflow
 
-1. Create a branch.
-2. Implement focused changes.
-3. Validate compile/tests.
-4. Update docs/templates when behavior changes.
-5. Open PR using the repository template.
+1. Create a branch for one focused change.
+2. Implement the change with tests in the same pass.
+3. Run local validation (`test` at minimum).
+4. Update docs when behavior or operator workflow changes.
+5. Open a PR with context, impact, and any migration notes.
 
-## Coding Guidelines
+## Engineering Guidelines
 
-- Prefer typed config API:
-  - `get("key", Type.class, default)`
-  - `getList(...)`
-- Avoid broad unchecked casts from config values.
-- Use timeout bounds on external calls.
-- Keep async/scheduler lifecycles explicit and cleaned up on disable.
-- Keep feature boundaries clean; avoid cross-feature coupling unless through API registry.
+- Keep feature boundaries clean and avoid unnecessary coupling.
+- Prefer typed configuration access over raw casts.
+- Make external calls fail-safe and time-bounded.
+- Clean up tasks/listeners/resources during disable and reload paths.
+- Favor simple, explicit code over clever abstractions.
 
-## Common Validation Checks
+## Before You Open a PR
 
-- Feature enable/disable/reload still works.
-- No startup exceptions with default config.
-- No blocked login/main paths from remote calls.
-- No accidental token or credential logging.
+- Build succeeds locally.
+- Relevant tests pass.
+- New behavior is covered by tests.
+- Operationally important failures are logged clearly.

@@ -1,15 +1,14 @@
 # Contributing to ProxyFeatures
 
-Thanks for contributing.
+Thanks for taking the time to contribute.
 
-## Prerequisites
+## Before You Start
 
-- Java 21
-- Maven 3.9+
-- A running Velocity environment for manual testing
-- Dependency plugins available (`dataregistry`, `dataprovider`)
+- Use Java 21 and Maven.
+- Make sure you can run a local compile and test pass.
+- If your change affects runtime behavior, test it in a Velocity environment.
 
-## Development Setup
+## Setup
 
 ```bash
 git clone <repo-url>
@@ -17,45 +16,47 @@ cd ProxyFeatures
 mvn -q -DskipTests compile
 ```
 
-## Branching and Commits
+## Contribution Workflow
 
-- Create a feature branch from `main`.
-- Keep commits focused and reviewable.
-- Use clear commit messages (`type: concise summary`).
+1. Create a branch from `main`.
+2. Keep the change focused on one clear problem.
+3. Add or update tests with the code change.
+4. Run local checks before opening a PR.
+5. Update docs when operator behavior or configuration expectations change.
 
-Examples:
+## Local Validation
 
-- `fix: prevent queue ticket leakage on failed connect`
-- `docs: add security and contribution guides`
-
-## Code Standards
-
-- Prefer typed config accessors over raw casts.
-- Avoid blocking calls on proxy-critical paths unless isolated and time-bounded.
-- Fail safely on malformed external input.
-- Add logs for operationally relevant failures.
-- Keep changes minimal and local to the problem.
-
-## Validation Before PR
-
-Run at minimum:
+Minimum checks:
 
 ```bash
 mvn -q -DskipTests compile
 mvn -q test
 ```
 
-Also validate manually for changed feature paths.
+Recommended before merge:
 
-## Pull Requests
+```bash
+mvn -B verify
+mvn -B -DskipTests checkstyle:check
+```
 
-- Fill out the PR template.
-- Document config/schema changes.
-- Include migration notes for breaking changes.
-- Add or update docs when behavior changes.
-- Keep issue/PR templates aligned when workflows or standards change.
+## Pull Request Expectations
+
+- Use a clear title and summary.
+- Explain what changed and why.
+- Call out configuration or migration impact.
+- Link related issues where relevant.
+- Keep commits readable and review-friendly.
+
+## Coding Principles
+
+- Prefer clear, explicit code over clever shortcuts.
+- Keep feature boundaries clean.
+- Handle malformed input safely.
+- Avoid blocking critical paths with long-running work.
+- Log failures in a way operators can act on.
 
 ## Security
 
-Do not open public issues for vulnerabilities.
-Use the process in [SECURITY.md](SECURITY.md).
+Do not report vulnerabilities in public issues.
+Follow [SECURITY.md](SECURITY.md) for private reporting.

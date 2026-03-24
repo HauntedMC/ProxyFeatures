@@ -2,35 +2,31 @@
 
 ## Supported Versions
 
-Security fixes are generally provided for the latest stable release line.
-
-| Version | Supported |
-| --- | --- |
-| Latest stable release | Yes |
-| Older releases | Best effort / No guarantee |
+Security fixes are prioritized for the latest stable release line.
+Older versions may receive fixes on a best-effort basis.
 
 ## Reporting a Vulnerability
 
-Please do not open public issues for security vulnerabilities.
+Do not open public issues for security problems.
 
-Use one of the following private channels:
+Use a private channel:
 
-- GitHub Security Advisory: `Security` tab in this repository
+- GitHub Security Advisory (repository Security tab)
 - HauntedMC support: https://www.hauntedmc.nl/support
 
-Include:
+Please include:
 
-- Affected version(s)
-- Reproduction steps / proof of concept
-- Impact assessment
-- Any proposed mitigation
+- affected version(s)
+- reproduction steps or proof of concept
+- impact and expected risk
+- any known workaround or mitigation
 
-## Response Expectations
+## What to Expect
 
-- Initial triage acknowledgement: target within 72 hours
-- Severity assessment and fix planning: as soon as reproducible
-- Patch release timing: based on severity and exploitability
+- We acknowledge reports as quickly as practical.
+- We validate impact, prioritize by severity, and prepare a fix.
+- We coordinate disclosure after a fix or mitigation is available.
 
-## Disclosure
+## Responsible Disclosure
 
-Please allow maintainers time to validate and patch before public disclosure.
+Please give maintainers reasonable time to investigate and patch before public disclosure.

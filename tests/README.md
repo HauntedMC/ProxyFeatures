@@ -1,37 +1,30 @@
-# Tests Layout
+# Tests Overview
 
-This repository uses a top-level `tests/` source root to keep test code clearly separated from plugin runtime code.
+Test code lives under the top-level `tests/` directory and is split by area:
 
-Structure mirrors `src/main/java`:
+- `tests/java/.../api`: API contract and utility behavior
+- `tests/java/.../framework`: shared framework/lifecycle behavior
+- `tests/java/.../features`: feature logic and edge handling
 
-- `tests/java/nl/hauntedmc/proxyfeatures/api`
-- `tests/java/nl/hauntedmc/proxyfeatures/framework`
-- `tests/java/nl/hauntedmc/proxyfeatures/features`
+The goal is simple: catch regressions where they matter most while keeping tests maintainable.
 
-Framework and API tests are implemented with the same internal package structure as production code.
-Feature tests also mirror the same internal package structure for logic-heavy internals/utilities.
+## Running Tests
 
-Coverage gates (JaCoCo) enforce 100% line coverage for both:
+```bash
+mvn -q test
+```
 
-- `nl.hauntedmc.proxyfeatures.framework*`
-- `nl.hauntedmc.proxyfeatures.api*`
+Full gate (tests + coverage checks):
 
-Feature logic is also coverage-gated at 100% line coverage for selected classes:
+```bash
+mvn -B verify
+```
 
-- queue model/util (`ServerQueue`, `QueueEntry`, `EnqueueDecision`, `ServerStatus`, `PriorityResolver`)
-- AntiVPN internals (`IPCheckResult`, `MetricsCollector`, `CountryService`, `ProviderChain`, `IpWhitelist`, `PersistentIpCache`)
-- commandhider/clientinfo internals (`HiderHandler`, `ClientInfoConfig`)
-- friends/staffchat internals (`FriendsCache`, `ChatChannel`, `ChatChannelHandler`)
-- connectioninfo/messager/sanctions entities (`SessionHandler`, `PlayerMessageSettingsEntity`, `SanctionEntity`)
-- votifier internals/entities/utilities (`VotifierConfig`, `PlayerVoteStatsEntity`, `PlayerVoteMonthlyEntity`, `PlayerVoteMonthlyKey`, `VotifierRolloverStateEntity`, `IpAccessList`, `RSAUtil`)
-- resourcepack utility (`ResourceUtils`)
-- feature runtime logic (`AntiVPNService`, `VanishRegistry`, `ServiceLookup`, `FeatureFactory`, `ServerLinksHandler`)
-- feature event-bus handlers (`commandrelay.internal.EventBusHandler`, `staffchat.internal.messaging.EventBusHandler`, `vanish.internal.messaging.EventBusHandler`, `votifier.messaging.EventBusHandler`)
-- additional feature services/hooks (`NotificationService`, `CommandLogService`, `ClientInfoSettingsService`, `MessagingSettingsService`, `DiscordService`, `VersionHandler`, `PlayerInfoService`, `LuckPermsHook`)
+## Coverage
 
-Feature tests intentionally skip repetitive framework-covered boilerplate such as feature main/meta wrappers and focus on feature-specific behavior that should detect breakage.
+Coverage checks are enforced in CI for core areas and selected feature logic.
+Exact class-level targets may evolve, so check CI output when coverage fails.
 
-## Coverage Visibility
+Coverage report path after `mvn verify`:
 
-- IntelliJ: run tests with coverage to get package/class percentages and project-tree coloring.
-- CLI HTML report: `target/site/jacoco/index.html`.
+- `target/site/jacoco/index.html`

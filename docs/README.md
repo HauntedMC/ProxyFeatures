@@ -1,20 +1,26 @@
-# Documentation Index
+# ProxyFeatures Docs
 
-This directory contains operational and contributor documentation for ProxyFeatures.
+This folder is the practical guide for running, maintaining, and contributing to ProxyFeatures.
 
-## Guides
+## Start Here
 
-- [Architecture](ARCHITECTURE.md)
-- [Configuration](CONFIGURATION.md)
-- [Development](DEVELOPMENT.md)
-- [Testing](TESTING.md)
+If you run the plugin:
 
-## Release Workflow
+- [Configuration](CONFIGURATION.md): day-to-day setup and safe change workflow.
+- [Architecture](ARCHITECTURE.md): how the plugin is structured and how features are managed.
 
-Tagged releases are published by GitHub Actions using `.github/workflows/release-package.yml`.
+If you contribute code:
 
-To trigger a release:
+- [Development](DEVELOPMENT.md): local setup and coding workflow.
+- [Testing](TESTING.md): test strategy and local validation commands.
+- [Contributing Guide](../CONTRIBUTING.md): pull request expectations.
 
-1. Ensure `main` is green (tests + lint).
-2. Create and push a version tag (`vX.Y.Z`).
-3. Wait for the `Release Package` workflow to publish Maven package + GitHub release artifact.
+## Release Notes
+
+Releases are tag-driven.
+
+Typical flow:
+
+1. Ensure CI is green on your target branch.
+2. Bump version and create a release tag.
+3. Push branch and tag, then monitor the release workflow.

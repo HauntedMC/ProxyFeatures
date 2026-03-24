@@ -1,41 +1,30 @@
 # Architecture Overview
 
-## Core Pattern
+ProxyFeatures is built as a modular system for Velocity. Instead of one large block of logic, functionality is split into independent feature modules that can be turned on or off through configuration.
 
-`ProxyFeatures` is a modular plugin system built around feature classes.
-Each feature extends a shared base and is discovered/loaded dynamically.
+## Design Goals
 
-Main modules:
+- Keep features isolated so one module can be changed without destabilizing others.
+- Centralize common lifecycle concerns such as command/listener/task registration.
+- Let operators adopt features gradually, not all at once.
 
-- `ProxyFeatures`: plugin bootstrap and lifecycle integration
-- `framework.loader`: feature discovery, dependency checks, enable/disable/reload
-- `framework.lifecycle`: feature-scoped managers (tasks, listeners, commands, data, cache)
-- `framework.config` + `api.io.config`: typed config access and persistence
-- `features.*`: independent feature implementations
+## Runtime Model
 
-## Feature Lifecycle
+At startup, the plugin loads shared configuration, discovers available features, validates dependencies, and starts only the features that are enabled.
 
-1. Feature classes are discovered via classpath scanning.
-2. Default config/messages are injected.
-3. Dependency checks are evaluated.
-4. Enabled features are initialized.
-5. On shutdown/reload, cleanup is called and managed resources are released.
+During runtime, each feature owns its own behavior while using shared framework services for common tasks (config access, lifecycle management, logging, and integration points).
 
-## Config Model
+On reload/shutdown, features are asked to clean up resources so stale listeners, tasks, and cached state do not leak into the next run.
 
-- Primary shared configuration: `config.yml`
-- Global settings in `global.*`
-- Feature settings in `features.<FeatureName>.*`
-- Local feature files can be created under `local/`
+## Configuration and Data
 
-## Data and Messaging
+- `config.yml` is the primary control surface.
+- Feature-specific settings live under each feature section.
+- Some features may use additional local files for structured data.
+- Data and cross-server communication are handled through project dependencies where needed.
 
-- DataProvider is used for DB and messaging integration.
-- ORM contexts are created per feature when needed.
-- Redis messaging is used in selected features (e.g., votifier, relay, vanish).
+## Why This Matters
 
-## Safety Expectations
+For operators, this architecture means safer rollout and easier troubleshooting.
 
-- Avoid unbounded thread creation.
-- Use typed config reads with safe defaults.
-- Bound external IO and parse untrusted input defensively.
+For contributors, it means clearer boundaries: implement behavior inside a feature, keep shared behavior in the framework, and avoid tight coupling between unrelated modules.

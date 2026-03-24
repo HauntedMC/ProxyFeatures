@@ -1,56 +1,44 @@
 # Configuration Guide
 
-## Main File
+This guide focuses on practical setup and safe operations. Keep changes small, test often, and roll out in steps.
 
-Primary configuration file:
+## Configuration Layout
 
-- `config.yml`
+- Main settings: `config.yml`
+- Optional feature-local files: `local/*.yml`
+- Language overrides: `lang/*.yml` in the runtime plugin directory
 
-Feature-local files may also be created under:
+Most features follow the same pattern:
 
-- `local/*.yml`
-- Included templates:
-  - `local/announcer.yml`
-  - `local/resourcepacks.yml`
+- `enabled` toggle
+- feature-specific settings under that feature section
 
-## Global Keys
+## Recommended Workflow
 
-Important global keys:
+1. Start with only the features you actively need.
+2. Enable one feature (or one group) at a time.
+3. Restart or reload based on your normal operations process.
+4. Confirm behavior in logs and in-game.
+5. Move to the next feature only after validation.
 
-- `global.server_name`
-- 
+This keeps incidents small and rollback simple.
 
-## Feature Keys
+## Environment-Specific Values
 
-Each feature uses:
+Treat production endpoints, tokens, and credentials as environment-specific values:
 
-- `features.<FeatureName>.enabled`
-- feature-specific keys under `features.<FeatureName>.*`
-
-Example:
-
-```yaml
-features:
-  Queue:
-    enabled: true
-    poll-interval-seconds: 2
-```
+- keep secrets out of committed files;
+- prefer environment variables or your secret-management workflow;
+- document expected variables for your team.
 
 ## Localization
 
-Localization files are under:
+You can override messages without copying every key.
 
-- `src/main/resources/lang/`
+Use partial language files with only the entries you want to customize. Missing entries automatically fall back to the default message set.
 
-Runtime files in the plugin data directory:
+## Troubleshooting Tips
 
-- `lang/messages.yml`: default message set
-- `lang/messages_EN.yml`, `lang/messages_NL.yml`, `lang/messages_DE.yml`: optional partial overrides
-
-Override files can stay mostly empty; missing keys automatically fall back to `messages.yml`.
-
-## Operational Advice
-
-- Keep secrets in environment variables where possible.
-- Do not commit production tokens to the repository.
-- Validate config changes in staging before production rollout.
+- If a feature is not active, verify it is enabled and dependencies are available.
+- If a setting seems ignored, check key names/indentation first.
+- Apply one change at a time when debugging configuration issues.
