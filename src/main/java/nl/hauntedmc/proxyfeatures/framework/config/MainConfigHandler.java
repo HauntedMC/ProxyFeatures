@@ -23,8 +23,7 @@ public class MainConfigHandler extends ConfigView {
         super(new ConfigService(plugin).open("config.yml", true), "");
         this.logger = plugin.getLogger();
         injectGlobalDefaults(Map.of(
-                "server_name", "proxy",
-                "dataprovider_token", ""
+                "server_name", "proxy"
         ));
     }
 
@@ -33,8 +32,7 @@ public class MainConfigHandler extends ConfigView {
         super(service.open("config.yml", true), "");
         this.logger = plugin.getLogger();
         injectGlobalDefaults(Map.of(
-                "server_name", "proxy",
-                "dataprovider_token", ""
+                "server_name", "proxy"
         ));
     }
 

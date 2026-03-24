@@ -18,16 +18,7 @@ Feature-local files may also be created under:
 Important global keys:
 
 - `global.server_name`
-- `global.dataprovider_token`
-
-`dataprovider_token` can also come from environment variable:
-
-- `PROXYFEATURES_DATAPROVIDER_TOKEN`
-
-Token lookup precedence:
-
-1. `PROXYFEATURES_DATAPROVIDER_TOKEN`
-2. `global.dataprovider_token`
+- 
 
 ## Feature Keys
 

@@ -27,7 +27,6 @@ class MainConfigHandlerTest {
         MainConfigHandler handler = createHandler();
 
         assertEquals("proxy", handler.getGlobalSetting("server_name", String.class));
-        assertEquals("", handler.getGlobalSetting("dataprovider_token", String.class));
 
         handler.registerFeature("Queue");
         assertFalse(handler.isFeatureEnabled("Queue"));

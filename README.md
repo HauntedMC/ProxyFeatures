@@ -41,10 +41,6 @@ Build output:
 - Features can be enabled/disabled individually by config.
 - Some features also use dedicated local files under `local/*.yml`.
 
-DataProvider token resolution order:
-
-1. `PROXYFEATURES_DATAPROVIDER_TOKEN` environment variable
-2. `global.dataprovider_token` in `config.yml`
 
 ## Development
 
