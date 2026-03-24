@@ -14,6 +14,11 @@ jobs:
   tests:
     name: Tests and Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
@@ -25,9 +30,12 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
 
       - name: Run Maven Verify
-        run: mvn -B -ntp verify
+        run: mvn -U -B -ntp verify
 
       - name: Upload JaCoCo Report
         if: always()
