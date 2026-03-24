@@ -3,7 +3,6 @@ package nl.hauntedmc.proxyfeatures.features.vanish;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
-import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.APIRegistry;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
@@ -12,7 +11,6 @@ import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishRegistry;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.messaging.EventBusHandler;
-import nl.hauntedmc.proxyfeatures.features.vanish.internal.messaging.VanishStateMessage;
 import nl.hauntedmc.proxyfeatures.features.vanish.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.vanish.meta.Meta;
 
@@ -59,16 +57,10 @@ public class Vanish extends VelocityBaseFeature<Meta> {
         if (opt.isEmpty()) {
             getLogger().warn("Redis messaging connection 'redis' not available. Vanish feature will still run but won't receive updates.");
         } else {
-            MessagingDataAccess redisBus;
-            try {
-                redisBus = (MessagingDataAccess) opt.get().getDataAccess();
-            } catch (ClassCastException e) {
+            Object dataAccess = opt.get().getDataAccess();
+            if (!(dataAccess instanceof MessagingDataAccess redisBus)) {
                 getLogger().warn("Registered 'redis' connection is not a messaging provider; skipping vanish Redis subscription.");
-                redisBus = null;
-            }
-
-            if (redisBus != null) {
-                MessageRegistry.register("vanish_update", VanishStateMessage.class);
+            } else {
                 this.eventBusHandler = new EventBusHandler(this, redisBus);
                 // Subscribe to the bukkit-side channel
                 eventBusHandler.subscribeChannel("proxy.vanish.update");

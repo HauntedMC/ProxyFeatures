@@ -112,7 +112,7 @@ class ResourceHandlerTest {
     private ProxyFeatures mockPlugin() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         when(plugin.getDataDirectory()).thenReturn(tempDir);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("ResourceHandlerTest"));
         return plugin;
     }
 }

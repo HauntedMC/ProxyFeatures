@@ -4,125 +4,102 @@ import nl.hauntedmc.dataprovider.api.DataProviderAPI;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
+import nl.hauntedmc.dataprovider.platform.common.logger.ILoggerAdapter;
 import nl.hauntedmc.dataprovider.platform.velocity.VelocityDataProvider;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 
+import javax.sql.DataSource;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 public class FeatureDataManager {
-    private static final String DATA_PROVIDER_TOKEN_ENV = "PROXYFEATURES_DATAPROVIDER_TOKEN";
-    private static final String DATA_PROVIDER_TOKEN_CONFIG_KEY = "dataprovider_token";
+    private static final String ORM_SCHEMA_MODE_CONFIG_KEY = "dataprovider_orm_schema_mode";
+    private static final String DEFAULT_ORM_SCHEMA_MODE = "validate";
 
     private final ProxyFeatures plugin;
     private final DataProviderAPI dataProviderAPI;
-    private final Function<String, String> envLookup;
+    private final ILoggerAdapter ormLogger;
+    private final ConcurrentHashMap<String, DatabaseProvider> databaseProviders = new ConcurrentHashMap<>();
+
     private ORMContext ormContext;
     private String featureName;
-    private boolean authenticated;
-    private final ConcurrentHashMap<String, DatabaseProvider> databaseProviders;
+    private boolean initialized;
 
-
-    /**
-     * Constructs a new FeatureDataManager.
-     *
-     * @param plugin your main plugin class (for logging, etc.)
-     */
     public FeatureDataManager(ProxyFeatures plugin) {
-        this(plugin, resolveApiSafely(plugin), System::getenv);
+        this(plugin, resolveApiSafely(plugin));
     }
 
-    FeatureDataManager(ProxyFeatures plugin, DataProviderAPI dataProviderAPI, Function<String, String> envLookup) {
-        this.dataProviderAPI = dataProviderAPI;
-        this.envLookup = envLookup;
-        databaseProviders = new ConcurrentHashMap<>();
+    FeatureDataManager(ProxyFeatures plugin, DataProviderAPI dataProviderAPI) {
         this.plugin = plugin;
+        this.dataProviderAPI = dataProviderAPI;
+        this.ormLogger = createOrmLoggerAdapter(plugin);
     }
 
-    /**
-     * Authenticates your feature with the DataProviderAPI using the provided token.
-     *
-     * @param featureName the name of the feature
-     */
     public void initDataProvider(String featureName) {
         this.featureName = featureName;
-        this.authenticated = false;
+        this.initialized = false;
+
+        if (featureName == null || featureName.isBlank()) {
+            plugin.getLogger().error("Feature name cannot be null or blank.");
+            return;
+        }
 
         if (dataProviderAPI == null) {
             plugin.getLogger().error("DataProviderAPI is not available for feature '{}'.", featureName);
             return;
         }
 
-        String token = resolveDataProviderToken();
-        if (token == null) {
-            plugin.getLogger().error(
-                    "DataProvider token missing for feature '{}'. Set env {} or config key global.{}.",
-                    featureName,
-                    DATA_PROVIDER_TOKEN_ENV,
-                    DATA_PROVIDER_TOKEN_CONFIG_KEY
-            );
-            return;
-        }
-
-        try {
-            dataProviderAPI.authenticate(featureName, token);
-            authenticated = true;
-            plugin.getLogger().info("DataProvider authenticated feature '{}'.", featureName);
-        } catch (Exception t) {
-            plugin.getLogger().error("Failed to authenticate DataProvider for feature '{}'.", featureName, t);
-        }
+        initialized = true;
+        plugin.getLogger().info(
+            "DataProvider initialized for feature '{}'. Caller identity is resolved automatically by DataProvider.",
+            featureName
+        );
     }
 
-    /**
-     * Registers a connection (DatabaseProvider) for the given identifier, using the specified
-     * database type and connection name.
-     *
-     * @param identifier     a label for the provider
-     * @param databaseType   the type of database (e.g. MYSQL, MONGODB, etc.)
-     * @param connectionName the name or key used to differentiate the database config
-     * @return an Optional containing the DatabaseProvider if registration was successful; empty otherwise
-     */
     public Optional<DatabaseProvider> registerConnection(String identifier, DatabaseType databaseType, String connectionName) {
-
         if (featureName == null) {
             plugin.getLogger().error("Feature name is not set. Did you call initDataProvider()?");
             return Optional.empty();
         }
-        if (!authenticated) {
-            plugin.getLogger().error("DataProvider is not authenticated for feature '{}'.", featureName);
+        if (!initialized) {
+            plugin.getLogger().error("DataProvider is not initialized for feature '{}'.", featureName);
             return Optional.empty();
         }
 
-        DatabaseProvider provider = dataProviderAPI.registerDatabase(featureName, databaseType, connectionName);
-        if (provider == null || !provider.isConnected()) {
-            plugin.getLogger().error("Database Provider is not connected.");
+        final DatabaseProvider provider;
+        try {
+            provider = dataProviderAPI.registerDatabase(databaseType, connectionName);
+        } catch (Exception ex) {
+            plugin.getLogger().error(
+                "Failed to register database '{}' (type={}, connection='{}') for feature '{}'.",
+                identifier,
+                databaseType,
+                connectionName,
+                featureName,
+                ex
+            );
             return Optional.empty();
         }
+
+        if (provider == null || !provider.isConnected()) {
+            plugin.getLogger().error(
+                "Database provider '{}' is null or not connected (type={}, connection='{}').",
+                identifier,
+                databaseType,
+                connectionName
+            );
+            return Optional.empty();
+        }
+
         databaseProviders.put(identifier, provider);
         plugin.getLogger().info("Successfully registered connection '{}' of type {}", identifier, databaseType);
         return Optional.of(provider);
     }
 
-    /**
-     * Retrieves the DatabaseProvider associated with the given identifier.
-     *
-     * @param identifier the key used to register the provider
-     * @return an Optional containing the DatabaseProvider, or empty if none is found
-     */
     public Optional<DatabaseProvider> getDataProvider(String identifier) {
         return Optional.ofNullable(databaseProviders.get(identifier));
     }
 
-
-    /**
-     * Creates an ORM context for the specified database identifier and entity classes.
-     * This overwrites any previously-created single ORM context in this manager.
-     *
-     * @param identifier    the database connection identifier
-     * @param entityClasses the entity classes you want to manage with ORM
-     * @return an Optional containing the newly created ORMContext, or empty if creation fails
-     */
     public Optional<ORMContext> createORMContext(String identifier, Class<?>... entityClasses) {
         DatabaseProvider provider = databaseProviders.get(identifier);
         if (provider == null) {
@@ -130,68 +107,114 @@ public class FeatureDataManager {
             return Optional.empty();
         }
 
-        // Create and store the ORMContext
-        this.ormContext = newOrmContext(featureName, provider, entityClasses);
-        plugin.getLogger().info("Created ORMContext for identifier '{}'", identifier);
-        return Optional.of(ormContext);
+        final DataSource dataSource;
+        try {
+            dataSource = provider.getDataSource();
+        } catch (UnsupportedOperationException ex) {
+            plugin.getLogger().error(
+                "Database '{}' does not expose a DataSource. ORMContext requires a relational provider.",
+                identifier,
+                ex
+            );
+            return Optional.empty();
+        }
+
+        if (dataSource == null) {
+            plugin.getLogger().error("Database '{}' returned a null DataSource.", identifier);
+            return Optional.empty();
+        }
+
+        try {
+            String ownerName = (featureName == null || featureName.isBlank())
+                ? plugin.getClass().getSimpleName()
+                : featureName;
+            this.ormContext = newOrmContext(ownerName, dataSource, entityClasses);
+            plugin.getLogger().info("Created ORMContext for identifier '{}'", identifier);
+            return Optional.of(ormContext);
+        } catch (Exception ex) {
+            plugin.getLogger().error("Failed to create ORMContext for identifier '{}'.", identifier, ex);
+            return Optional.empty();
+        }
     }
 
-
-    /**
-     * Retrieves the single ORMContext that this manager holds, if any.
-     *
-     * @return an Optional of the current ORMContext
-     */
     public Optional<ORMContext> getORMContext() {
         return Optional.ofNullable(ormContext);
     }
 
-
-    /**
-     * Closes the current ORMContext (if any) and unregisters all databases associated with
-     * this feature name.
-     */
     public void closeAllConnections() {
         if (ormContext != null) {
             ormContext.shutdown();
             plugin.getLogger().info("ORMContext has been shut down.");
         }
 
-        if (!databaseProviders.isEmpty() && featureName != null && dataProviderAPI != null) {
-            dataProviderAPI.unregisterAllDatabases(featureName);
-            plugin.getLogger().info("Unregistered all databases for feature '{}'.", featureName);
+        if (dataProviderAPI != null) {
+            try {
+                dataProviderAPI.unregisterAllDatabases();
+                plugin.getLogger().info("Unregistered all DataProvider databases for this plugin context.");
+            } catch (Exception ex) {
+                plugin.getLogger().error("Failed to unregister DataProvider databases.", ex);
+            }
         }
 
         databaseProviders.clear();
         ormContext = null;
-        authenticated = false;
+        initialized = false;
     }
 
-    /**
-     * @return the current count of active connections
-     */
     public int getActiveConnCount() {
         return databaseProviders.size();
     }
 
-    private String resolveDataProviderToken() {
-        String env = envLookup.apply(DATA_PROVIDER_TOKEN_ENV);
-        if (env != null && !env.isBlank()) {
-            return env.trim();
-        }
-
-        if (plugin.getConfigHandler() != null) {
-            String cfg = plugin.getConfigHandler().getGlobalSetting(DATA_PROVIDER_TOKEN_CONFIG_KEY, String.class, "");
-            if (cfg != null && !cfg.isBlank()) {
-                return cfg.trim();
-            }
-        }
-
-        return null;
+    ORMContext newOrmContext(String ownerName, DataSource dataSource, Class<?>... entityClasses) {
+        return new ORMContext(ownerName, dataSource, ormLogger, resolveOrmSchemaMode(), entityClasses);
     }
 
-    ORMContext newOrmContext(String featureName, DatabaseProvider provider, Class<?>... entityClasses) {
-        return new ORMContext(featureName, provider.getDataSource(), entityClasses);
+    private String resolveOrmSchemaMode() {
+        if (plugin.getConfigHandler() != null) {
+            String configured = plugin.getConfigHandler().getGlobalSetting(
+                ORM_SCHEMA_MODE_CONFIG_KEY,
+                String.class,
+                DEFAULT_ORM_SCHEMA_MODE
+            );
+            if (configured != null && !configured.isBlank()) {
+                return configured.trim();
+            }
+        }
+        return DEFAULT_ORM_SCHEMA_MODE;
+    }
+
+    private static ILoggerAdapter createOrmLoggerAdapter(ProxyFeatures plugin) {
+        return new ILoggerAdapter() {
+            @Override
+            public void info(String message) {
+                plugin.getLogger().info(message);
+            }
+
+            @Override
+            public void warn(String message) {
+                plugin.getLogger().warn(message);
+            }
+
+            @Override
+            public void error(String message) {
+                plugin.getLogger().error(message);
+            }
+
+            @Override
+            public void info(String message, Throwable throwable) {
+                plugin.getLogger().info(message, throwable);
+            }
+
+            @Override
+            public void warn(String message, Throwable throwable) {
+                plugin.getLogger().warn(message, throwable);
+            }
+
+            @Override
+            public void error(String message, Throwable throwable) {
+                plugin.getLogger().error(message, throwable);
+            }
+        };
     }
 
     private static DataProviderAPI resolveApiSafely(ProxyFeatures plugin) {

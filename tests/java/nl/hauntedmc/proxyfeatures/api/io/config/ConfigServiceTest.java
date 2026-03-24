@@ -5,6 +5,7 @@ import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -23,7 +24,7 @@ class ConfigServiceTest {
 
     @Test
     void openCachesYamlFileAndRejectsPathEscape() {
-        ConfigService service = new ConfigService(tempDir, mock(Logger.class), getClass().getClassLoader());
+        ConfigService service = new ConfigService(tempDir, LoggerFactory.getLogger(ConfigServiceTest.class), getClass().getClassLoader());
         YamlFile first = service.open("config.yml", false);
         YamlFile second = service.open("config.yml", false);
         assertSame(first, second);
@@ -41,7 +42,7 @@ class ConfigServiceTest {
                 return null;
             }
         };
-        ConfigService service = new ConfigService(tempDir, mock(Logger.class), loader);
+        ConfigService service = new ConfigService(tempDir, LoggerFactory.getLogger(ConfigServiceTest.class), loader);
 
         service.open("defaults.yml", true);
         assertTrue(Files.readString(tempDir.resolve("defaults.yml")).contains("value: 7"));
@@ -52,7 +53,7 @@ class ConfigServiceTest {
 
     @Test
     void viewHelpersReturnUsableViews() {
-        ComponentLogger logger = mock(ComponentLogger.class);
+        ComponentLogger logger = ComponentLogger.logger("ConfigServiceTest");
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         when(plugin.getDataDirectory()).thenReturn(tempDir);
         when(plugin.getLogger()).thenReturn(logger);
@@ -70,12 +71,12 @@ class ConfigServiceTest {
 
     @Test
     void constructorHandlesNullResourcesAndOpenWrapsIoFailures() throws Exception {
-        ConfigService withNullResources = new ConfigService(tempDir, mock(Logger.class), null);
+        ConfigService withNullResources = new ConfigService(tempDir, LoggerFactory.getLogger(ConfigServiceTest.class), null);
         assertNotNull(withNullResources.open("null-resource.yml", false));
 
         Path blocked = tempDir.resolve("blocked-dir");
         Files.writeString(blocked, "x");
-        ConfigService failing = new ConfigService(blocked, mock(Logger.class), getClass().getClassLoader());
+        ConfigService failing = new ConfigService(blocked, LoggerFactory.getLogger(ConfigServiceTest.class), getClass().getClassLoader());
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> failing.open("test.yml", false));
         assertTrue(ex.getMessage().contains("Failed to open YAML file"));
     }

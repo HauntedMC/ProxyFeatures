@@ -2,7 +2,7 @@ package nl.hauntedmc.proxyfeatures.api.io.config;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 
 import java.nio.file.Files;
@@ -231,6 +231,6 @@ class ConfigViewTest {
     private ConfigView createView(String fileName, String base) throws Exception {
         Path path = tempDir.resolve(fileName);
         Files.createFile(path);
-        return new ConfigView(new YamlFile(path, mock(Logger.class)), base);
+        return new ConfigView(new YamlFile(path, LoggerFactory.getLogger(ConfigViewTest.class)), base);
     }
 }

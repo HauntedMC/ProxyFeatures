@@ -3,14 +3,12 @@ package nl.hauntedmc.proxyfeatures.features.staffchat;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
-import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler;
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.messaging.EventBusHandler;
-import nl.hauntedmc.proxyfeatures.features.staffchat.internal.messaging.StaffChatMessage;
 import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.meta.Meta;
 
@@ -66,14 +64,11 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
         }
 
         DatabaseProvider dbp = opt.get();
-        MessagingDataAccess redisBus;
-        try {
-            redisBus = (MessagingDataAccess) dbp.getDataAccess();
-        } catch (ClassCastException e) {
+        Object dataAccess = dbp.getDataAccess();
+        if (!(dataAccess instanceof MessagingDataAccess redisBus)) {
+            getLogger().warn("Registered 'redis' connection is not a messaging provider; staff chat sync disabled.");
             return;
         }
-
-        MessageRegistry.register("staffchat", StaffChatMessage.class);
 
         eventBusHandler = new EventBusHandler(this, redisBus);
         eventBusHandler.subscribeChannel("proxy.staffchat.message");
@@ -87,7 +82,10 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
 
     @Override
     public void disable() {
-        eventBusHandler.disable();
+        if (eventBusHandler != null) {
+            eventBusHandler.disable();
+            eventBusHandler = null;
+        }
     }
 
     public ChatChannelHandler getChatChannelHandler() {

@@ -1,13 +1,11 @@
 package nl.hauntedmc.proxyfeatures.framework.log;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import nl.hauntedmc.proxyfeatures.testutil.ComponentLoggerRecorder;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
 
 class FeatureLoggerTest {
 
@@ -15,8 +13,8 @@ class FeatureLoggerTest {
 
     @Test
     void prefixesAndDelegatesAllLevelsForComponents() {
-        ComponentLogger delegate = mock(ComponentLogger.class);
-        FeatureLogger logger = new FeatureLogger(delegate, "Queue");
+        ComponentLoggerRecorder recorder = ComponentLoggerRecorder.create();
+        FeatureLogger logger = new FeatureLogger(recorder.logger(), "Queue");
 
         logger.info(Component.text("i"));
         logger.warn(Component.text("w"));
@@ -24,29 +22,17 @@ class FeatureLoggerTest {
         logger.debug(Component.text("d"));
         logger.trace(Component.text("t"));
 
-        ArgumentCaptor<Component> info = ArgumentCaptor.forClass(Component.class);
-        ArgumentCaptor<Component> warn = ArgumentCaptor.forClass(Component.class);
-        ArgumentCaptor<Component> error = ArgumentCaptor.forClass(Component.class);
-        ArgumentCaptor<Component> debug = ArgumentCaptor.forClass(Component.class);
-        ArgumentCaptor<Component> trace = ArgumentCaptor.forClass(Component.class);
-
-        verify(delegate).info(info.capture());
-        verify(delegate).warn(warn.capture());
-        verify(delegate).error(error.capture());
-        verify(delegate).debug(debug.capture());
-        verify(delegate).trace(trace.capture());
-
-        assertEquals("[Queue] i", PLAIN.serialize(info.getValue()));
-        assertEquals("[Queue] w", PLAIN.serialize(warn.getValue()));
-        assertEquals("[Queue] e", PLAIN.serialize(error.getValue()));
-        assertEquals("[Queue] d", PLAIN.serialize(debug.getValue()));
-        assertEquals("[Queue] t", PLAIN.serialize(trace.getValue()));
+        assertEquals("[Queue] i", PLAIN.serialize(firstComponentArg(recorder, "info")));
+        assertEquals("[Queue] w", PLAIN.serialize(firstComponentArg(recorder, "warn")));
+        assertEquals("[Queue] e", PLAIN.serialize(firstComponentArg(recorder, "error")));
+        assertEquals("[Queue] d", PLAIN.serialize(firstComponentArg(recorder, "debug")));
+        assertEquals("[Queue] t", PLAIN.serialize(firstComponentArg(recorder, "trace")));
     }
 
     @Test
     void stringOverloadsDelegateToComponentOverloads() {
-        ComponentLogger delegate = mock(ComponentLogger.class);
-        FeatureLogger logger = new FeatureLogger(delegate, "Queue");
+        ComponentLoggerRecorder recorder = ComponentLoggerRecorder.create();
+        FeatureLogger logger = new FeatureLogger(recorder.logger(), "Queue");
 
         logger.info("i");
         logger.warn("w");
@@ -54,10 +40,26 @@ class FeatureLoggerTest {
         logger.debug("d");
         logger.trace("t");
 
-        verify(delegate, times(1)).info(any(Component.class));
-        verify(delegate, times(1)).warn(any(Component.class));
-        verify(delegate, times(1)).error(any(Component.class));
-        verify(delegate, times(1)).debug(any(Component.class));
-        verify(delegate, times(1)).trace(any(Component.class));
+        assertEquals(1, countCalls(recorder, "info"));
+        assertEquals(1, countCalls(recorder, "warn"));
+        assertEquals(1, countCalls(recorder, "error"));
+        assertEquals(1, countCalls(recorder, "debug"));
+        assertEquals(1, countCalls(recorder, "trace"));
+    }
+
+    private static Component firstComponentArg(ComponentLoggerRecorder recorder, String methodName) {
+        return recorder.calls().stream()
+                .filter(call -> methodName.equals(call.method()))
+                .map(call -> call.args()[0])
+                .filter(Component.class::isInstance)
+                .map(Component.class::cast)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Missing " + methodName + " call"));
+    }
+
+    private static long countCalls(ComponentLoggerRecorder recorder, String methodName) {
+        return recorder.calls().stream()
+                .filter(call -> methodName.equals(call.method()))
+                .count();
     }
 }

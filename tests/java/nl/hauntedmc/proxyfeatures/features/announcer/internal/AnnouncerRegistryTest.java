@@ -78,7 +78,7 @@ class AnnouncerRegistryTest {
     private static Announcer announcerFeature(Path dataDir, FeatureLogger logger) {
         Announcer feature = mock(Announcer.class);
         ProxyFeatures plugin = mock(ProxyFeatures.class);
-        ComponentLogger pluginLogger = mock(ComponentLogger.class);
+        ComponentLogger pluginLogger = ComponentLogger.logger("AnnouncerRegistryTest");
         when(feature.getPlugin()).thenReturn(plugin);
         when(feature.getLogger()).thenReturn(logger);
         when(plugin.getDataDirectory()).thenReturn(dataDir);

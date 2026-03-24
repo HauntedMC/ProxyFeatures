@@ -4,13 +4,11 @@ import net.kyori.adventure.text.Component;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
-import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.EventBusHandler;
-import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.messaging.CommandRelayMessage;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.meta.Meta;
 
 import java.util.List;
@@ -59,15 +57,11 @@ public class CommandRelay extends VelocityBaseFeature<Meta> {
 
         // Obtain the Redis bus
         DatabaseProvider dbp = opt.get();
-        MessagingDataAccess redisBus;
-        try {
-            redisBus = (MessagingDataAccess) dbp.getDataAccess();
-        } catch (ClassCastException e) {
+        Object dataAccess = dbp.getDataAccess();
+        if (!(dataAccess instanceof MessagingDataAccess redisBus)) {
+            getLogger().warn(Component.text("CommandRelay: data access for 'redis' is not a messaging provider."));
             return;
         }
-
-        // Register the message type
-        MessageRegistry.register("commandrelay", CommandRelayMessage.class);
 
         // Create the handler
         this.eventBusHandler = new EventBusHandler(this, redisBus);

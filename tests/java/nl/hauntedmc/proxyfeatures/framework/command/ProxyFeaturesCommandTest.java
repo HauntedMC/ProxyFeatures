@@ -65,7 +65,7 @@ class ProxyFeaturesCommandTest {
 
         when(plugin.getFeatureLoadManager()).thenReturn(loadManager);
         when(plugin.getLocalizationHandler()).thenReturn(localization);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("ProxyFeaturesCommandTest"));
         when(loadManager.getFeatureRegistry()).thenReturn(registry);
         when(sender.hasPermission(anyString())).thenReturn(true);
 

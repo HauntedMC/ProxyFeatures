@@ -121,7 +121,7 @@ class MainConfigHandlerTest {
     void primaryConstructorAndExpectedKindFallbackBranchAreCovered() throws Exception {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         when(plugin.getDataDirectory()).thenReturn(tempDir);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("MainConfigHandlerTest"));
 
         MainConfigHandler handler = new MainConfigHandler(plugin);
         assertEquals("proxy", handler.getGlobalSetting("server_name", String.class));
@@ -134,7 +134,7 @@ class MainConfigHandlerTest {
 
     private MainConfigHandler createHandler() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("MainConfigHandlerTest"));
         ConfigService service = new ConfigService(tempDir, plugin.getLogger(), getClass().getClassLoader());
         return new MainConfigHandler(plugin, service);
     }

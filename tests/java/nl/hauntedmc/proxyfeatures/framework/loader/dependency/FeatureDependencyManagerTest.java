@@ -35,7 +35,7 @@ class FeatureDependencyManagerTest {
         registry = new FeatureRegistry();
         pluginManager = mock(PluginManager.class);
 
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("FeatureDependencyManagerTest"));
         when(plugin.getPluginManager()).thenReturn(pluginManager);
         when(featureLoadManager.getFeatureRegistry()).thenReturn(registry);
         when(featureLoadManager.loadFeature(anyString())).thenReturn(true);

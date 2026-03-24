@@ -4,7 +4,6 @@ import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
-import nl.hauntedmc.dataprovider.database.messaging.api.MessageRegistry;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
@@ -15,16 +14,12 @@ import nl.hauntedmc.proxyfeatures.features.votifier.entity.PlayerVoteStatsEntity
 import nl.hauntedmc.proxyfeatures.features.votifier.entity.VotifierRolloverStateEntity;
 import nl.hauntedmc.proxyfeatures.features.votifier.internal.VotifierService;
 import nl.hauntedmc.proxyfeatures.features.votifier.listener.VotifierPlayerListener;
-import nl.hauntedmc.proxyfeatures.features.votifier.messaging.VoteMessage;
 import nl.hauntedmc.proxyfeatures.features.votifier.meta.Meta;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Votifier extends VelocityBaseFeature<Meta> {
-
-    private static final AtomicBoolean MESSAGE_TYPE_REGISTERED = new AtomicBoolean(false);
 
     private volatile VotifierService service;
 
@@ -218,9 +213,10 @@ public class Votifier extends VelocityBaseFeature<Meta> {
 
         MessagingDataAccess redisBus = null;
         if (redisOpt.isPresent()) {
-            try {
-                redisBus = (MessagingDataAccess) redisOpt.get().getDataAccess();
-            } catch (ClassCastException e) {
+            Object dataAccess = redisOpt.get().getDataAccess();
+            if (dataAccess instanceof MessagingDataAccess messagingDataAccess) {
+                redisBus = messagingDataAccess;
+            } else {
                 getLogger().warn("Redis DataAccess is not MessagingDataAccess, vote publish disabled.");
             }
         } else {
@@ -248,15 +244,6 @@ public class Votifier extends VelocityBaseFeature<Meta> {
             }
         } else {
             getLogger().warn("MySQL provider not available, vote stats disabled.");
-        }
-
-        // Register message type once
-        if (MESSAGE_TYPE_REGISTERED.compareAndSet(false, true)) {
-            try {
-                MessageRegistry.register("votifier", VoteMessage.class);
-            } catch (RuntimeException t) {
-                getLogger().warn("Failed to register VoteMessage type: " + t.getMessage());
-            }
         }
 
         // Service orchestration

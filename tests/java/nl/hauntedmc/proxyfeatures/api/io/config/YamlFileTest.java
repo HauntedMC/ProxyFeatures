@@ -3,6 +3,7 @@ package nl.hauntedmc.proxyfeatures.api.io.config;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -11,7 +12,6 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 class YamlFileTest {
 
@@ -22,7 +22,7 @@ class YamlFileTest {
     void readWriteMutateAndContainsWork() throws IOException {
         Path path = tempDir.resolve("config.yml");
         Files.createFile(path);
-        YamlFile yaml = new YamlFile(path, mock(Logger.class));
+        YamlFile yaml = new YamlFile(path, LoggerFactory.getLogger(YamlFileTest.class));
 
         yaml.setRawAndSave("global.name", "proxy");
         assertEquals("proxy", yaml.getRaw("global.name"));
@@ -43,7 +43,7 @@ class YamlFileTest {
     void reloadHandlesMalformedYamlGracefully() throws IOException {
         Path path = tempDir.resolve("broken.yml");
         Files.writeString(path, "global: [broken");
-        YamlFile yaml = new YamlFile(path, mock(Logger.class));
+        YamlFile yaml = new YamlFile(path, LoggerFactory.getLogger(YamlFileTest.class));
 
         assertDoesNotThrow(yaml::reload);
         assertNull(yaml.getRaw("global.name"));
@@ -54,7 +54,7 @@ class YamlFileTest {
     void containsRootAndErrorBranchesAreHandled() throws Exception {
         Path path = tempDir.resolve("edge.yml");
         Files.createFile(path);
-        Logger logger = mock(Logger.class);
+        Logger logger = LoggerFactory.getLogger(YamlFileTest.class);
         YamlFile yaml = new YamlFile(path, logger);
         yaml.setRawAndSave("a", 1);
 

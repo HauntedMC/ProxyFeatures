@@ -24,7 +24,7 @@ class FeatureLifecycleManagerTest {
     void exposesManagersAndCleanupRunsWithoutError() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         when(plugin.getDataDirectory()).thenReturn(tempDir);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("FeatureLifecycleManagerTest"));
         when(plugin.getCommandManager()).thenReturn(mock(CommandManager.class));
         when(plugin.getEventManager()).thenReturn(mock(EventManager.class));
         when(plugin.getScheduler()).thenReturn(mock(Scheduler.class));

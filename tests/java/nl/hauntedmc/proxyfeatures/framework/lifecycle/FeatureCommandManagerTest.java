@@ -33,7 +33,7 @@ class FeatureCommandManagerTest {
         plugin = mock(ProxyFeatures.class);
         commandManager = mock(CommandManager.class);
         when(plugin.getCommandManager()).thenReturn(commandManager);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("FeatureCommandManagerTest"));
 
         simpleMeta = mock(CommandMeta.class);
         brigadierMeta = mock(CommandMeta.class);

@@ -47,7 +47,7 @@ class FeatureCacheManagerTest {
     private static ProxyFeatures mockPlugin(Path dir) {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         when(plugin.getDataDirectory()).thenReturn(dir);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("FeatureCacheManagerTest"));
         return plugin;
     }
 

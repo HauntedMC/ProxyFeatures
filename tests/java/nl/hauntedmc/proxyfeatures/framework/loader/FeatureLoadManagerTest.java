@@ -41,7 +41,7 @@ class FeatureLoadManagerTest {
         plugin = mock(ProxyFeatures.class);
         mainConfig = mock(MainConfigHandler.class);
         localization = mock(LocalizationHandler.class);
-        logger = mock(ComponentLogger.class);
+        logger = ComponentLogger.logger("FeatureLoadManagerTest");
         pluginManager = mock(PluginManager.class);
 
         when(plugin.getConfigHandler()).thenReturn(mainConfig);

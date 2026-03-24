@@ -4,7 +4,7 @@ import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.io.config.ConfigMap;
 import nl.hauntedmc.proxyfeatures.api.io.localization.MessageMap;
 import nl.hauntedmc.proxyfeatures.features.commandhider.meta.Meta;
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import nl.hauntedmc.proxyfeatures.testutil.ComponentLoggerRecorder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -23,30 +23,29 @@ class FeatureFactoryTest {
     @Test
     void createFeatureReturnsNullAndLogsWhenClassIsMissing() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
-        ComponentLogger logger = mock(ComponentLogger.class);
-        when(plugin.getLogger()).thenReturn(logger);
+        ComponentLoggerRecorder loggerRecorder = ComponentLoggerRecorder.create();
+        when(plugin.getLogger()).thenReturn(loggerRecorder.logger());
 
         VelocityBaseFeature<?> created = FeatureFactory.createFeature(null, plugin);
         assertNull(created);
-        verify(logger).error(contains("no class was registered"));
+        assertTrue(loggerRecorder.hasStringArgumentContaining("error", "no class was registered"));
     }
 
     @Test
     void createFeatureReturnsNullWhenConstructorSignatureDoesNotMatch() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
-        ComponentLogger logger = mock(ComponentLogger.class);
-        when(plugin.getLogger()).thenReturn(logger);
+        ComponentLoggerRecorder loggerRecorder = ComponentLoggerRecorder.create();
+        when(plugin.getLogger()).thenReturn(loggerRecorder.logger());
 
         VelocityBaseFeature<?> created = FeatureFactory.createFeature(NoProxyCtorFeature.class, plugin);
         assertNull(created);
-        verify(logger).error(contains("Failed to instantiate feature"), any(), any());
+        assertTrue(loggerRecorder.hasStringArgumentContaining("error", "Failed to instantiate feature"));
     }
 
     @Test
     void createFeatureInstantiatesFeatureWhenConstructorMatches(@TempDir Path tempDir) {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
-        ComponentLogger logger = mock(ComponentLogger.class);
-        when(plugin.getLogger()).thenReturn(logger);
+        when(plugin.getLogger()).thenReturn(ComponentLoggerRecorder.create().logger());
         when(plugin.getDataDirectory()).thenReturn(tempDir);
 
         VelocityBaseFeature<?> created = FeatureFactory.createFeature(ValidCtorFeature.class, plugin);

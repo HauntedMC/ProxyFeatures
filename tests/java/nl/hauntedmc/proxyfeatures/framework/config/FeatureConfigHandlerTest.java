@@ -21,7 +21,7 @@ class FeatureConfigHandlerTest {
     void featureScopedReadsWritesAndGlobalAccessorsWork() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         when(plugin.getDataDirectory()).thenReturn(tempDir);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("FeatureConfigHandlerTest"));
 
         FeatureConfigHandler handler = new FeatureConfigHandler(plugin, "Queue");
 
@@ -43,7 +43,7 @@ class FeatureConfigHandlerTest {
     void reloadConfigCanBeCalled() {
         ProxyFeatures plugin = mock(ProxyFeatures.class);
         when(plugin.getDataDirectory()).thenReturn(tempDir);
-        when(plugin.getLogger()).thenReturn(mock(ComponentLogger.class));
+        when(plugin.getLogger()).thenReturn(ComponentLogger.logger("FeatureConfigHandlerTest"));
 
         FeatureConfigHandler handler = new FeatureConfigHandler(plugin, "Queue");
         assertDoesNotThrow(handler::reloadConfig);
