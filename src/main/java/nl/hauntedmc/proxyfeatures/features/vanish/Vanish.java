@@ -1,6 +1,5 @@
 package nl.hauntedmc.proxyfeatures.features.vanish;
 
-import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
@@ -13,8 +12,6 @@ import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishRegistry;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.messaging.EventBusHandler;
 import nl.hauntedmc.proxyfeatures.features.vanish.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.vanish.meta.Meta;
-
-import java.util.Optional;
 
 public class Vanish extends VelocityBaseFeature<Meta> {
 
@@ -50,22 +47,17 @@ public class Vanish extends VelocityBaseFeature<Meta> {
         APIRegistry.register(VanishAPI.class, this.api);
 
         // Optional Redis setup
-        Optional<DatabaseProvider> opt = getLifecycleManager()
+        var redisBus = getLifecycleManager()
                 .getDataManager()
-                .registerConnection("redis", DatabaseType.REDIS_MESSAGING, "default");
+                .registerDataAccess("redis", DatabaseType.REDIS_MESSAGING, "default", MessagingDataAccess.class);
 
-        if (opt.isEmpty()) {
+        if (redisBus.isEmpty()) {
             getLogger().warn("Redis messaging connection 'redis' not available. Vanish feature will still run but won't receive updates.");
         } else {
-            Object dataAccess = opt.get().getDataAccess();
-            if (!(dataAccess instanceof MessagingDataAccess redisBus)) {
-                getLogger().warn("Registered 'redis' connection is not a messaging provider; skipping vanish Redis subscription.");
-            } else {
-                this.eventBusHandler = new EventBusHandler(this, redisBus);
-                // Subscribe to the bukkit-side channel
-                eventBusHandler.subscribeChannel("proxy.vanish.update");
-                getLogger().info("Subscribed to Redis channel 'proxy.vanish.update'.");
-            }
+            this.eventBusHandler = new EventBusHandler(this, redisBus.get());
+            // Subscribe to the bukkit-side channel
+            eventBusHandler.subscribeChannel("proxy.vanish.update");
+            getLogger().info("Subscribed to Redis channel 'proxy.vanish.update'.");
         }
 
         // Listener to keep registry tidy on disconnects

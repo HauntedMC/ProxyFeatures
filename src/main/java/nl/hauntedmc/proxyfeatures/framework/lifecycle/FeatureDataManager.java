@@ -2,6 +2,7 @@ package nl.hauntedmc.proxyfeatures.framework.lifecycle;
 
 import nl.hauntedmc.dataprovider.api.DataProviderAPI;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
+import nl.hauntedmc.dataprovider.database.DataAccess;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.platform.common.logger.ILoggerAdapter;
@@ -19,7 +20,7 @@ public class FeatureDataManager {
     private final ProxyFeatures plugin;
     private final DataProviderAPI dataProviderAPI;
     private final ILoggerAdapter ormLogger;
-    private final ConcurrentHashMap<String, DatabaseProvider> databaseProviders = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ConnectionRegistration> connectionsByIdentifier = new ConcurrentHashMap<>();
 
     private ORMContext ormContext;
     private String featureName;
@@ -57,18 +58,24 @@ public class FeatureDataManager {
     }
 
     public Optional<DatabaseProvider> registerConnection(String identifier, DatabaseType databaseType, String connectionName) {
-        if (featureName == null) {
-            plugin.getLogger().error("Feature name is not set. Did you call initDataProvider()?");
-            return Optional.empty();
-        }
-        if (!initialized) {
-            plugin.getLogger().error("DataProvider is not initialized for feature '{}'.", featureName);
+        if (!isReady()) {
             return Optional.empty();
         }
 
-        final DatabaseProvider provider;
+        ConnectionRegistration existing = connectionsByIdentifier.get(identifier);
+        if (existing != null) {
+            if (existing.databaseType == databaseType
+                    && existing.connectionName.equals(connectionName)
+                    && isProviderConnected(existing.provider)) {
+                return Optional.of(existing.provider);
+            }
+            releaseConnection(existing, identifier);
+            connectionsByIdentifier.remove(identifier, existing);
+        }
+
+        Optional<DatabaseProvider> registered;
         try {
-            provider = dataProviderAPI.registerDatabase(databaseType, connectionName);
+            registered = dataProviderAPI.registerDatabaseOptional(databaseType, connectionName);
         } catch (Exception ex) {
             plugin.getLogger().error(
                 "Failed to register database '{}' (type={}, connection='{}') for feature '{}'.",
@@ -81,46 +88,73 @@ public class FeatureDataManager {
             return Optional.empty();
         }
 
-        if (provider == null || !provider.isConnected()) {
+        if (registered.isEmpty() || !isProviderConnected(registered.get())) {
             plugin.getLogger().error(
-                "Database provider '{}' is null or not connected (type={}, connection='{}').",
-                identifier,
-                databaseType,
-                connectionName
+                    "Database provider '{}' is null or not connected (type={}, connection='{}').",
+                    identifier,
+                    databaseType,
+                    connectionName
             );
             return Optional.empty();
         }
 
-        databaseProviders.put(identifier, provider);
+        DatabaseProvider provider = registered.get();
+        ConnectionRegistration newRegistration = new ConnectionRegistration(databaseType, connectionName, provider);
+        ConnectionRegistration replaced = connectionsByIdentifier.put(identifier, newRegistration);
+        if (replaced != null && replaced != newRegistration) {
+            releaseConnection(replaced, identifier);
+        }
+
         plugin.getLogger().info("Successfully registered connection '{}' of type {}", identifier, databaseType);
         return Optional.of(provider);
     }
 
     public Optional<DatabaseProvider> getDataProvider(String identifier) {
-        return Optional.ofNullable(databaseProviders.get(identifier));
+        ConnectionRegistration registration = connectionsByIdentifier.get(identifier);
+        if (registration == null) {
+            return Optional.empty();
+        }
+        return Optional.of(registration.provider);
+    }
+
+    public <T extends DataAccess> Optional<T> registerDataAccess(
+            String identifier,
+            DatabaseType databaseType,
+            String connectionName,
+            Class<T> expectedDataAccessType
+    ) {
+        return registerConnection(identifier, databaseType, connectionName)
+                .flatMap(provider -> {
+                    Optional<T> dataAccess = provider.getDataAccessOptional(expectedDataAccessType);
+                    if (dataAccess.isEmpty()) {
+                        plugin.getLogger().error(
+                                "Connection '{}' is not compatible with expected data access type {}.",
+                                identifier,
+                                expectedDataAccessType.getSimpleName()
+                        );
+                    }
+                    return dataAccess;
+                });
+    }
+
+    public <T extends DataAccess> Optional<T> getDataAccess(String identifier, Class<T> expectedDataAccessType) {
+        return getDataProvider(identifier).flatMap(provider -> provider.getDataAccessOptional(expectedDataAccessType));
     }
 
     public Optional<ORMContext> createORMContext(String identifier, Class<?>... entityClasses) {
-        DatabaseProvider provider = databaseProviders.get(identifier);
-        if (provider == null) {
+        Optional<DatabaseProvider> providerOptional = getDataProvider(identifier);
+        if (providerOptional.isEmpty()) {
             plugin.getLogger().error("Could not find database provider for identifier: {}", identifier);
             return Optional.empty();
         }
+        DatabaseProvider provider = providerOptional.get();
 
-        final DataSource dataSource;
-        try {
-            dataSource = provider.getDataSource();
-        } catch (UnsupportedOperationException ex) {
+        Optional<DataSource> dataSource = provider.getDataSourceOptional();
+        if (dataSource.isEmpty()) {
             plugin.getLogger().error(
-                "Database '{}' does not expose a DataSource. ORMContext requires a relational provider.",
-                identifier,
-                ex
+                    "Database '{}' does not expose a DataSource. ORMContext requires a relational provider.",
+                    identifier
             );
-            return Optional.empty();
-        }
-
-        if (dataSource == null) {
-            plugin.getLogger().error("Database '{}' returned a null DataSource.", identifier);
             return Optional.empty();
         }
 
@@ -128,7 +162,7 @@ public class FeatureDataManager {
             String ownerName = (featureName == null || featureName.isBlank())
                 ? plugin.getClass().getSimpleName()
                 : featureName;
-            this.ormContext = newOrmContext(ownerName, dataSource, entityClasses);
+            this.ormContext = newOrmContext(ownerName, dataSource.get(), entityClasses);
             plugin.getLogger().info("Created ORMContext for identifier '{}'", identifier);
             return Optional.of(ormContext);
         } catch (Exception ex) {
@@ -148,21 +182,18 @@ public class FeatureDataManager {
         }
 
         if (dataProviderAPI != null) {
-            try {
-                dataProviderAPI.unregisterAllDatabases();
-                plugin.getLogger().info("Unregistered all DataProvider databases for this plugin context.");
-            } catch (Exception ex) {
-                plugin.getLogger().error("Failed to unregister DataProvider databases.", ex);
+            for (var entry : connectionsByIdentifier.entrySet()) {
+                releaseConnection(entry.getValue(), entry.getKey());
             }
         }
 
-        databaseProviders.clear();
+        connectionsByIdentifier.clear();
         ormContext = null;
         initialized = false;
     }
 
     public int getActiveConnCount() {
-        return databaseProviders.size();
+        return connectionsByIdentifier.size();
     }
 
     ORMContext newOrmContext(String ownerName, DataSource dataSource, Class<?>... entityClasses) {
@@ -226,5 +257,52 @@ public class FeatureDataManager {
             }
             return null;
         }
+    }
+
+    private boolean isReady() {
+        if (featureName == null) {
+            plugin.getLogger().error("Feature name is not set. Did you call initDataProvider()?");
+            return false;
+        }
+        if (!initialized) {
+            plugin.getLogger().error("DataProvider is not initialized for feature '{}'.", featureName);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isProviderConnected(DatabaseProvider provider) {
+        if (provider == null) {
+            return false;
+        }
+        try {
+            return provider.isConnected();
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private void releaseConnection(ConnectionRegistration registration, String identifier) {
+        if (registration == null || dataProviderAPI == null) {
+            return;
+        }
+        try {
+            dataProviderAPI.unregisterDatabase(registration.databaseType, registration.connectionName);
+        } catch (Exception ex) {
+            plugin.getLogger().error(
+                    "Failed to unregister connection '{}' (type={}, connection='{}').",
+                    identifier,
+                    registration.databaseType,
+                    registration.connectionName,
+                    ex
+            );
+        }
+    }
+
+    private record ConnectionRegistration(
+            DatabaseType databaseType,
+            String connectionName,
+            DatabaseProvider provider
+    ) {
     }
 }

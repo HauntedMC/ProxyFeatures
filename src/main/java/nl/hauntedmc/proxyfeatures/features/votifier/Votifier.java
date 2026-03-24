@@ -207,19 +207,12 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         getLifecycleManager().getDataManager().initDataProvider(getFeatureName());
 
         // Redis messaging (optional)
-        Optional<DatabaseProvider> redisOpt = getLifecycleManager()
+        Optional<MessagingDataAccess> redisOpt = getLifecycleManager()
                 .getDataManager()
-                .registerConnection("redis", DatabaseType.REDIS_MESSAGING, "default");
+                .registerDataAccess("redis", DatabaseType.REDIS_MESSAGING, "default", MessagingDataAccess.class);
 
-        MessagingDataAccess redisBus = null;
-        if (redisOpt.isPresent()) {
-            Object dataAccess = redisOpt.get().getDataAccess();
-            if (dataAccess instanceof MessagingDataAccess messagingDataAccess) {
-                redisBus = messagingDataAccess;
-            } else {
-                getLogger().warn("Redis DataAccess is not MessagingDataAccess, vote publish disabled.");
-            }
-        } else {
+        MessagingDataAccess redisBus = redisOpt.orElse(null);
+        if (redisBus == null) {
             getLogger().warn("Redis messaging provider not available, vote publish disabled.");
         }
 

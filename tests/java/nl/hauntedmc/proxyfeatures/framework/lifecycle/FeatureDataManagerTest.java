@@ -80,7 +80,7 @@ class FeatureDataManagerTest {
         DataProviderAPI api = mock(DataProviderAPI.class);
         DatabaseProvider provider = mock(DatabaseProvider.class);
         when(provider.isConnected()).thenReturn(true);
-        when(api.registerDatabase(DatabaseType.MYSQL, "default")).thenReturn(provider);
+        when(api.registerDatabaseOptional(DatabaseType.MYSQL, "default")).thenReturn(Optional.of(provider));
 
         FeatureDataManager manager = new FeatureDataManager(plugin, api);
         manager.initDataProvider("Queue");
@@ -89,7 +89,7 @@ class FeatureDataManagerTest {
         assertTrue(registered.isPresent());
         assertEquals(1, manager.getActiveConnCount());
         assertTrue(manager.getDataProvider("main").isPresent());
-        verify(api).registerDatabase(DatabaseType.MYSQL, "default");
+        verify(api).registerDatabaseOptional(DatabaseType.MYSQL, "default");
     }
 
     @Test
@@ -97,10 +97,10 @@ class FeatureDataManagerTest {
         DataProviderAPI api = mock(DataProviderAPI.class);
         DatabaseProvider disconnected = mock(DatabaseProvider.class);
         when(disconnected.isConnected()).thenReturn(false);
-        when(api.registerDatabase(DatabaseType.MYSQL, "default"))
+        when(api.registerDatabaseOptional(DatabaseType.MYSQL, "default"))
                 .thenThrow(new RuntimeException("boom"))
-                .thenReturn(null)
-                .thenReturn(disconnected);
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(disconnected));
 
         FeatureDataManager manager = new FeatureDataManager(plugin, api);
         manager.initDataProvider("Queue");
@@ -124,8 +124,8 @@ class FeatureDataManagerTest {
         DataProviderAPI apiUnsupported = mock(DataProviderAPI.class);
         DatabaseProvider providerUnsupported = mock(DatabaseProvider.class);
         when(providerUnsupported.isConnected()).thenReturn(true);
-        when(providerUnsupported.getDataSource()).thenThrow(new UnsupportedOperationException("unsupported"));
-        when(apiUnsupported.registerDatabase(DatabaseType.MYSQL, "default")).thenReturn(providerUnsupported);
+        when(providerUnsupported.getDataSourceOptional()).thenReturn(Optional.empty());
+        when(apiUnsupported.registerDatabaseOptional(DatabaseType.MYSQL, "default")).thenReturn(Optional.of(providerUnsupported));
 
         FeatureDataManager managerUnsupported = new FeatureDataManager(plugin, apiUnsupported);
         managerUnsupported.initDataProvider("Queue");
@@ -135,8 +135,8 @@ class FeatureDataManagerTest {
         DataProviderAPI apiNullDs = mock(DataProviderAPI.class);
         DatabaseProvider providerNullDs = mock(DatabaseProvider.class);
         when(providerNullDs.isConnected()).thenReturn(true);
-        when(providerNullDs.getDataSource()).thenReturn(null);
-        when(apiNullDs.registerDatabase(DatabaseType.MYSQL, "default")).thenReturn(providerNullDs);
+        when(providerNullDs.getDataSourceOptional()).thenReturn(Optional.empty());
+        when(apiNullDs.registerDatabaseOptional(DatabaseType.MYSQL, "default")).thenReturn(Optional.of(providerNullDs));
 
         FeatureDataManager managerNullDs = new FeatureDataManager(plugin, apiNullDs);
         managerNullDs.initDataProvider("Queue");
@@ -152,8 +152,8 @@ class FeatureDataManagerTest {
         ORMContext orm = mock(ORMContext.class);
 
         when(provider.isConnected()).thenReturn(true);
-        when(provider.getDataSource()).thenReturn(dataSource);
-        when(api.registerDatabase(DatabaseType.MYSQL, "default")).thenReturn(provider);
+        when(provider.getDataSourceOptional()).thenReturn(Optional.of(dataSource));
+        when(api.registerDatabaseOptional(DatabaseType.MYSQL, "default")).thenReturn(Optional.of(provider));
 
         TestableFeatureDataManager manager = new TestableFeatureDataManager(plugin, api, orm);
         manager.initDataProvider("Queue");
@@ -175,8 +175,8 @@ class FeatureDataManagerTest {
         ORMContext orm = mock(ORMContext.class);
 
         when(provider.isConnected()).thenReturn(true);
-        when(provider.getDataSource()).thenReturn(dataSource);
-        when(api.registerDatabase(DatabaseType.MYSQL, "default")).thenReturn(provider);
+        when(provider.getDataSourceOptional()).thenReturn(Optional.of(dataSource));
+        when(api.registerDatabaseOptional(DatabaseType.MYSQL, "default")).thenReturn(Optional.of(provider));
 
         TestableFeatureDataManager manager = new TestableFeatureDataManager(plugin, api, orm);
         manager.initDataProvider("Queue");
@@ -186,7 +186,7 @@ class FeatureDataManagerTest {
         manager.closeAllConnections();
 
         verify(orm).shutdown();
-        verify(api).unregisterAllDatabases();
+        verify(api).unregisterDatabase(DatabaseType.MYSQL, "default");
         assertEquals(0, manager.getActiveConnCount());
         assertTrue(manager.getORMContext().isEmpty());
         assertTrue(manager.registerConnection("main", DatabaseType.MYSQL, "default").isEmpty());
@@ -200,9 +200,9 @@ class FeatureDataManagerTest {
         ORMContext orm = mock(ORMContext.class);
 
         when(provider.isConnected()).thenReturn(true);
-        when(provider.getDataSource()).thenReturn(dataSource);
-        when(api.registerDatabase(DatabaseType.MYSQL, "default")).thenReturn(provider);
-        doThrow(new RuntimeException("boom")).when(api).unregisterAllDatabases();
+        when(provider.getDataSourceOptional()).thenReturn(Optional.of(dataSource));
+        when(api.registerDatabaseOptional(DatabaseType.MYSQL, "default")).thenReturn(Optional.of(provider));
+        doThrow(new RuntimeException("boom")).when(api).unregisterDatabase(DatabaseType.MYSQL, "default");
 
         TestableFeatureDataManager manager = new TestableFeatureDataManager(plugin, api, orm);
         manager.initDataProvider("Queue");
@@ -211,7 +211,7 @@ class FeatureDataManagerTest {
 
         assertDoesNotThrow(manager::closeAllConnections);
         verify(orm).shutdown();
-        verify(api).unregisterAllDatabases();
+        verify(api).unregisterDatabase(DatabaseType.MYSQL, "default");
         assertEquals(0, manager.getActiveConnCount());
         assertTrue(manager.getORMContext().isEmpty());
     }
@@ -223,7 +223,7 @@ class FeatureDataManagerTest {
         DataSource dataSource = mock(DataSource.class);
         when(provider.isConnected()).thenReturn(true);
         when(provider.getDataSource()).thenReturn(dataSource);
-        when(api.registerDatabase(DatabaseType.MYSQL, "default")).thenReturn(provider);
+        when(api.registerDatabaseOptional(DatabaseType.MYSQL, "default")).thenReturn(Optional.of(provider));
         when(config.getGlobalSetting("dataprovider_orm_schema_mode", String.class, "validate")).thenReturn(" update ");
 
         try (MockedStatic<VelocityDataProvider> mocked = mockStatic(VelocityDataProvider.class)) {

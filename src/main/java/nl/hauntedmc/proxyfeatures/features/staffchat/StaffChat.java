@@ -1,6 +1,5 @@
 package nl.hauntedmc.proxyfeatures.features.staffchat;
 
-import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
@@ -11,8 +10,6 @@ import nl.hauntedmc.proxyfeatures.features.staffchat.internal.ChatChannelHandler
 import nl.hauntedmc.proxyfeatures.features.staffchat.internal.messaging.EventBusHandler;
 import nl.hauntedmc.proxyfeatures.features.staffchat.listener.ConnectListener;
 import nl.hauntedmc.proxyfeatures.features.staffchat.meta.Meta;
-
-import java.util.Optional;
 
 public class StaffChat extends VelocityBaseFeature<Meta> {
 
@@ -51,26 +48,20 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
                 .getDataManager()
                 .initDataProvider(getFeatureName());
 
-        Optional<DatabaseProvider> opt = getLifecycleManager()
+        var redisBus = getLifecycleManager()
                 .getDataManager()
-                .registerConnection(
+                .registerDataAccess(
                         "redis",
                         DatabaseType.REDIS_MESSAGING,
-                        "default"
+                        "default",
+                        MessagingDataAccess.class
                 );
 
-        if (opt.isEmpty()) {
+        if (redisBus.isEmpty()) {
             return;
         }
 
-        DatabaseProvider dbp = opt.get();
-        Object dataAccess = dbp.getDataAccess();
-        if (!(dataAccess instanceof MessagingDataAccess redisBus)) {
-            getLogger().warn("Registered 'redis' connection is not a messaging provider; staff chat sync disabled.");
-            return;
-        }
-
-        eventBusHandler = new EventBusHandler(this, redisBus);
+        eventBusHandler = new EventBusHandler(this, redisBus.get());
         eventBusHandler.subscribeChannel("proxy.staffchat.message");
 
 

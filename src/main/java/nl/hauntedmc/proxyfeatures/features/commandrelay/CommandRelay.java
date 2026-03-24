@@ -1,7 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.commandrelay;
 
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
@@ -43,28 +42,21 @@ public class CommandRelay extends VelocityBaseFeature<Meta> {
                 .getDataManager()
                 .initDataProvider(getFeatureName());
 
-        Optional<DatabaseProvider> opt = getLifecycleManager()
+        Optional<MessagingDataAccess> redisBus = getLifecycleManager()
                 .getDataManager()
-                .registerConnection(
+                .registerDataAccess(
                         "redis",
                         DatabaseType.REDIS_MESSAGING,
-                        "default"
+                        "default",
+                        MessagingDataAccess.class
                 );
 
-        if (opt.isEmpty()) {
-            return;
-        }
-
-        // Obtain the Redis bus
-        DatabaseProvider dbp = opt.get();
-        Object dataAccess = dbp.getDataAccess();
-        if (!(dataAccess instanceof MessagingDataAccess redisBus)) {
-            getLogger().warn(Component.text("CommandRelay: data access for 'redis' is not a messaging provider."));
+        if (redisBus.isEmpty()) {
             return;
         }
 
         // Create the handler
-        this.eventBusHandler = new EventBusHandler(this, redisBus);
+        this.eventBusHandler = new EventBusHandler(this, redisBus.get());
 
         // Fetch settings
         boolean listen = getConfigHandler().get("listening", Boolean.class, false);
