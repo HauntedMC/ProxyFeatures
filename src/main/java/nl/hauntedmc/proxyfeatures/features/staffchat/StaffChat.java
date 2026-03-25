@@ -33,9 +33,9 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
     @Override
     public MessageMap getDefaultMessages() {
         MessageMap messageMap = new MessageMap();
-        messageMap.add("staffchat.staff_format", "&8[&bStaffChat&68] &7[{server}] &7{player}: &b{message}");
-        messageMap.add("staffchat.team_format", "&8[&eTeamChat&6] &7[{server}] &7{player}: &e{message}");
-        messageMap.add("staffchat.admin_format", "&8[&cAdminChat&6] &7[{server}] &7{player}: &c{message}");
+        messageMap.add("staffchat.staff_format", "&6[&bStaffChat&6] &7[{server}] &7{player}: &b{message}");
+        messageMap.add("staffchat.team_format", "&6[&eTeamChat&6] &7[{server}] &7{player}: &e{message}");
+        messageMap.add("staffchat.admin_format", "&6[&cAdminChat&6] &7[{server}] &7{player}: &c{message}");
         messageMap.add("staffchat.staff_join", "&6[&bStaffChat&6] &a{player} &7is gejoined.");
         messageMap.add("staffchat.staff_leave", "&6[&bStaffChat&6] &c{player} &7is geleaved.");
         messageMap.add("staffchat.staff_switch", "&6[&bStaffChat&6] &a{player} &7is geswitched van &c{from}&7 naar &c{to}&7.");
