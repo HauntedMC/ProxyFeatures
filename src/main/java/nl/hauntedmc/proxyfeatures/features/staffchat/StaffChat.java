@@ -53,7 +53,7 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
                 .registerDataAccess(
                         "redis",
                         DatabaseType.REDIS_MESSAGING,
-                        "default",
+                        "hauntedmc",
                         MessagingDataAccess.class
                 );
 

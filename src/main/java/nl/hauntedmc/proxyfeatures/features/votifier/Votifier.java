@@ -209,7 +209,7 @@ public class Votifier extends VelocityBaseFeature<Meta> {
         // Redis messaging (optional)
         Optional<MessagingDataAccess> redisOpt = getLifecycleManager()
                 .getDataManager()
-                .registerDataAccess("redis", DatabaseType.REDIS_MESSAGING, "default", MessagingDataAccess.class);
+                .registerDataAccess("redis", DatabaseType.REDIS_MESSAGING, "hauntedmc", MessagingDataAccess.class);
 
         MessagingDataAccess redisBus = redisOpt.orElse(null);
         if (redisBus == null) {

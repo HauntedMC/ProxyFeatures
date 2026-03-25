@@ -49,7 +49,7 @@ public class Vanish extends VelocityBaseFeature<Meta> {
         // Optional Redis setup
         var redisBus = getLifecycleManager()
                 .getDataManager()
-                .registerDataAccess("redis", DatabaseType.REDIS_MESSAGING, "default", MessagingDataAccess.class);
+                .registerDataAccess("redis", DatabaseType.REDIS_MESSAGING, "hauntedmc", MessagingDataAccess.class);
 
         if (redisBus.isEmpty()) {
             getLogger().warn("Redis messaging connection 'redis' not available. Vanish feature will still run but won't receive updates.");
