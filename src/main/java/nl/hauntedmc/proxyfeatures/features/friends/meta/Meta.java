@@ -19,6 +19,6 @@ public class Meta implements BaseMeta {
 
     @Override
     public List<String> getDependencies() {
-        return List.of("Vanish");
+        return List.of();
     }
 }
