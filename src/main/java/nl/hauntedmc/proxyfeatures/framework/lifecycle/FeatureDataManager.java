@@ -1,25 +1,30 @@
 package nl.hauntedmc.proxyfeatures.framework.lifecycle;
 
+import com.velocitypowered.api.plugin.PluginContainer;
 import nl.hauntedmc.dataprovider.api.DataProviderAPI;
+import nl.hauntedmc.dataprovider.api.DataProviderApiSupplier;
 import nl.hauntedmc.dataprovider.api.orm.ORMContext;
 import nl.hauntedmc.dataprovider.database.DataAccess;
 import nl.hauntedmc.dataprovider.database.DatabaseProvider;
 import nl.hauntedmc.dataprovider.database.DatabaseType;
-import nl.hauntedmc.dataprovider.platform.common.logger.ILoggerAdapter;
-import nl.hauntedmc.dataprovider.platform.velocity.VelocityDataProvider;
+import nl.hauntedmc.dataprovider.logging.LoggerAdapter;
+import nl.hauntedmc.dataprovider.logging.adapters.Slf4jLoggerAdapter;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 
 import javax.sql.DataSource;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 public class FeatureDataManager {
     private static final String ORM_SCHEMA_MODE_CONFIG_KEY = "dataprovider_orm_schema_mode";
     private static final String DEFAULT_ORM_SCHEMA_MODE = "validate";
+    private static final String DATAPROVIDER_PLUGIN_ID = "dataprovider";
 
     private final ProxyFeatures plugin;
-    private final DataProviderAPI dataProviderAPI;
-    private final ILoggerAdapter ormLogger;
+    private final Supplier<DataProviderAPI> dataProviderApiSupplier;
+    private final LoggerAdapter ormLogger;
     private final ConcurrentHashMap<String, ConnectionRegistration> connectionsByIdentifier = new ConcurrentHashMap<>();
 
     private ORMContext ormContext;
@@ -27,13 +32,17 @@ public class FeatureDataManager {
     private boolean initialized;
 
     public FeatureDataManager(ProxyFeatures plugin) {
-        this(plugin, resolveApiSafely(plugin));
+        this(plugin, () -> resolveApiSafely(plugin));
     }
 
     FeatureDataManager(ProxyFeatures plugin, DataProviderAPI dataProviderAPI) {
+        this(plugin, () -> dataProviderAPI);
+    }
+
+    private FeatureDataManager(ProxyFeatures plugin, Supplier<DataProviderAPI> dataProviderApiSupplier) {
         this.plugin = plugin;
-        this.dataProviderAPI = dataProviderAPI;
-        this.ormLogger = createOrmLoggerAdapter(plugin);
+        this.dataProviderApiSupplier = Objects.requireNonNull(dataProviderApiSupplier, "DataProvider API supplier cannot be null.");
+        this.ormLogger = new Slf4jLoggerAdapter(plugin.getLogger());
     }
 
     public void initDataProvider(String featureName) {
@@ -45,7 +54,7 @@ public class FeatureDataManager {
             return;
         }
 
-        if (dataProviderAPI == null) {
+        if (getDataProviderApi().isEmpty()) {
             plugin.getLogger().error("DataProviderAPI is not available for feature '{}'.", featureName);
             return;
         }
@@ -75,7 +84,12 @@ public class FeatureDataManager {
 
         Optional<DatabaseProvider> registered;
         try {
-            registered = dataProviderAPI.registerDatabaseOptional(databaseType, connectionName);
+            Optional<DataProviderAPI> dataProviderApi = getDataProviderApi();
+            if (dataProviderApi.isEmpty()) {
+                plugin.getLogger().error("DataProviderAPI is not available for feature '{}'.", featureName);
+                return Optional.empty();
+            }
+            registered = dataProviderApi.get().registerDatabaseOptional(databaseType, connectionName);
         } catch (Exception ex) {
             plugin.getLogger().error(
                 "Failed to register database '{}' (type={}, connection='{}') for feature '{}'.",
@@ -181,7 +195,7 @@ public class FeatureDataManager {
             plugin.getLogger().info("ORMContext has been shut down.");
         }
 
-        if (dataProviderAPI != null) {
+        if (getDataProviderApi().isPresent()) {
             for (var entry : connectionsByIdentifier.entrySet()) {
                 releaseConnection(entry.getValue(), entry.getKey());
             }
@@ -214,43 +228,15 @@ public class FeatureDataManager {
         return DEFAULT_ORM_SCHEMA_MODE;
     }
 
-    private static ILoggerAdapter createOrmLoggerAdapter(ProxyFeatures plugin) {
-        return new ILoggerAdapter() {
-            @Override
-            public void info(String message) {
-                plugin.getLogger().info(message);
-            }
-
-            @Override
-            public void warn(String message) {
-                plugin.getLogger().warn(message);
-            }
-
-            @Override
-            public void error(String message) {
-                plugin.getLogger().error(message);
-            }
-
-            @Override
-            public void info(String message, Throwable throwable) {
-                plugin.getLogger().info(message, throwable);
-            }
-
-            @Override
-            public void warn(String message, Throwable throwable) {
-                plugin.getLogger().warn(message, throwable);
-            }
-
-            @Override
-            public void error(String message, Throwable throwable) {
-                plugin.getLogger().error(message, throwable);
-            }
-        };
-    }
-
     private static DataProviderAPI resolveApiSafely(ProxyFeatures plugin) {
         try {
-            return VelocityDataProvider.getDataProviderAPI();
+            return plugin.getPluginManager()
+                    .getPlugin(DATAPROVIDER_PLUGIN_ID)
+                    .flatMap(PluginContainer::getInstance)
+                    .filter(DataProviderApiSupplier.class::isInstance)
+                    .map(DataProviderApiSupplier.class::cast)
+                    .map(DataProviderApiSupplier::dataProviderApi)
+                    .orElse(null);
         } catch (RuntimeException ex) {
             if (plugin != null) {
                 plugin.getLogger().warn("DataProviderAPI unavailable: {}", ex.getMessage());
@@ -283,11 +269,15 @@ public class FeatureDataManager {
     }
 
     private void releaseConnection(ConnectionRegistration registration, String identifier) {
-        if (registration == null || dataProviderAPI == null) {
+        if (registration == null) {
             return;
         }
         try {
-            dataProviderAPI.unregisterDatabase(registration.databaseType, registration.connectionName);
+            Optional<DataProviderAPI> dataProviderApi = getDataProviderApi();
+            if (dataProviderApi.isEmpty()) {
+                return;
+            }
+            dataProviderApi.get().unregisterDatabase(registration.databaseType, registration.connectionName);
         } catch (Exception ex) {
             plugin.getLogger().error(
                     "Failed to unregister connection '{}' (type={}, connection='{}').",
@@ -296,6 +286,15 @@ public class FeatureDataManager {
                     registration.connectionName,
                     ex
             );
+        }
+    }
+
+    private Optional<DataProviderAPI> getDataProviderApi() {
+        try {
+            return Optional.ofNullable(dataProviderApiSupplier.get());
+        } catch (RuntimeException ex) {
+            plugin.getLogger().warn("DataProviderAPI unavailable: {}", ex.getMessage());
+            return Optional.empty();
         }
     }
 
