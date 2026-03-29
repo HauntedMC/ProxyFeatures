@@ -4,7 +4,6 @@ import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
