@@ -277,7 +277,7 @@
         </repository>
         <repository>
             <id>github</id>
-            <url>https://maven.pkg.github.com/HauntedMC/DataProvider</url>
+            <url>https://maven.pkg.github.com/HauntedMC/*</url>
         </repository>
     </repositories>
 
@@ -311,7 +311,7 @@
         <dependency>
             <groupId>nl.hauntedmc.dataregistry</groupId>
             <artifactId>dataregistry</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

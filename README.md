@@ -48,6 +48,22 @@ One modular plugin for your entire Velocity network.
 
 ## Build From Source
 
+Add GitHub Packages credentials for Maven server id `github` in `~/.m2/settings.xml`:
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>github</id>
+      <username>YOUR_GITHUB_USERNAME</username>
+      <password>YOUR_TOKEN</password>
+    </server>
+  </servers>
+</settings>
+```
+
+Use a token with `read:packages` (and `repo` if the package source repositories are private), then run:
+
 ```bash
 mvn -B package
 ```
