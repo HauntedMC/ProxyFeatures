@@ -5,21 +5,23 @@
 Security fixes are prioritized for the latest stable release line.
 Older versions may receive fixes on a best-effort basis.
 
+
 ## Reporting a Vulnerability
 
-Do not open public issues for security problems.
+Please do not open public issues for security vulnerabilities.
 
-Use a private channel:
+Use one of the following private channels:
 
-- GitHub Security Advisory (repository Security tab)
+- GitHub Security Advisory: `Security` tab in this repository
 - HauntedMC support: https://www.hauntedmc.nl/support
 
-Please include:
+Include:
 
-- affected version(s)
-- reproduction steps or proof of concept
-- impact and expected risk
-- any known workaround or mitigation
+- Affected version(s)
+- Reproduction steps / proof of concept
+- Impact assessment
+- Any proposed mitigation
+
 
 ## What to Expect
 
@@ -27,6 +29,7 @@ Please include:
 - We validate impact, prioritize by severity, and prepare a fix.
 - We coordinate disclosure after a fix or mitigation is available.
 
-## Responsible Disclosure
 
-Please give maintainers reasonable time to investigate and patch before public disclosure.
+## Disclosure
+
+Please allow maintainers time to validate and patch before public disclosure.
