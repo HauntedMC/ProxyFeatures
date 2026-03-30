@@ -240,7 +240,8 @@ public final class VotifierServer {
     }
 
     private byte[] decrypt(byte[] enc, PrivateKey key) throws GeneralSecurityException {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+        // Legacy Votifier v1 senders use PKCS#1 v1.5 padding; changing this breaks wire compatibility.
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, key);
         return cipher.doFinal(enc);
     }
