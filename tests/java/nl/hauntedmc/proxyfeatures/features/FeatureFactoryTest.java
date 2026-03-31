@@ -28,7 +28,7 @@ class FeatureFactoryTest {
 
         VelocityBaseFeature<?> created = FeatureFactory.createFeature(null, plugin);
         assertNull(created);
-        assertTrue(loggerRecorder.hasStringArgumentContaining("error", "no class was registered"));
+        assertTrue(loggerRecorder.hasStringArgumentContaining("error", "missing feature class name"));
     }
 
     @Test
@@ -37,7 +37,7 @@ class FeatureFactoryTest {
         ComponentLoggerRecorder loggerRecorder = ComponentLoggerRecorder.create();
         when(plugin.getLogger()).thenReturn(loggerRecorder.logger());
 
-        VelocityBaseFeature<?> created = FeatureFactory.createFeature(NoProxyCtorFeature.class, plugin);
+        VelocityBaseFeature<?> created = FeatureFactory.createFeature(NoProxyCtorFeature.class.getName(), plugin);
         assertNull(created);
         assertTrue(loggerRecorder.hasStringArgumentContaining("error", "Failed to instantiate feature"));
     }
@@ -48,7 +48,7 @@ class FeatureFactoryTest {
         when(plugin.getLogger()).thenReturn(ComponentLoggerRecorder.create().logger());
         when(plugin.getDataDirectory()).thenReturn(tempDir);
 
-        VelocityBaseFeature<?> created = FeatureFactory.createFeature(ValidCtorFeature.class, plugin);
+        VelocityBaseFeature<?> created = FeatureFactory.createFeature(ValidCtorFeature.class.getName(), plugin);
         assertNotNull(created);
         assertInstanceOf(ValidCtorFeature.class, created);
     }

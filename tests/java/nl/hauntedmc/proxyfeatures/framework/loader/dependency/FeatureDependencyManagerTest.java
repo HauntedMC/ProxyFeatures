@@ -1,23 +1,20 @@
 package nl.hauntedmc.proxyfeatures.framework.loader.dependency;
 
-import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginManager;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
-import nl.hauntedmc.proxyfeatures.features.FeatureFactory;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.framework.loader.FeatureDescriptor;
 import nl.hauntedmc.proxyfeatures.framework.loader.FeatureLoadManager;
 import nl.hauntedmc.proxyfeatures.framework.loader.FeatureRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class FeatureDependencyManagerTest {
@@ -39,103 +36,58 @@ class FeatureDependencyManagerTest {
         when(plugin.getPluginManager()).thenReturn(pluginManager);
         when(featureLoadManager.getFeatureRegistry()).thenReturn(registry);
         when(featureLoadManager.loadFeature(anyString())).thenReturn(true);
+        when(featureLoadManager.getMissingPluginDependencies(anyString())).thenReturn(Set.of());
+        when(featureLoadManager.resolveFeatureKey(anyString())).thenAnswer(invocation -> {
+            String input = invocation.getArgument(0);
+            if (input == null) {
+                return null;
+            }
+            if (registry.getAvailableFeatures().containsKey(input) || registry.isFeatureLoaded(input)) {
+                return input;
+            }
+            return null;
+        });
 
         manager = new FeatureDependencyManager(featureLoadManager, plugin);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void areDependenciesMetReturnsFalseOnCircularDependency() {
-        VelocityBaseFeature<?> feature = mock(VelocityBaseFeature.class);
-        when(feature.getFeatureName()).thenReturn("A");
-        when(feature.getDependencies()).thenReturn(List.of("A"));
-        when(feature.getPluginDependencies()).thenReturn(List.of());
-
-        Class<? extends VelocityBaseFeature<?>> type = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        registry.registerAvailableFeature("A", type);
-
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(feature);
-            assertFalse(manager.areDependenciesMet(feature));
-        }
+        registry.registerAvailableFeature(descriptor("A", Set.of("B"), Set.of()));
+        registry.registerAvailableFeature(descriptor("B", Set.of("A"), Set.of()));
+        assertFalse(manager.areDependenciesMet("A"));
     }
 
     @Test
-    void areDependenciesMetReturnsFalseWhenDependencyMissingOrInstantiationFails() {
-        VelocityBaseFeature<?> feature = mock(VelocityBaseFeature.class);
-        when(feature.getFeatureName()).thenReturn("A");
-        when(feature.getDependencies()).thenReturn(List.of("B"));
-        when(feature.getPluginDependencies()).thenReturn(List.of());
-
-        assertFalse(manager.areDependenciesMet(feature));
-
-        @SuppressWarnings("unchecked")
-        Class<? extends VelocityBaseFeature<?>> type = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        registry.registerAvailableFeature("B", type);
-
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(null);
-            assertFalse(manager.areDependenciesMet(feature));
-        }
+    void areDependenciesMetReturnsFalseWhenDependencyIsMissing() {
+        registry.registerAvailableFeature(descriptor("A", Set.of("B"), Set.of()));
+        assertFalse(manager.areDependenciesMet("A"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void areDependenciesMetReturnsFalseWhenDependencyCannotBeLoaded() {
-        VelocityBaseFeature<?> feature = mock(VelocityBaseFeature.class);
-        when(feature.getFeatureName()).thenReturn("A");
-        when(feature.getDependencies()).thenReturn(List.of("B"));
-        when(feature.getPluginDependencies()).thenReturn(List.of());
-
-        VelocityBaseFeature<?> dep = mock(VelocityBaseFeature.class);
-        when(dep.getFeatureName()).thenReturn("B");
-        when(dep.getDependencies()).thenReturn(List.of());
-
-        Class<? extends VelocityBaseFeature<?>> type = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        registry.registerAvailableFeature("B", type);
+        registry.registerAvailableFeature(descriptor("A", Set.of("B"), Set.of()));
+        registry.registerAvailableFeature(descriptor("B", Set.of(), Set.of()));
         when(featureLoadManager.loadFeature("B")).thenReturn(false);
-
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(dep);
-            assertFalse(manager.areDependenciesMet(feature));
-        }
+        assertFalse(manager.areDependenciesMet("A"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void areDependenciesMetReturnsTrueWhenDependenciesAndPluginsAreAvailable() {
-        VelocityBaseFeature<?> feature = mock(VelocityBaseFeature.class);
-        when(feature.getFeatureName()).thenReturn("A");
-        when(feature.getDependencies()).thenReturn(List.of("B"));
-        when(feature.getPluginDependencies()).thenReturn(List.of("luckperms"));
-
-        VelocityBaseFeature<?> dep = mock(VelocityBaseFeature.class);
-        when(dep.getFeatureName()).thenReturn("B");
-        when(dep.getDependencies()).thenReturn(List.of());
-
-        Class<? extends VelocityBaseFeature<?>> type = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        registry.registerAvailableFeature("B", type);
-        when(pluginManager.getPlugin("luckperms")).thenReturn(Optional.of(mock(PluginContainer.class)));
-
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(dep);
-            assertTrue(manager.areDependenciesMet(feature));
-            verify(featureLoadManager).loadFeature("B");
-        }
+        registry.registerAvailableFeature(descriptor("A", Set.of("B"), Set.of("luckperms")));
+        registry.registerAvailableFeature(descriptor("B", Set.of(), Set.of()));
+        when(featureLoadManager.getMissingPluginDependencies("A")).thenReturn(Set.of());
+        assertTrue(manager.areDependenciesMet("A"));
+        verify(featureLoadManager).loadFeature("B");
     }
 
     @Test
-    void pluginDependencyChecksAndPluginLookupAreDelegated() {
-        VelocityBaseFeature<?> feature = mock(VelocityBaseFeature.class);
-        when(feature.getFeatureName()).thenReturn("Queue");
-        when(feature.getPluginDependencies()).thenReturn(List.of("a", "b"));
+    void pluginDependencyChecksAreDelegated() {
+        when(featureLoadManager.getMissingPluginDependencies("Queue")).thenReturn(Set.of("a", "b"));
+        when(featureLoadManager.getMissingPluginDependencies("Vanish")).thenReturn(Set.of());
 
-        when(pluginManager.getPlugin("a")).thenReturn(Optional.of(mock(PluginContainer.class)));
-        when(pluginManager.getPlugin("b")).thenReturn(Optional.empty());
-
-        assertFalse(manager.arePluginDependenciesMet(feature));
-        assertTrue(manager.isPluginLoaded("a"));
-        assertFalse(manager.isPluginLoaded("b"));
+        assertFalse(manager.arePluginDependenciesMet("Queue"));
+        assertTrue(manager.arePluginDependenciesMet("Vanish"));
     }
 
     @Test
@@ -146,6 +98,8 @@ class FeatureDependencyManagerTest {
         VelocityBaseFeature<?> friends = mock(VelocityBaseFeature.class);
         when(friends.getDependencies()).thenReturn(List.of("Queue"));
 
+        registry.registerAvailableFeature(descriptor("Queue", Set.of(), Set.of()));
+        registry.registerAvailableFeature(descriptor("Friends", Set.of("Queue"), Set.of()));
         registry.registerLoadedFeature("Queue", queue);
         registry.registerLoadedFeature("Friends", friends);
 
@@ -160,11 +114,25 @@ class FeatureDependencyManagerTest {
         VelocityBaseFeature<?> friends = mock(VelocityBaseFeature.class);
         when(friends.getDependencies()).thenReturn(List.of("Queue"));
 
+        registry.registerAvailableFeature(descriptor("Queue", Set.of(), Set.of()));
+        registry.registerAvailableFeature(descriptor("Ghost", Set.of(), Set.of()));
+        registry.registerAvailableFeature(descriptor("Friends", Set.of("Queue"), Set.of()));
         registry.registerLoadedFeature("Queue", queue);
         registry.registerLoadedFeature("Ghost", null);
         registry.registerLoadedFeature("Friends", friends);
 
         assertDoesNotThrow(() -> manager.getDependentFeatures("Queue"));
         assertEquals(List.of("Friends"), manager.getDependentFeatures("Queue"));
+    }
+
+    private FeatureDescriptor descriptor(String name, Set<String> featureDependencies, Set<String> pluginDependencies) {
+        return new FeatureDescriptor(
+                name,
+                VelocityBaseFeature.class.getName(),
+                name,
+                "1.0",
+                featureDependencies,
+                pluginDependencies
+        );
     }
 }

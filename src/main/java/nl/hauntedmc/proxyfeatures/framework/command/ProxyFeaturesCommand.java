@@ -13,6 +13,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
+import nl.hauntedmc.proxyfeatures.framework.loader.FeatureDescriptor;
 import nl.hauntedmc.proxyfeatures.framework.loader.disable.FeatureDisableResponse;
 import nl.hauntedmc.proxyfeatures.framework.loader.enable.FeatureEnableResponse;
 import nl.hauntedmc.proxyfeatures.framework.loader.reload.FeatureReloadResponse;
@@ -195,22 +196,24 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
             return;
         }
 
-        // Not loaded: check available map (case-insensitive)
-        Map<String, ?> available = reg.getAvailableFeatures();
-        String availableKey = null;
-        if (available.containsKey(featureName)) {
-            availableKey = featureName;
-        } else {
-            for (String k : available.keySet()) {
-                if (k != null && k.equalsIgnoreCase(featureName)) {
-                    availableKey = k;
-                    break;
-                }
-            }
-        }
+        // Not loaded: resolve against available feature keys (case-insensitive, aliases)
+        String availableKey = plugin.getFeatureLoadManager().resolveFeatureKey(featureName);
 
         if (availableKey != null) {
-            sendFeatureInfo(sender, availableKey, false, "?", List.of(), List.of());
+            FeatureDescriptor descriptor = reg.getAvailableFeature(availableKey);
+            if (descriptor == null) {
+                sendFeatureInfo(sender, availableKey, false, "?", List.of(), List.of());
+                return;
+            }
+
+            sendFeatureInfo(
+                    sender,
+                    descriptor.featureName(),
+                    false,
+                    descriptor.featureVersion(),
+                    List.copyOf(descriptor.pluginDependencies()),
+                    List.copyOf(descriptor.featureDependencies())
+            );
         } else {
             sender.sendMessage(Component.text("Feature not found: ", NamedTextColor.RED)
                     .append(Component.text(featureName, NamedTextColor.WHITE)));

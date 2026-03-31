@@ -17,6 +17,7 @@ import nl.hauntedmc.proxyfeatures.framework.lifecycle.FeatureLifecycleManager;
 import nl.hauntedmc.proxyfeatures.framework.lifecycle.FeatureListenerManager;
 import nl.hauntedmc.proxyfeatures.framework.lifecycle.FeatureTaskManager;
 import nl.hauntedmc.proxyfeatures.framework.loader.FeatureLoadManager;
+import nl.hauntedmc.proxyfeatures.framework.loader.FeatureDescriptor;
 import nl.hauntedmc.proxyfeatures.framework.loader.FeatureRegistry;
 import nl.hauntedmc.proxyfeatures.framework.loader.disable.FeatureDisableResponse;
 import nl.hauntedmc.proxyfeatures.framework.loader.disable.FeatureDisableResult;
@@ -68,6 +69,37 @@ class ProxyFeaturesCommandTest {
         when(plugin.getLogger()).thenReturn(ComponentLogger.logger("ProxyFeaturesCommandTest"));
         when(loadManager.getFeatureRegistry()).thenReturn(registry);
         when(sender.hasPermission(anyString())).thenReturn(true);
+        when(loadManager.resolveFeatureKey(anyString())).thenAnswer(invocation -> {
+            String input = invocation.getArgument(0);
+            if (input == null) {
+                return null;
+            }
+
+            String candidate = input.trim();
+            if (candidate.isEmpty()) {
+                return null;
+            }
+
+            for (String key : registry.getAvailableFeatures().keySet()) {
+                if (key.equalsIgnoreCase(candidate)) {
+                    return key;
+                }
+            }
+
+            for (String key : registry.getLoadedFeatureNames()) {
+                if (key.equalsIgnoreCase(candidate)) {
+                    return key;
+                }
+            }
+
+            for (FeatureDescriptor descriptor : registry.getAvailableFeatures().values()) {
+                if (descriptor.featureName().equalsIgnoreCase(candidate)) {
+                    return descriptor.registryName();
+                }
+            }
+
+            return null;
+        });
 
         when(localization.getMessage(anyString())).thenReturn(messageBuilder);
         when(messageBuilder.forAudience(any())).thenReturn(messageBuilder);
@@ -81,7 +113,6 @@ class ProxyFeaturesCommandTest {
         command = new ProxyFeaturesCommand(plugin);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void metadataAndDispatcherExecutionWorkForAllSubcommands() throws Exception {
         assertEquals("proxyfeatures", command.name());
@@ -89,8 +120,8 @@ class ProxyFeaturesCommandTest {
 
         VelocityBaseFeature<?> queue = feature("Queue", "1.0", List.of("luckperms"), List.of());
         registry.registerLoadedFeature("Queue", queue);
-        registry.registerAvailableFeature("Queue", (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class);
-        registry.registerAvailableFeature("Friends", (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class);
+        registry.registerAvailableFeature(descriptor("Queue", "1.0", Set.of(), Set.of("luckperms")));
+        registry.registerAvailableFeature(descriptor("Friends", "1.0", Set.of(), Set.of()));
 
         when(loadManager.enableFeature(anyString())).thenReturn(new FeatureEnableResponse(FeatureEnableResult.SUCCESS, Set.of(), Set.of()));
         when(loadManager.disableFeature(anyString())).thenReturn(new FeatureDisableResponse(FeatureDisableResult.SUCCESS, "Queue", Set.of()));
@@ -124,12 +155,11 @@ class ProxyFeaturesCommandTest {
         verify(localization).getMessage("command.disable.success");
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void handleInfoCoversBlankLoadedCaseInsensitiveAvailableAndMissing() throws Exception {
         VelocityBaseFeature<?> queue = feature("Queue", "2.0", List.of("A"), List.of("B"));
         registry.registerLoadedFeature("Queue", queue);
-        registry.registerAvailableFeature("Friends", (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class);
+        registry.registerAvailableFeature(descriptor("Friends", "1.0", Set.of(), Set.of()));
 
         invoke("handleInfo", new Class[]{CommandSource.class, String.class}, sender, null);
         invoke("handleInfo", new Class[]{CommandSource.class, String.class}, sender, "Queue");
@@ -227,16 +257,15 @@ class ProxyFeaturesCommandTest {
         verify(messageBuilder, atLeastOnce()).with("dependents", "Friends");
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void suggestionAndRenderingHelpersReturnExpectedValues() throws Exception {
         VelocityBaseFeature<?> queue = feature("Queue", "1.0", List.of(), List.of());
         VelocityBaseFeature<?> vanish = feature("Vanish", "1.0", List.of(), List.of());
         registry.registerLoadedFeature("Queue", queue);
         registry.registerLoadedFeature("Vanish", vanish);
-        registry.registerAvailableFeature("Queue", (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class);
-        registry.registerAvailableFeature("Friends", (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class);
-        registry.registerAvailableFeature("Vanish", (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class);
+        registry.registerAvailableFeature(descriptor("Queue", "1.0", Set.of(), Set.of()));
+        registry.registerAvailableFeature(descriptor("Friends", "1.0", Set.of(), Set.of()));
+        registry.registerAvailableFeature(descriptor("Vanish", "1.0", Set.of(), Set.of()));
 
         Suggestions loaded = ((CompletableFuture<Suggestions>) invoke("suggestLoadedFeatures",
                 new Class[]{SuggestionsBuilder.class},
@@ -309,10 +338,9 @@ class ProxyFeaturesCommandTest {
         assertTrue(messages.stream().anyMatch(m -> m.contains("Enabled Features (2): Friends (v2.0), Queue (v1.0)")));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void reloadLocalFailureBranchSendsFailureMessage() throws Exception {
-        registry.registerAvailableFeature("Queue", (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class);
+        registry.registerAvailableFeature(descriptor("Queue", "1.0", Set.of(), Set.of()));
         doThrow(new RuntimeException("boom")).when(localization).reloadLocalization();
 
         CommandDispatcher<CommandSource> dispatcher = new CommandDispatcher<>();
@@ -372,5 +400,16 @@ class ProxyFeaturesCommandTest {
         Method m = ProxyFeaturesCommand.class.getDeclaredMethod(methodName, types);
         m.setAccessible(true);
         return m.invoke(command, args);
+    }
+
+    private FeatureDescriptor descriptor(String name, String version, Set<String> featureDeps, Set<String> pluginDeps) {
+        return new FeatureDescriptor(
+                name,
+                VelocityBaseFeature.class.getName(),
+                name,
+                version,
+                featureDeps,
+                pluginDeps
+        );
     }
 }

@@ -21,4 +21,9 @@ public class Meta implements BaseMeta {
     public List<String> getDependencies() {
         return List.of();
     }
+
+    @Override
+    public List<String> getPluginDependencies() {
+        return List.of(DATA_PROVIDER, DATA_REGISTRY);
+    }
 }

@@ -30,8 +30,8 @@ import java.nio.file.Path;
         description = "ProxyFeatures",
         authors = {"HauntedMC"},
         dependencies = {
-                @Dependency(id = "dataregistry"),
-                @Dependency(id = "dataprovider")
+                @Dependency(id = "dataregistry", optional = true),
+                @Dependency(id = "dataprovider", optional = true)
         })
 public class ProxyFeatures {
 

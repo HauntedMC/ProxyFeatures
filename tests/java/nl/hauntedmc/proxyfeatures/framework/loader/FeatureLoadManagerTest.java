@@ -20,8 +20,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,7 +53,6 @@ class FeatureLoadManagerTest {
         when(mainConfig.isFeatureEnabled(anyString())).thenReturn(true);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void constructorDiscoversFeaturesAndCallsCleanupUnused() {
         FeatureLoadManager manager = new FeatureLoadManager(plugin);
@@ -60,48 +61,27 @@ class FeatureLoadManagerTest {
         assertTrue(manager.getFeatureRegistry().getAvailableFeatures().containsKey("Queue"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void initializeFeaturesComputesLoadOrderAndAbortsOnCycles() {
         FeatureLoadManager raw = new FeatureLoadManager(plugin);
         FeatureLoadManager manager = spy(raw);
         clearRegistry(manager);
 
-        Class<? extends VelocityBaseFeature<?>> token = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        manager.getFeatureRegistry().registerAvailableFeature("A", token);
-        manager.getFeatureRegistry().registerAvailableFeature("B", token);
-
-        VelocityBaseFeature<?> a = feature("A", List.of("B"), List.of());
-        VelocityBaseFeature<?> b = feature("B", List.of(), List.of());
-
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(a, b);
-            doReturn(true).when(manager).loadFeature(anyString());
-
-            manager.initializeFeatures();
-            verify(manager).loadFeature("B");
-            verify(manager).loadFeature("A");
-        }
-
-        clearRegistry(manager);
-        manager.getFeatureRegistry().registerAvailableFeature("A", token);
-        manager.getFeatureRegistry().registerAvailableFeature("B", token);
-        VelocityBaseFeature<?> cycleA = feature("A", List.of("B"), List.of());
-        VelocityBaseFeature<?> cycleB = feature("B", List.of("A"), List.of());
-
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(cycleA, cycleB);
-            reset(manager);
-            manager.initializeFeatures();
-            verify(manager, never()).loadFeature(anyString());
-        }
-
-        clearRegistry(manager);
-        manager.getFeatureRegistry().getAvailableFeatures().put("Ghost", null);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("A", Set.of("B"), Set.of()));
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("B", Set.of(), Set.of()));
+        doReturn(true).when(manager).loadFeature(anyString());
         manager.initializeFeatures();
+        verify(manager).loadFeature("B");
+        verify(manager).loadFeature("A");
+
+        clearInvocations(manager);
+        clearRegistry(manager);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("A", Set.of("B"), Set.of()));
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("B", Set.of("A"), Set.of()));
+        manager.initializeFeatures();
+        verify(manager, never()).loadFeature(anyString());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void enableFeatureCoversAllResultTypes() {
         FeatureLoadManager manager = new FeatureLoadManager(plugin);
@@ -110,76 +90,56 @@ class FeatureLoadManagerTest {
         assertEquals(FeatureEnableResult.NOT_FOUND, manager.enableFeature("Missing").result());
 
         VelocityBaseFeature<?> loaded = feature("Queue", List.of(), List.of());
-        Class<? extends VelocityBaseFeature<?>> token = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        manager.getFeatureRegistry().registerAvailableFeature("Queue", token);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of(), Set.of()));
         manager.getFeatureRegistry().registerLoadedFeature("Queue", loaded);
         assertEquals(FeatureEnableResult.ALREADY_LOADED, manager.enableFeature("Queue").result());
 
         manager.getFeatureRegistry().deregisterLoadedFeature("Queue");
 
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(null);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(null);
             assertEquals(FeatureEnableResult.FAILED, manager.enableFeature("Queue").result());
         }
 
+        clearRegistry(manager);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of(), Set.of("luckperms")));
         VelocityBaseFeature<?> missingPlugin = feature("Queue", List.of(), List.of("luckperms"));
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(missingPlugin);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(missingPlugin);
             when(pluginManager.getPlugin("luckperms")).thenReturn(Optional.empty());
             assertEquals(FeatureEnableResult.MISSING_PLUGIN_DEPENDENCY, manager.enableFeature("Queue").result());
         }
 
+        clearRegistry(manager);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of("Friends"), Set.of()));
         VelocityBaseFeature<?> missingFeature = feature("Queue", List.of("Friends"), List.of());
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(missingFeature);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(missingFeature);
             assertEquals(FeatureEnableResult.MISSING_FEATURE_DEPENDENCY, manager.enableFeature("Queue").result());
         }
 
-        VelocityBaseFeature<?> throwingPluginDeps = feature("Queue", List.of(), List.of());
-        when(throwingPluginDeps.getPluginDependencies()).thenThrow(new RuntimeException("boom"));
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(throwingPluginDeps);
-            FeatureLoadManager successAfterWarning = spy(manager);
-            doReturn(true).when(successAfterWarning).loadFeature("Queue");
-            assertEquals(FeatureEnableResult.SUCCESS, successAfterWarning.enableFeature("Queue").result());
-        }
-
+        clearRegistry(manager);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of(), Set.of()));
         FeatureLoadManager failing = spy(manager);
-        VelocityBaseFeature<?> failingFeature = feature("Queue", List.of(), List.of());
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(failingFeature);
-            doReturn(false).when(failing).loadFeature("Queue");
-            assertEquals(FeatureEnableResult.FAILED, failing.enableFeature("Queue").result());
-            verify(mainConfig, atLeastOnce()).setFeatureEnabled("Queue", true);
-        }
+        doReturn(false).when(failing).loadFeature("Queue");
+        assertEquals(FeatureEnableResult.FAILED, failing.enableFeature("Queue").result());
+        verify(mainConfig, atLeastOnce()).setFeatureEnabled("Queue", true);
 
         FeatureLoadManager success = spy(manager);
-        VelocityBaseFeature<?> successFeature = feature("Queue", List.of(), List.of());
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(successFeature);
-            doReturn(true).when(success).loadFeature("Queue");
-            assertEquals(FeatureEnableResult.SUCCESS, success.enableFeature("Queue").result());
-        }
+        doReturn(true).when(success).loadFeature("Queue");
+        assertEquals(FeatureEnableResult.SUCCESS, success.enableFeature("Queue").result());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void enableFeatureRestoresPreviousConfigStateWhenLoadFails() {
         FeatureLoadManager raw = new FeatureLoadManager(plugin);
         FeatureLoadManager manager = spy(raw);
         clearRegistry(manager);
 
-        Class<? extends VelocityBaseFeature<?>> token = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        manager.getFeatureRegistry().registerAvailableFeature("Queue", token);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of(), Set.of()));
         when(mainConfig.isFeatureEnabled("Queue")).thenReturn(false);
         doReturn(false).when(manager).loadFeature("Queue");
-        VelocityBaseFeature<?> queue = feature("Queue", List.of(), List.of());
-
-        try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin)))
-                    .thenReturn(queue);
-            assertEquals(FeatureEnableResult.FAILED, manager.enableFeature("Queue").result());
-        }
+        assertEquals(FeatureEnableResult.FAILED, manager.enableFeature("Queue").result());
 
         InOrder order = inOrder(mainConfig);
         order.verify(mainConfig).setFeatureEnabled("Queue", true);
@@ -248,7 +208,6 @@ class FeatureLoadManagerTest {
         assertEquals(FeatureReloadResult.SUCCESS, manager.reloadFeature("Queue").result());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void loadFeatureCoversRegistrationDependencyAndInitializationBranches() {
         FeatureLoadManager manager = new FeatureLoadManager(plugin);
@@ -256,39 +215,43 @@ class FeatureLoadManagerTest {
 
         assertFalse(manager.loadFeature("missing"));
 
-        Class<? extends VelocityBaseFeature<?>> token = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
-        manager.getFeatureRegistry().registerAvailableFeature("Queue", token);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of(), Set.of()));
         manager.getFeatureRegistry().registerLoadedFeature("Queue", feature("Queue", List.of(), List.of()));
         assertFalse(manager.loadFeature("Queue"));
         manager.getFeatureRegistry().deregisterLoadedFeature("Queue");
 
         VelocityBaseFeature<?> feature = feature("Queue", List.of(), List.of());
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(null);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(null);
             assertFalse(manager.loadFeature("Queue"));
         }
 
+        clearInvocations(mainConfig, localization);
         when(mainConfig.isFeatureEnabled("Queue")).thenReturn(false);
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(feature);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(feature);
             assertFalse(manager.loadFeature("Queue"));
             verify(mainConfig).registerFeature("Queue");
             verify(mainConfig).injectFeatureDefaults(eq("Queue"), any(ConfigMap.class));
             verify(localization).registerDefaultMessages(any(MessageMap.class));
         }
 
+        clearRegistry(manager);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of(), Set.of("required")));
         when(mainConfig.isFeatureEnabled("Queue")).thenReturn(true);
         when(pluginManager.getPlugin("required")).thenReturn(Optional.empty());
         VelocityBaseFeature<?> depsFeature = feature("Queue", List.of(), List.of("required"));
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(depsFeature);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(depsFeature);
             assertFalse(manager.loadFeature("Queue"));
         }
 
+        clearRegistry(manager);
+        manager.getFeatureRegistry().registerAvailableFeature(descriptor("Queue", Set.of(), Set.of()));
         when(pluginManager.getPlugin("required")).thenReturn(Optional.of(mock(PluginContainer.class)));
         VelocityBaseFeature<?> success = feature("Queue", List.of(), List.of());
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(success);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(success);
             assertTrue(manager.loadFeature("Queue"));
             assertTrue(manager.getFeatureRegistry().isFeatureLoaded("Queue"));
         }
@@ -297,7 +260,7 @@ class FeatureLoadManagerTest {
         VelocityBaseFeature<?> initFail = feature("Queue", List.of(), List.of());
         doThrow(new RuntimeException("boom")).when(initFail).initialize();
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(initFail);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(initFail);
             assertFalse(manager.loadFeature("Queue"));
             verify(initFail).cleanup();
         }
@@ -306,7 +269,7 @@ class FeatureLoadManagerTest {
         doThrow(new RuntimeException("boom")).when(initFailCleanupFail).initialize();
         doThrow(new RuntimeException("cleanup boom")).when(initFailCleanupFail).cleanup();
         try (MockedStatic<FeatureFactory> factory = mockStatic(FeatureFactory.class)) {
-            factory.when(() -> FeatureFactory.createFeature(any(), eq(plugin))).thenReturn(initFailCleanupFail);
+            factory.when(() -> FeatureFactory.createFeature(anyString(), eq(plugin))).thenReturn(initFailCleanupFail);
             assertFalse(manager.loadFeature("Queue"));
         }
     }
@@ -343,7 +306,25 @@ class FeatureLoadManagerTest {
     }
 
     private void clearRegistry(FeatureLoadManager manager) {
-        manager.getFeatureRegistry().getAvailableFeatures().clear();
-        manager.getFeatureRegistry().getLoadedFeatureNames().clear();
+        List<String> available = new ArrayList<>(manager.getFeatureRegistry().getAvailableFeatures().keySet());
+        for (String featureName : available) {
+            manager.getFeatureRegistry().deregisterAvailableFeature(featureName);
+        }
+
+        List<String> loaded = new ArrayList<>(manager.getFeatureRegistry().getLoadedFeatureNames());
+        for (String featureName : loaded) {
+            manager.getFeatureRegistry().deregisterLoadedFeature(featureName);
+        }
+    }
+
+    private FeatureDescriptor descriptor(String name, Set<String> featureDependencies, Set<String> pluginDependencies) {
+        return new FeatureDescriptor(
+                name,
+                VelocityBaseFeature.class.getName(),
+                name,
+                "1.0",
+                featureDependencies,
+                pluginDependencies
+        );
     }
 }

@@ -6,11 +6,18 @@ import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import java.util.*;
 
 public class FeatureRegistry {
-    private final Map<String, VelocityBaseFeature<?>> loadedFeatures = new HashMap<>();
-    private final Map<String, Class<? extends VelocityBaseFeature<?>>> availableFeatures = new HashMap<>();
+    private final Map<String, VelocityBaseFeature<?>> loadedFeatures = new LinkedHashMap<>();
+    private final Map<String, FeatureDescriptor> availableFeatures = new LinkedHashMap<>();
 
-    public void registerAvailableFeature(String featureName, Class<? extends VelocityBaseFeature<?>> featureClass) {
-        availableFeatures.put(featureName, featureClass);
+    public void registerAvailableFeature(FeatureDescriptor descriptor) {
+        if (descriptor == null || descriptor.registryName() == null || descriptor.registryName().isBlank()) {
+            return;
+        }
+        availableFeatures.put(descriptor.registryName(), descriptor);
+    }
+
+    public void deregisterAvailableFeature(String featureName) {
+        availableFeatures.remove(featureName);
     }
 
     public void registerLoadedFeature(String featureName, VelocityBaseFeature<?> feature) {
@@ -26,15 +33,19 @@ public class FeatureRegistry {
     }
 
     public Set<String> getLoadedFeatureNames() {
-        return loadedFeatures.keySet();
+        return Collections.unmodifiableSet(new LinkedHashSet<>(loadedFeatures.keySet()));
     }
 
     public boolean isFeatureLoaded(String featureName) {
         return loadedFeatures.containsKey(featureName);
     }
 
-    public Map<String, Class<? extends VelocityBaseFeature<?>>> getAvailableFeatures() {
-        return availableFeatures;
+    public Map<String, FeatureDescriptor> getAvailableFeatures() {
+        return Collections.unmodifiableMap(availableFeatures);
+    }
+
+    public FeatureDescriptor getAvailableFeature(String featureName) {
+        return availableFeatures.get(featureName);
     }
 
     public List<VelocityBaseFeature<?>> getLoadedFeatures() {

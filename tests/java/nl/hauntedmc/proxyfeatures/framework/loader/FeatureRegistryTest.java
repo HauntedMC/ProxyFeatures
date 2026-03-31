@@ -1,41 +1,54 @@
 package nl.hauntedmc.proxyfeatures.framework.loader;
 
-import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 import org.junit.jupiter.api.Test;
+import nl.hauntedmc.proxyfeatures.features.VelocityBaseFeature;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 class FeatureRegistryTest {
 
-    @SuppressWarnings("unchecked")
     @Test
     void tracksAvailableAndLoadedFeatures() {
         FeatureRegistry registry = new FeatureRegistry();
 
-        Class<? extends VelocityBaseFeature<?>> featureClass = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
         VelocityBaseFeature<?> loaded = mock(VelocityBaseFeature.class);
+        FeatureDescriptor descriptor = new FeatureDescriptor(
+                "Queue",
+                VelocityBaseFeature.class.getName(),
+                "Queue",
+                "1.0",
+                Set.of(),
+                Set.of("luckperms")
+        );
 
-        registry.registerAvailableFeature("Queue", featureClass);
+        registry.registerAvailableFeature(descriptor);
         registry.registerLoadedFeature("Queue", loaded);
 
         assertTrue(registry.isFeatureLoaded("Queue"));
         assertSame(loaded, registry.getLoadedFeature("Queue"));
-        assertSame(featureClass, registry.getAvailableFeatures().get("Queue"));
+        assertSame(descriptor, registry.getAvailableFeature("Queue"));
         assertTrue(registry.getLoadedFeatureNames().contains("Queue"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void deregisterRemovesLoadedFeatureAndLoadedFeaturesReturnsCopy() {
         FeatureRegistry registry = new FeatureRegistry();
 
-        Class<? extends VelocityBaseFeature<?>> featureClass = (Class<? extends VelocityBaseFeature<?>>) (Class<?>) VelocityBaseFeature.class;
         VelocityBaseFeature<?> loaded = mock(VelocityBaseFeature.class);
+        FeatureDescriptor descriptor = new FeatureDescriptor(
+                "Queue",
+                VelocityBaseFeature.class.getName(),
+                "Queue",
+                "1.0",
+                Set.of(),
+                Set.of()
+        );
 
-        registry.registerAvailableFeature("Queue", featureClass);
+        registry.registerAvailableFeature(descriptor);
         registry.registerLoadedFeature("Queue", loaded);
 
         List<VelocityBaseFeature<?>> copy = registry.getLoadedFeatures();

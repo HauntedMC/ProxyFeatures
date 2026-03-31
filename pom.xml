@@ -18,7 +18,7 @@
         <mockito.version>5.14.1</mockito.version>
         <maven.surefire.version>3.2.5</maven.surefire.version>
         <jacoco.version>0.8.12</jacoco.version>
-        <checkstyle.version>13.3.0</checkstyle.version>
+        <checkstyle.version>13.4.0</checkstyle.version>
         <maven.enforcer.version>3.5.0</maven.enforcer.version>
     </properties>
 
