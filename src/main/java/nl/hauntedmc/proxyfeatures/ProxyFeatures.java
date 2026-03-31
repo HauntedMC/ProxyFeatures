@@ -25,7 +25,7 @@ import java.nio.file.Path;
 
 @Plugin(id = "proxyfeatures",
         name = "ProxyFeatures",
-        version = "2.2.3",
+        version = "2.3.0",
         url = "https://www.hauntedmc.nl",
         description = "ProxyFeatures",
         authors = {"HauntedMC"},
