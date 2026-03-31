@@ -1,35 +1,6 @@
 # ProxyFeatures
 
-One modular plugin for your entire Velocity network.
-
-`ProxyFeatures` helps you run a smoother, safer, and more engaging proxy without stitching together a dozen separate plugins. Enable only the modules you need and scale up as your network grows.
-
-## Why Server Owners Choose ProxyFeatures
-
-- **Do more with fewer plugins:** replace plugin sprawl with one consistent system.
-- **Improve player experience:** cleaner onboarding, better communication, and stronger social tools.
-- **Protect your network:** built-in security and moderation features for day-to-day operations.
-- **Stay flexible:** feature-by-feature toggles let you roll out changes safely.
-
-## Major Benefits
-
-### Better Retention and Player Experience
-
-- Queue management, MOTD, announcer, broadcast, player list, and proxy info tools.
-- Hub and slash-server flows to make navigation easy.
-- Resource pack and UX-focused features to improve first impressions.
-
-### Stronger Safety and Moderation
-
-- AntiVPN controls and sanctions tooling.
-- Command logging and moderation-focused visibility.
-- Vanish and staff-oriented operational features.
-
-### Better Staff and Community Operations
-
-- Staff chat and command relay for cross-network coordination.
-- Messaging, friends, player info, and language tooling for community support.
-- Votifier and engagement-focused modules for network activity.
+One modular feature framework for your entire Velocity network.
 
 ## Quick Start
 
@@ -42,9 +13,9 @@ One modular plugin for your entire Velocity network.
 ## Requirements
 
 - Java 21
-- Velocity 3.x
-- HauntedMC `dataregistry` plugin
-- HauntedMC `dataprovider` plugin
+- Velocity 3.5.0
+- [Recommended] `DataRegistry` plugin
+- [Recommended] `DataProvider` plugin
 
 ## Build From Source
 

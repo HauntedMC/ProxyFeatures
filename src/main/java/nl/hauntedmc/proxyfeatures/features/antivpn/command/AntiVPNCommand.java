@@ -24,10 +24,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * /antivpn stats
- * /antivpn check <ip|player>
- * /antivpn whitelist <list|add|remove> [entry]
- * /antivpn cache <stats|clear>
+ * Commands:
+ * - /antivpn stats
+ * - /antivpn check [ip|player]
+ * - /antivpn whitelist [list|add|remove] [entry]
+ * - /antivpn cache [stats|clear]
  * Includes live config mutation for whitelist entries (IP/CIDR) + immediate in-memory refresh.
  */
 public final class AntiVPNCommand implements BrigadierCommand {

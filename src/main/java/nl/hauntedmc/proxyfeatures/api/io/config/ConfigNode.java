@@ -77,7 +77,7 @@ public final class ConfigNode {
         return ConfigTypes.convertList(value, elemType);
     }
 
-    /** Returns a Map<String,V> converting values to V. */
+    /** Returns a map converting values to the requested type. */
     public <V> Map<String, V> mapValues(Class<V> valueType) {
         return ConfigTypes.convertMapValues(value, valueType);
     }

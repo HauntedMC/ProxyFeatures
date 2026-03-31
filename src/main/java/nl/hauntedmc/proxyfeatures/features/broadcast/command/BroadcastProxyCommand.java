@@ -22,9 +22,9 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * /broadcastproxy <chat|title> <message...>
+ * /broadcastproxy [chat|title] [message...]
  * - chat: sends a chat broadcast (supports &-color codes)
- * - title: sends a title; split main/subtitle with a single '|'
+ * - title: sends a title; split main/subtitle with a single "pipe" character
  */
 public final class BroadcastProxyCommand implements BrigadierCommand {
 
