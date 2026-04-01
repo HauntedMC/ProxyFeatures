@@ -60,17 +60,27 @@ public final class VotifierService {
     private volatile ScheduledTask resetTask;
 
     public VotifierService(Votifier feature, MessagingDataAccess redisBus, ORMContext orm) {
+        this(
+                feature,
+                VotifierConfig.load(feature),
+                redisBus == null ? null : new EventBusHandler(feature, redisBus),
+                orm == null ? null : new VoteStatsService(feature, orm),
+                newWorker()
+        );
+    }
+
+    VotifierService(
+            Votifier feature,
+            VotifierConfig initialConfig,
+            EventBusHandler bus,
+            VoteStatsService stats,
+            ExecutorService worker
+    ) {
         this.feature = feature;
-
-        this.worker = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "votifier-worker");
-            t.setDaemon(true);
-            return t;
-        });
-        this.configRef = new AtomicReference<>(VotifierConfig.load(feature));
-
-        this.bus = redisBus == null ? null : new EventBusHandler(feature, redisBus);
-        this.stats = orm == null ? null : new VoteStatsService(feature, orm);
+        this.worker = worker == null ? newWorker() : worker;
+        this.configRef = new AtomicReference<>(initialConfig == null ? VotifierConfig.load(feature) : initialConfig);
+        this.bus = bus;
+        this.stats = stats;
     }
 
     public void start() {
@@ -645,7 +655,7 @@ public final class VotifierService {
         worker.execute(() -> processVote(vote));
     }
 
-    private void processVote(Vote vote) {
+    void processVote(Vote vote) {
         VotifierConfig cfg = configRef.get();
 
         String rawName = vote.username();
@@ -788,5 +798,13 @@ public final class VotifierService {
 
     private static String safeMsg(Throwable t) {
         return (t == null || t.getMessage() == null) ? "unknown" : t.getMessage();
+    }
+
+    private static ExecutorService newWorker() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "votifier-worker");
+            t.setDaemon(true);
+            return t;
+        });
     }
 }

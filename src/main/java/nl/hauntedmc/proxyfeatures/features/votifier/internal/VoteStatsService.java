@@ -50,9 +50,15 @@ public final class VoteStatsService {
     private final AtomicBoolean remindSchemaChecked = new AtomicBoolean(false);
 
     public VoteStatsService(Votifier feature, ORMContext orm) {
+        this(feature, orm, true);
+    }
+
+    VoteStatsService(Votifier feature, ORMContext orm, boolean ensureSchemaGuard) {
         this.feature = feature;
         this.orm = orm;
-        ensureRemindColumnBestEffort();
+        if (ensureSchemaGuard) {
+            ensureRemindColumnBestEffort();
+        }
     }
 
     public enum RemindMode { ON, OFF, TOGGLE }
@@ -189,12 +195,7 @@ public final class VoteStatsService {
             long lastVoteAt = stats.getLastVoteAt();
             long gapMillis = Duration.ofHours(Math.max(1, cfg.streakGapHours())).toMillis();
 
-            int newStreak;
-            if (lastVoteAt > 0 && (nowMillis - lastVoteAt) <= gapMillis) {
-                newStreak = stats.getVoteStreak() + 1;
-            } else {
-                newStreak = 1;
-            }
+            int newStreak = computeNextStreak(stats.getVoteStreak(), lastVoteAt, nowMillis, gapMillis);
             stats.setVoteStreak(newStreak);
             stats.setBestVoteStreak(Math.max(stats.getBestVoteStreak(), newStreak));
 
@@ -677,5 +678,12 @@ public final class VoteStatsService {
         String t = s.trim();
         if (t.length() > max) t = t.substring(0, max);
         return t;
+    }
+
+    static int computeNextStreak(int currentStreak, long lastVoteAt, long nowMillis, long gapMillis) {
+        if (lastVoteAt > 0 && (nowMillis - lastVoteAt) <= gapMillis) {
+            return Math.max(0, currentStreak) + 1;
+        }
+        return 1;
     }
 }

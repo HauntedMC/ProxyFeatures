@@ -205,26 +205,13 @@ public final class VotifierServer {
             byte[] plain = decrypt(enc, privateKey);
             String msg = new String(plain, StandardCharsets.US_ASCII).trim();
 
-            // Expected format: "VOTE\nservice\nusername\naddress\ntimestamp\n"
-            String[] parts = msg.split("\n");
-            if (parts.length < 5 || !parts[0].equals("VOTE")) {
+            Vote parsed = parseVoteMessage(msg, System.currentTimeMillis());
+            if (parsed == null) {
                 logger.warn("Invalid payload from " + ip + ": " + shorten(msg));
                 return;
             }
 
-            String service = sanitize(parts[1]);
-            String user = sanitize(parts[2]);
-            String addrStr = sanitize(parts[3]);
-            String tsStr = sanitize(parts[4]);
-
-            long ts;
-            try {
-                ts = Long.parseLong(tsStr);
-            } catch (NumberFormatException nfe) {
-                ts = System.currentTimeMillis();
-            }
-
-            handler.onVote(new Vote(service, user, addrStr, ts));
+            handler.onVote(parsed);
 
         } catch (EOFException eof) {
             logger.warn("Incomplete RSA block from " + safeRemote(remote) + ": " + safeMsg(eof));
@@ -298,6 +285,30 @@ public final class VotifierServer {
         String t = s.trim();
         if (t.length() > 128) t = t.substring(0, 128);
         return t;
+    }
+
+    static Vote parseVoteMessage(String msg, long fallbackTimestampMillis) {
+        if (msg == null) return null;
+
+        // Expected format: "VOTE\nservice\nusername\naddress\ntimestamp\n"
+        String[] parts = msg.split("\n");
+        if (parts.length < 5 || !parts[0].equals("VOTE")) {
+            return null;
+        }
+
+        String service = sanitize(parts[1]);
+        String user = sanitize(parts[2]);
+        String addrStr = sanitize(parts[3]);
+        String tsStr = sanitize(parts[4]);
+
+        long ts;
+        try {
+            ts = Long.parseLong(tsStr);
+        } catch (NumberFormatException nfe) {
+            ts = fallbackTimestampMillis;
+        }
+
+        return new Vote(service, user, addrStr, ts);
     }
 
     private static String shorten(String s) {
