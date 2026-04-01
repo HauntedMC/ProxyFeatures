@@ -50,7 +50,7 @@ public class QueueManager {
 
     public QueueManager(Queue feature, Logger logger) {
         this.feature = feature;
-        this.proxy = feature.getPlugin().getProxyInstance();
+        this.proxy = feature.getPlugin().getProxy();
         this.logger = logger;
         this.priorityResolver = new PriorityResolver();
         this.graceSeconds = Math.max(1, feature.getConfigHandler().get("grace-seconds", Integer.class, 60));
@@ -301,6 +301,13 @@ public class QueueManager {
         return statusCache.getOrDefault(server.toLowerCase(Locale.ROOT), ServerStatus.unknown());
     }
 
+    void setStatus(String server, ServerStatus status) {
+        if (server == null || status == null) {
+            return;
+        }
+        statusCache.put(server.toLowerCase(Locale.ROOT), status);
+    }
+
     public int resolvePriority(Player player) {
         return priorityResolver.resolve(player);
     }
@@ -411,7 +418,7 @@ public class QueueManager {
     }
 
     // -------- advance ticket helpers --------
-    private void grantAdvanceTicket(UUID playerId, String server) {
+    void grantAdvanceTicket(UUID playerId, String server) {
         advanceTickets.put(playerId, server.toLowerCase(Locale.ROOT));
     }
 

@@ -2,6 +2,8 @@ package nl.hauntedmc.proxyfeatures.framework.lifecycle;
 
 import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 
+import java.util.Objects;
+
 public class FeatureLifecycleManager {
 
     private final FeatureTaskManager taskManager;
@@ -11,11 +13,27 @@ public class FeatureLifecycleManager {
     private final FeatureCacheManager cacheManager;
 
     public FeatureLifecycleManager(ProxyFeatures plugin) {
-        this.taskManager = new FeatureTaskManager(plugin);
-        this.commandManager = new FeatureCommandManager(plugin);
-        this.listenerManager = new FeatureListenerManager(plugin);
-        this.dataManager = new FeatureDataManager(plugin);
-        this.cacheManager = new FeatureCacheManager(plugin);
+        this(
+                new FeatureTaskManager(plugin),
+                new FeatureCommandManager(plugin),
+                new FeatureListenerManager(plugin),
+                new FeatureDataManager(plugin),
+                new FeatureCacheManager(plugin)
+        );
+    }
+
+    FeatureLifecycleManager(
+            FeatureTaskManager taskManager,
+            FeatureCommandManager commandManager,
+            FeatureListenerManager listenerManager,
+            FeatureDataManager dataManager,
+            FeatureCacheManager cacheManager
+    ) {
+        this.taskManager = Objects.requireNonNull(taskManager, "taskManager");
+        this.commandManager = Objects.requireNonNull(commandManager, "commandManager");
+        this.listenerManager = Objects.requireNonNull(listenerManager, "listenerManager");
+        this.dataManager = Objects.requireNonNull(dataManager, "dataManager");
+        this.cacheManager = Objects.requireNonNull(cacheManager, "cacheManager");
     }
 
     /**

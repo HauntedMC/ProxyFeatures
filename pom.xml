@@ -32,13 +32,6 @@
 
     <build>
         <finalName>${project.name}</finalName>
-        <testSourceDirectory>${project.basedir}/tests/java</testSourceDirectory>
-        <testResources>
-            <testResource>
-                <directory>${project.basedir}/tests/resources</directory>
-                <filtering>false</filtering>
-            </testResource>
-        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

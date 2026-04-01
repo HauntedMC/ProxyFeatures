@@ -9,7 +9,6 @@ import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.clientinfo.ClientInfo;
 
 import java.io.PrintWriter;
@@ -41,7 +40,7 @@ public final class ClientInfoAdvisor {
         this.settingsService = settingsService;
         this.config = ClientInfoConfig.load(feature.getConfigHandler());
 
-        ProxyFeatures.getProxyInstance().getAllPlayers().forEach(this::loadPlayerSettings);
+        feature.getPlugin().getProxy().getAllPlayers().forEach(this::loadPlayerSettings);
     }
 
     public ClientInfoConfig config() {
@@ -114,7 +113,7 @@ public final class ClientInfoAdvisor {
     public void maybeNotify(UUID uuid) {
         if (!config.notifyEnabled()) return;
 
-        Optional<Player> opt = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+        Optional<Player> opt = feature.getPlugin().getProxy().getPlayer(uuid);
         if (opt.isEmpty()) return;
 
         Player player = opt.get();
@@ -238,7 +237,7 @@ public final class ClientInfoAdvisor {
     }
 
     public int sendFullViewOther(CommandSource src, String targetName) {
-        var opt = ProxyFeatures.getProxyInstance().getPlayer(targetName);
+        var opt = feature.getPlugin().getProxy().getPlayer(targetName);
         if (opt.isEmpty()) {
             src.sendMessage(feature.getLocalizationHandler()
                     .getMessage("clientinfo.cmd_playerNotFound")
@@ -252,7 +251,7 @@ public final class ClientInfoAdvisor {
     }
 
     public int sendRecommendationsOnlyOther(CommandSource src, String targetName) {
-        var opt = ProxyFeatures.getProxyInstance().getPlayer(targetName);
+        var opt = feature.getPlugin().getProxy().getPlayer(targetName);
         if (opt.isEmpty()) {
             src.sendMessage(feature.getLocalizationHandler()
                     .getMessage("clientinfo.cmd_playerNotFound")

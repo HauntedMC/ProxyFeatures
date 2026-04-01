@@ -110,7 +110,7 @@ public class SlashServer extends VelocityBaseFeature<Meta> {
     }
 
     public Optional<RegisteredServer> findServer(String serverName) {
-        return getPlugin().getProxyInstance().getServer(normalizeServerName(serverName));
+        return getPlugin().getProxy().getServer(normalizeServerName(serverName));
     }
 
     public String normalizeServerName(String serverName) {
@@ -123,7 +123,7 @@ public class SlashServer extends VelocityBaseFeature<Meta> {
 
     private void syncServersWithConfig() {
         Set<String> liveServers = new LinkedHashSet<>();
-        for (RegisteredServer server : getPlugin().getProxyInstance().getAllServers()) {
+        for (RegisteredServer server : getPlugin().getProxy().getAllServers()) {
             liveServers.add(normalizeServerName(server.getServerInfo().getName()));
         }
 

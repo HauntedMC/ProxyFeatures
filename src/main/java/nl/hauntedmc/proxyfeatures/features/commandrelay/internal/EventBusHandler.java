@@ -1,10 +1,10 @@
 package nl.hauntedmc.proxyfeatures.features.commandrelay.internal;
 
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
+import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.Component;
 import nl.hauntedmc.dataprovider.database.messaging.MessagingDataAccess;
 import nl.hauntedmc.dataprovider.database.messaging.api.Subscription;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.util.type.CastUtils;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.CommandRelay;
 import nl.hauntedmc.proxyfeatures.features.commandrelay.internal.messaging.CommandRelayMessage;
@@ -18,11 +18,13 @@ public class EventBusHandler {
 
     private final MessagingDataAccess redisBus;
     private final CommandRelay feature;
+    private final ProxyServer proxy;
     private Subscription subscription;
 
     public EventBusHandler(CommandRelay feature, MessagingDataAccess redisBus) {
         this.feature = feature;
         this.redisBus = redisBus;
+        this.proxy = feature.getPlugin().getProxy();
     }
 
     /**
@@ -74,8 +76,8 @@ public class EventBusHandler {
         final String sendingCommand = full;
         // Execute the command in console in sync thread
         feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
-            ConsoleCommandSource console = ProxyFeatures.getProxyInstance().getConsoleCommandSource();
-            ProxyFeatures.getProxyInstance().getCommandManager()
+            ConsoleCommandSource console = proxy.getConsoleCommandSource();
+            proxy.getCommandManager()
                     .executeAsync(console, sendingCommand)
                     .whenComplete((success, ex) -> {
                         if (ex != null) {

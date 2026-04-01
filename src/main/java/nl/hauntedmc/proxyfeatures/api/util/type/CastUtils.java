@@ -13,10 +13,13 @@ public class CastUtils {
         if (obj instanceof List<?> rawList) {
             List<T> result = new ArrayList<>();
             for (Object item : rawList) {
+                if (item == null) {
+                    throw new ClassCastException("Expected a " + clazz.getName() + ", but found: null");
+                }
                 if (clazz.isInstance(item)) {
                     result.add(clazz.cast(item));
                 } else {
-                    throw new ClassCastException("Expected a " + clazz.getName() + ", but found: " + item.getClass());
+                    throw new ClassCastException("Expected a " + clazz.getName() + ", but found: " + item.getClass().getName());
                 }
             }
             return result;

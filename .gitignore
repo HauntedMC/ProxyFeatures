@@ -40,6 +40,7 @@ comments.txt
 
 # Python scripts
 *.py
+!scripts/generate_feature_test_audit.py
 
 # Raw txt files
 *.txt

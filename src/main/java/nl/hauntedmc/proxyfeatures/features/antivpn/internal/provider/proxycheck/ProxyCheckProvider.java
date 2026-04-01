@@ -178,7 +178,7 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
 
     /* ============================ Logic ============================ */
 
-    private Boolean computeVpn(JsonObject detections) {
+    Boolean computeVpn(JsonObject detections) {
         if (detections == null) return null;
 
         int confidence = safeInt(detections.get("confidence"), -1);
@@ -211,7 +211,7 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
 
     /* ============================ URL + JSON helpers ============================ */
 
-    private String buildUrl(String ip) {
+    String buildUrl(String ip) {
         // v3 expects the IP in the path segment; encode to support IPv6 safely.
         StringBuilder sb = new StringBuilder();
         sb.append(baseUrl).append(encPath(ip)).append("?key=").append(encQuery(apiKey));
@@ -301,7 +301,7 @@ public final class ProxyCheckProvider implements IPIntelligenceProvider {
      * v3 response key for the IP is typically exactly the IP string,
      * but we fall back to "first object whose key looks like an ip".
      */
-    private static JsonObject pickIpObject(JsonObject root, String ip) {
+    static JsonObject pickIpObject(JsonObject root, String ip) {
         if (root == null) return null;
         if (ip != null && root.has(ip) && root.get(ip).isJsonObject()) {
             return root.getAsJsonObject(ip);

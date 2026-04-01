@@ -23,7 +23,7 @@ public class CommandListener {
         String alias = CommandExecutionPolicy.extractAlias(full).orElse(null);
         if (alias == null) return;
 
-        ProxyServer proxy = feature.getPlugin().getProxyInstance();
+        ProxyServer proxy = feature.getPlugin().getProxy();
         CommandManager cmdMgr = proxy.getCommandManager();
 
         CommandSource source = event.getCommandSource();

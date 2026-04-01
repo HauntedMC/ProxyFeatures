@@ -3,8 +3,8 @@ package nl.hauntedmc.proxyfeatures.features.antivpn.internal;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.Component;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.antivpn.AntiVPN;
 
 import java.time.Duration;
@@ -18,11 +18,13 @@ import java.util.Objects;
 public final class NotificationService {
 
     private final AntiVPN feature;
+    private final ProxyServer proxy;
     private final String permission;
     private final Cache<String, Long> cooldown; // key -> lastSendMillis
 
     public NotificationService(AntiVPN feature) {
         this.feature = Objects.requireNonNull(feature);
+        this.proxy = feature.getPlugin().getProxy();
         this.permission = "proxyfeatures.feature.antivpn.notify";
 
         long cdSec = feature.getConfigHandler().node("notify").get("cooldown_seconds").as(Long.class, 30L);
@@ -38,7 +40,7 @@ public final class NotificationService {
         String key = "region:" + playerName + ":" + (countryCode == null ? "" : countryCode);
         if (!tryMark(key)) return;
 
-        for (Player p : ProxyFeatures.getProxyInstance().getAllPlayers()) {
+        for (Player p : proxy.getAllPlayers()) {
             if (!p.hasPermission(permission)) continue;
 
             Component msg = feature.getLocalizationHandler()
@@ -56,7 +58,7 @@ public final class NotificationService {
         String key = "region_unknown:" + playerName;
         if (!tryMark(key)) return;
 
-        for (Player p : ProxyFeatures.getProxyInstance().getAllPlayers()) {
+        for (Player p : proxy.getAllPlayers()) {
             if (!p.hasPermission(permission)) continue;
 
             Component msg = feature.getLocalizationHandler()
@@ -73,7 +75,7 @@ public final class NotificationService {
         String key = "vpn:" + playerName;
         if (!tryMark(key)) return;
 
-        for (Player p : ProxyFeatures.getProxyInstance().getAllPlayers()) {
+        for (Player p : proxy.getAllPlayers()) {
             if (!p.hasPermission(permission)) continue;
 
             Component msg = feature.getLocalizationHandler()

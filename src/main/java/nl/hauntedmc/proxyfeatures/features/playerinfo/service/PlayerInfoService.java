@@ -1,10 +1,10 @@
 package nl.hauntedmc.proxyfeatures.features.playerinfo.service;
 
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import nl.hauntedmc.dataregistry.api.entities.PlayerConnectionInfoEntity;
 import nl.hauntedmc.dataregistry.api.entities.PlayerEntity;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.playerinfo.PlayerInfo;
 import nl.hauntedmc.proxyfeatures.features.sanctions.entity.SanctionEntity;
 
@@ -16,10 +16,12 @@ import java.util.*;
 public class PlayerInfoService {
 
     private final PlayerInfo feature;
+    private final ProxyServer proxy;
     private final DateTimeFormatter formatter;
 
     public PlayerInfoService(PlayerInfo feature) {
         this.feature = feature;
+        this.proxy = feature.getPlugin().getProxy();
 
         String tz = feature.getConfigHandler().get("timezone", String.class, "");
         ZoneId zoneId;
@@ -99,12 +101,12 @@ public class PlayerInfoService {
 
     public OnlineStatus getOnlineStatus(String nameOrUuid) {
         // Try by exact username
-        Optional<Player> opt = ProxyFeatures.getProxyInstance().getPlayer(nameOrUuid);
+        Optional<Player> opt = proxy.getPlayer(nameOrUuid);
         if (opt.isEmpty()) {
             // Try search by UUID string
             try {
                 UUID uuid = UUID.fromString(nameOrUuid);
-                opt = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+                opt = proxy.getPlayer(uuid);
             } catch (IllegalArgumentException ignored) {
             }
         }

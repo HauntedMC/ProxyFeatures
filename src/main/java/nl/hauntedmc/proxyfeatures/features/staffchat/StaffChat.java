@@ -66,7 +66,7 @@ public class StaffChat extends VelocityBaseFeature<Meta> {
 
 
         this.chatChannelHandler = new ChatChannelHandler(this);
-        chatChannelHandler.initializeViewers(getPlugin().getProxyInstance().getAllPlayers());
+        chatChannelHandler.initializeViewers(getPlugin().getProxy().getAllPlayers());
         // Register listeners.
         getLifecycleManager().getListenerManager().registerListener(new ConnectListener(this));
     }

@@ -168,7 +168,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
 
     /* ============================ Handlers ============================ */
 
-    private void handleInfo(CommandSource sender, String featureName) {
+    void handleInfo(CommandSource sender, String featureName) {
         if (featureName == null || featureName.isBlank()) {
             sender.sendMessage(Component.text("Please provide a feature name.", NamedTextColor.RED));
             return;
@@ -242,7 +242,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         sender.sendMessage(msg);
     }
 
-    private void handleEnable(CommandSource sender, String feature) {
+    void handleEnable(CommandSource sender, String feature) {
         FeatureEnableResponse resp = plugin.getFeatureLoadManager().enableFeature(feature);
         switch (resp.result()) {
             case SUCCESS -> sender.sendMessage(plugin.getLocalizationHandler()
@@ -286,7 +286,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         }
     }
 
-    private void handleDisable(CommandSource sender, String feature) {
+    void handleDisable(CommandSource sender, String feature) {
         FeatureDisableResponse resp = plugin.getFeatureLoadManager().disableFeature(feature);
         switch (resp.result()) {
             case SUCCESS -> {
@@ -318,7 +318,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         }
     }
 
-    private void handleSoftReload(CommandSource sender, String feature) {
+    void handleSoftReload(CommandSource sender, String feature) {
         FeatureSoftReloadResponse resp = plugin.getFeatureLoadManager().softReloadFeature(feature);
         switch (resp.result()) {
             case SUCCESS -> sender.sendMessage(plugin.getLocalizationHandler()
@@ -339,7 +339,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         }
     }
 
-    private void handleReload(CommandSource sender, String feature) {
+    void handleReload(CommandSource sender, String feature) {
         FeatureReloadResponse resp = plugin.getFeatureLoadManager().reloadFeature(feature);
         switch (resp.result()) {
             case SUCCESS -> {
@@ -371,7 +371,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         }
     }
 
-    private void sendPluginStatus(CommandSource sender) {
+    void sendPluginStatus(CommandSource sender) {
         List<VelocityBaseFeature<?>> loaded = plugin.getFeatureLoadManager().getFeatureRegistry().getLoadedFeatures();
         List<String> cmds = new ArrayList<>();
         int loadedCount = loaded.size();
@@ -397,7 +397,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
 
     /* ============================ Lists & Rendering ============================ */
 
-    private void listLoadedFeaturesOneLine(CommandSource sender, boolean withVersion) {
+    void listLoadedFeaturesOneLine(CommandSource sender, boolean withVersion) {
         List<VelocityBaseFeature<?>> loaded = new ArrayList<>(plugin.getFeatureLoadManager()
                 .getFeatureRegistry().getLoadedFeatures());
 
@@ -432,7 +432,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         sender.sendMessage(header.append(list));
     }
 
-    private Component renderCsvColored(List<String> items, NamedTextColor itemColor, NamedTextColor commaColor, boolean showNone) {
+    Component renderCsvColored(List<String> items, NamedTextColor itemColor, NamedTextColor commaColor, boolean showNone) {
         if (items == null || items.isEmpty()) {
             return Component.text(showNone ? "none" : "", NamedTextColor.DARK_GRAY);
         }
@@ -446,7 +446,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
 
     /* ============================ Suggestions ============================ */
 
-    private CompletableFuture<Suggestions> suggestLoadedFeatures(SuggestionsBuilder builder) {
+    CompletableFuture<Suggestions> suggestLoadedFeatures(SuggestionsBuilder builder) {
         final Locale L = Locale.ROOT;
         String prefix = builder.getRemaining().toLowerCase(L);
 
@@ -461,7 +461,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         return builder.buildFuture();
     }
 
-    private CompletableFuture<Suggestions> suggestEnableCandidates(SuggestionsBuilder builder) {
+    CompletableFuture<Suggestions> suggestEnableCandidates(SuggestionsBuilder builder) {
         final Locale L = Locale.ROOT;
         String prefix = builder.getRemaining().toLowerCase(L);
 
@@ -482,7 +482,7 @@ public final class ProxyFeaturesCommand implements BrigadierCommand {
         return builder.buildFuture();
     }
 
-    private CompletableFuture<Suggestions> suggestAnyFeature(SuggestionsBuilder builder) {
+    CompletableFuture<Suggestions> suggestAnyFeature(SuggestionsBuilder builder) {
         final Locale L = Locale.ROOT;
         String prefix = builder.getRemaining().toLowerCase(L);
 

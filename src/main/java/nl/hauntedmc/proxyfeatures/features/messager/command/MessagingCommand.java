@@ -20,7 +20,7 @@ public class MessagingCommand implements FeatureCommand {
 
     public MessagingCommand(Messenger feature) {
         this.feature = feature;
-        this.proxy = feature.getPlugin().getProxyInstance();
+        this.proxy = feature.getPlugin().getProxy();
         this.handler = feature.getHandler();
     }
 

@@ -42,7 +42,15 @@ public class PacketManager {
      * @param packets The packets to send.
      */
     public static void sendBroadcast(Packet... packets) {
-        for (Player player : ProxyFeatures.getProxyInstance().getAllPlayers()) {
+        sendBroadcast(ProxyFeatures.getProxyInstance().getAllPlayers(), packets);
+    }
+
+    /**
+     * Sends packets to a provided player collection.
+     * Useful for tests and isolated call paths that already have a target set.
+     */
+    public static void sendBroadcast(Iterable<Player> players, Packet... packets) {
+        for (Player player : players) {
             for (Packet packet : packets) {
                 packet.sendTo(player);
             }

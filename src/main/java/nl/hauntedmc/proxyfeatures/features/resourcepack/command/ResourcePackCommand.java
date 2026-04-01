@@ -21,7 +21,7 @@ public class ResourcePackCommand implements FeatureCommand {
 
     public ResourcePackCommand(ResourcePack feature) {
         this.feature = feature;
-        this.proxy = feature.getPlugin().getProxyInstance();
+        this.proxy = feature.getPlugin().getProxy();
     }
 
     public String getName() {

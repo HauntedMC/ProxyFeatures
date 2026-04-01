@@ -359,23 +359,37 @@ public class SanctionsService {
         Matcher m = DURATION_TOKEN.matcher(t);
         long totalSeconds = 0;
         int found = 0;
+        int cursor = 0;
         while (m.find()) {
+            // Reject mixed/garbage input like "1dfoo" or "x1h" to keep command parsing strict.
+            if (m.start() != cursor) {
+                throw new IllegalArgumentException("invalid length");
+            }
             found++;
             long n = Long.parseLong(m.group(1));
             String unit = m.group(2).toLowerCase(Locale.ROOT);
-            switch (unit) {
-                case "y" -> totalSeconds += Duration.ofDays(365).getSeconds() * n;
-                case "mo" -> totalSeconds += Duration.ofDays(30).getSeconds() * n;
-                case "w" -> totalSeconds += Duration.ofDays(7).getSeconds() * n;
-                case "d" -> totalSeconds += Duration.ofDays(n).getSeconds();
-                case "h" -> totalSeconds += Duration.ofHours(n).getSeconds();
-                case "m" -> totalSeconds += Duration.ofMinutes(n).getSeconds();
-                case "s" -> totalSeconds += n;
-                default -> throw new IllegalArgumentException("invalid unit");
+            try {
+                totalSeconds = Math.addExact(totalSeconds, durationUnitSeconds(n, unit));
+            } catch (ArithmeticException ex) {
+                throw new IllegalArgumentException("invalid length", ex);
             }
+            cursor = m.end();
         }
-        if (found == 0 || totalSeconds <= 0) throw new IllegalArgumentException("invalid length");
+        if (found == 0 || cursor != t.length() || totalSeconds <= 0) throw new IllegalArgumentException("invalid length");
         return Instant.now().plusSeconds(totalSeconds);
+    }
+
+    private static long durationUnitSeconds(long n, String unit) {
+        return switch (unit) {
+            case "y" -> Math.multiplyExact(Duration.ofDays(365).getSeconds(), n);
+            case "mo" -> Math.multiplyExact(Duration.ofDays(30).getSeconds(), n);
+            case "w" -> Math.multiplyExact(Duration.ofDays(7).getSeconds(), n);
+            case "d" -> Duration.ofDays(n).getSeconds();
+            case "h" -> Duration.ofHours(n).getSeconds();
+            case "m" -> Duration.ofMinutes(n).getSeconds();
+            case "s" -> n;
+            default -> throw new IllegalArgumentException("invalid unit");
+        };
     }
 
     public String sanitizeReason(String reason) {

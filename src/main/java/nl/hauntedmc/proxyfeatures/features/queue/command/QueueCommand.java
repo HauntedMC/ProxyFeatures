@@ -2,7 +2,6 @@ package nl.hauntedmc.proxyfeatures.features.queue.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.FeatureCommand;
 import nl.hauntedmc.proxyfeatures.features.queue.Queue;
 import nl.hauntedmc.proxyfeatures.features.queue.QueueManager;
@@ -189,7 +188,7 @@ public class QueueCommand implements FeatureCommand {
     }
 
     private String managerNameOf(java.util.UUID id) {
-        return ProxyFeatures.getProxyInstance().getPlayer(id).map(Player::getUsername).orElse(id.toString());
+        return feature.getPlugin().getProxy().getPlayer(id).map(Player::getUsername).orElse(id.toString());
     }
 
 
@@ -206,7 +205,7 @@ public class QueueCommand implements FeatureCommand {
             return CompletableFuture.completedFuture(out);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("info")) {
-            List<String> servers = ProxyFeatures.getProxyInstance().getAllServers().stream()
+            List<String> servers = feature.getPlugin().getProxy().getAllServers().stream()
                     .map(s -> s.getServerInfo().getName())
                     .filter(manager::isServerQueued)
                     .collect(Collectors.toList());

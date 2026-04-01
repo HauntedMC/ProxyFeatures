@@ -4,11 +4,13 @@ Testing in this project is designed to catch regressions early while keeping con
 
 ## Test Structure
 
-Tests are organized under `tests/java` and generally mirror production package boundaries:
+Tests are organized under `src/test/java` and generally mirror production package boundaries:
 
 - API tests for public-facing contracts
 - framework tests for core lifecycle/config/loading behavior
 - feature tests for feature-specific logic and edge cases
+
+Shared test resources live under `src/test/resources`.
 
 ## Local Commands
 
@@ -30,6 +32,12 @@ Run lint checks:
 mvn -B -DskipTests checkstyle:check
 ```
 
+Generate a local coverage report:
+
+```bash
+mvn -q test jacoco:report
+```
+
 ## What to Test
 
 When you change behavior, add or update tests close to that behavior:
@@ -39,6 +47,15 @@ When you change behavior, add or update tests close to that behavior:
 - API changes: validate conversion, fallback, and error-handling behavior
 
 Focus on user-visible behavior and regression-prone logic. Avoid writing tests that only duplicate framework boilerplate.
+
+## Test Quality Bar
+
+Use these rules when adding or reviewing tests:
+
+- prefer behavior assertions over "does not throw" assertions;
+- avoid getter/setter/record-equality-only tests unless they protect non-trivial invariants;
+- avoid static mocking when normal dependency injection or instance mocks are possible;
+- assert observable outcomes (state, return values, emitted messages, interactions) for both happy and failure paths.
 
 ## Coverage Expectations
 
@@ -54,6 +71,18 @@ If `mvn verify` fails on coverage:
 
 - IntelliJ: run tests with coverage and inspect the Coverage tool window.
 - HTML report: `target/site/jacoco/index.html` after `mvn verify`.
+- CSV summary: `target/site/jacoco/jacoco.csv` after `mvn -q test jacoco:report`.
+
+## Full Feature Scan Workflow
+
+Use this when you want a full feature/class/method scan, not just per-change verification:
+
+1. Run `mvn -q test jacoco:report`.
+2. Review `target/site/jacoco/index.html` and sort by missed lines/branches.
+3. Use `target/site/jacoco/jacoco.csv` to quickly spot high-risk classes with high `LINE_MISSED` and `BRANCH_MISSED`.
+4. Drill into those classes in the HTML report and add tests for behavior-heavy methods first (commands, services, listeners).
+
+Prioritize methods with both high `line_missed` and high `branch_total`; these are typically the highest regression-risk paths.
 
 ## CI
 

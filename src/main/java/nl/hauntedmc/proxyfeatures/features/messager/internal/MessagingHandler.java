@@ -1,7 +1,6 @@
 package nl.hauntedmc.proxyfeatures.features.messager.internal;
 
 import com.velocitypowered.api.proxy.Player;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.messager.Messenger;
 import nl.hauntedmc.proxyfeatures.features.messager.entity.PlayerMessageSettingsEntity;
 
@@ -22,7 +21,7 @@ public class MessagingHandler {
         this.settings = new MessagingSettingsService(feature);
 
         // Preload online players
-        feature.getPlugin().getProxyInstance()
+        feature.getPlugin().getProxy()
                 .getAllPlayers()
                 .forEach(this::loadPlayerSettings);
     }
@@ -110,7 +109,7 @@ public class MessagingHandler {
 
         spies.stream()
                 .filter(id -> !id.equals(s.getUniqueId()) && !id.equals(r.getUniqueId()))
-                .map(id -> ProxyFeatures.getProxyInstance().getPlayer(id))
+                .map(id -> feature.getPlugin().getProxy().getPlayer(id))
                 .flatMap(Optional::stream)
                 .forEach(p -> p.sendMessage(loc.getMessage("message.format.spy")
                         .with("sender", s.getUsername())

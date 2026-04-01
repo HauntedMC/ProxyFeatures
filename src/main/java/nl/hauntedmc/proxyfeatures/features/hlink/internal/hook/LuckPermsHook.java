@@ -6,7 +6,6 @@ import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.event.EventBus;
 import net.luckperms.api.event.EventSubscription;
 import net.luckperms.api.event.node.NodeMutateEvent;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.features.hlink.HLink;
 
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ public class LuckPermsHook {
                     NodeMutateEvent.class,
                     event -> {
                         String friendlyName = event.getTarget().getFriendlyName();
-                        Optional<Player> playerOpt = ProxyFeatures.getProxyInstance().getPlayer(friendlyName);
+                        Optional<Player> playerOpt = feature.getPlugin().getProxy().getPlayer(friendlyName);
                         playerOpt.ifPresent(player -> feature.getHLinkHandler().updatePlayerData(player));
                     }
             );

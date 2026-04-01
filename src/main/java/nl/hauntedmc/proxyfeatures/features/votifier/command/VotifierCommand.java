@@ -276,7 +276,7 @@ public final class VotifierCommand implements BrigadierCommand {
         return 1;
     }
 
-    private static VotifierService.RemindMode parseRemindMode(String raw) {
+    static VotifierService.RemindMode parseRemindMode(String raw) {
         if (raw == null || raw.isBlank()) return null;
         String s = raw.trim().toLowerCase(Locale.ROOT);
         return switch (s) {
@@ -533,7 +533,7 @@ public final class VotifierCommand implements BrigadierCommand {
         return b.buildFuture();
     }
 
-    private YearMonth parseMonth(String raw) {
+    YearMonth parseMonth(String raw) {
         YearMonth now = currentYearMonth();
 
         if (raw == null || raw.isBlank()) return now;

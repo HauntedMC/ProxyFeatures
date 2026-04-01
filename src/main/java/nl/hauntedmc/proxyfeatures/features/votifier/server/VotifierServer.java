@@ -233,7 +233,7 @@ public final class VotifierServer {
         return cipher.doFinal(enc);
     }
 
-    private byte[] readExactWithDeadline(InputStream in, int expectedBytes, int cap, int totalTimeoutMs) throws IOException {
+    byte[] readExactWithDeadline(InputStream in, int expectedBytes, int cap, int totalTimeoutMs) throws IOException {
         if (expectedBytes <= 0) throw new IOException("Expected bytes must be > 0");
         if (expectedBytes > cap) throw new IOException("Expected block " + expectedBytes + "B exceeds cap " + cap + "B");
 

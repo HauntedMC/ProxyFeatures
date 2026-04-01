@@ -5,7 +5,6 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.APIRegistry;
 import nl.hauntedmc.proxyfeatures.features.playerlist.PlayerList;
 import nl.hauntedmc.proxyfeatures.features.vanish.internal.VanishAPI;
@@ -26,8 +25,7 @@ public class PlayerListHandler {
      * Retrieve the players on a given server.
      */
     public Collection<Player> getPlayersOnServer(String serverName) {
-        ProxyFeatures plugin = feature.getPlugin();
-        return plugin.getProxyInstance().getServer(serverName)
+        return feature.getPlugin().getProxy().getServer(serverName)
                 .map(RegisteredServer::getPlayersConnected)
                 .orElseGet(Collections::emptyList);
     }
@@ -38,7 +36,7 @@ public class PlayerListHandler {
      */
     public Component formatGlobalList(Collection<RegisteredServer> servers, Player audience) {
         // Get all players from the proxy and filter out vanished ones.
-        List<Player> allPlayers = ProxyFeatures.getProxyInstance().getAllPlayers().stream()
+        List<Player> allPlayers = feature.getPlugin().getProxy().getAllPlayers().stream()
                 .filter(player -> !APIRegistry.get(VanishAPI.class)
                         .map(api -> api.isVanished(player.getUniqueId()))
                         .orElse(false))

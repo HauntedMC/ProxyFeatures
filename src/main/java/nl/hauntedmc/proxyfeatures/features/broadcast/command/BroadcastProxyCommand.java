@@ -11,7 +11,6 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
-import nl.hauntedmc.proxyfeatures.ProxyFeatures;
 import nl.hauntedmc.proxyfeatures.api.command.brigadier.BrigadierCommand;
 import nl.hauntedmc.proxyfeatures.api.util.text.format.ComponentFormatter;
 import nl.hauntedmc.proxyfeatures.api.util.text.format.TextFormatter;
@@ -43,7 +42,7 @@ public final class BroadcastProxyCommand implements BrigadierCommand {
 
     public BroadcastProxyCommand(Broadcast feature) {
         this.feature = feature;
-        this.proxy = ProxyFeatures.getProxyInstance();
+        this.proxy = feature.getPlugin().getProxy();
         reloadTitleTimesCache();
     }
 
