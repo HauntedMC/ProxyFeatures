@@ -529,24 +529,24 @@ public final class VotifierService {
 
     private void sendWinnerCongrats(Player player, VoteMonthNotification notif) {
         String month = formatYearMonthInt(notif.monthYearMonth());
-        player.sendMessage(feature.getLocalizationHandler()
+        feature.getLifecycleManager().getTaskManager().scheduleDelayedTask( () -> player.sendMessage(feature.getLocalizationHandler()
                 .getMessage("votifier.winner.congrats")
                 .with("rank", String.valueOf(notif.rank()))
                 .with("month", month)
                 .with("votes", String.valueOf(Math.max(0, notif.monthVotes())))
                 .forAudience(player)
-                .build());
+            .build()), Duration.ofSeconds(5));
     }
 
     private void sendMonthResult(Player player, VoteMonthNotification notif) {
         String month = formatYearMonthInt(notif.monthYearMonth());
-        player.sendMessage(feature.getLocalizationHandler()
-                .getMessage("votifier.month.result")
-                .with("rank", String.valueOf(Math.max(0, notif.rank())))
-                .with("month", month)
-                .with("votes", String.valueOf(Math.max(0, notif.monthVotes())))
-                .forAudience(player)
-                .build());
+        feature.getLifecycleManager().getTaskManager().scheduleDelayedTask( () -> player.sendMessage(feature.getLocalizationHandler()
+            .getMessage("votifier.month.result")
+            .with("rank", String.valueOf(Math.max(0, notif.rank())))
+            .with("month", month)
+            .with("votes", String.valueOf(Math.max(0, notif.monthVotes())))
+            .forAudience(player)
+            .build()), Duration.ofSeconds(5));
     }
 
     private void grantMonthlyWinnerReward(Player player, VoteMonthNotification notif) {
