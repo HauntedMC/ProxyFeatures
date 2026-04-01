@@ -288,81 +288,98 @@ public final class VotifierService {
     public void onPlayerPostLogin(Player player) {
         if (player == null) return;
 
-        // Existing month results pipeline
         if (stats != null && configRef.get().statsEnabled()) {
-            VotifierConfig cfg = configRef.get();
+            queuePendingMonthNotifications(player);
+        }
 
-            String username = player.getUsername();
-            UUID uuid = player.getUniqueId();
-            int currentYmInt = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+        scheduleReminderLoop(player);
+    }
 
-            worker.execute(() -> {
-                try {
-                    Optional<VoteMonthNotification> notifOpt = stats.claimPendingMonthNotificationByUsername(username, currentYmInt);
-                    if (notifOpt.isEmpty()) return;
+    private void queuePendingMonthNotifications(Player player) {
+        VotifierConfig cfg = configRef.get();
+
+        String username = player.getUsername();
+        UUID uuid = player.getUniqueId();
+        int currentYmInt = toYearMonthInt(YearMonth.now(cfg.statsZone()));
+
+        worker.execute(() -> {
+            try {
+                while (true) {
+                    Optional<VoteMonthNotification> notifOpt =
+                        stats.claimPendingMonthNotificationByUsername(username, currentYmInt);
+
+                    if (notifOpt.isEmpty()) {
+                        break;
+                    }
 
                     VoteMonthNotification notif = notifOpt.get();
 
-                    feature.getLifecycleManager().getTaskManager().scheduleTask(() -> {
-                        Optional<Player> live = ProxyFeatures.getProxyInstance().getPlayer(uuid);
-                        if (live.isEmpty()) {
-                            worker.execute(() -> stats.releaseProcessing(notif.playerId(), notif.monthYearMonth()));
-                            return;
-                        }
-
-                        Player target = live.get();
-
-                        boolean notifyOk = false;
-                        boolean rewardOk = false;
-
-                        try {
-                            if (notif.needsNotify()) {
-                                if (notif.rank() > 0 && notif.rank() <= 3) {
-                                    sendWinnerCongrats(target, notif);
-                                } else {
-                                    sendMonthResult(target, notif);
-                                }
-                            }
-                            notifyOk = true;
-                        } catch (Exception t) {
-                            feature.getLogger().warn("Vote month notify failed: " + safeMsg(t));
-                        }
-
-                        try {
-                            if (notif.needsReward()) {
-                                grantMonthlyWinnerReward(target, notif);
-                            }
-                            rewardOk = true;
-                        } catch (Exception t) {
-                            feature.getLogger().warn("Vote month reward failed: " + safeMsg(t));
-                        }
-
-                        boolean finalNotify = notif.needsNotify() && notifyOk;
-
-                        boolean finalReward;
-                        if (notif.rank() > 0 && notif.rank() <= 3) {
-                            finalReward = notif.needsReward() && rewardOk;
-                        } else {
-                            finalReward = finalNotify;
-                        }
-
-                        worker.execute(() -> stats.completeProcessing(
-                                notif.playerId(),
-                                notif.monthYearMonth(),
-                                notif.rank(),
-                                finalNotify,
-                                finalReward
-                        ));
-                    });
-
-                } catch (Exception t) {
-                    feature.getLogger().warn("Vote month handler failed: " + safeMsg(t));
+                    feature.getLifecycleManager().getTaskManager().scheduleTask(() ->
+                        handlePendingMonthNotification(uuid, notif)
+                    );
                 }
-            });
-        }
+            } catch (Exception t) {
+                feature.getLogger().warn("Vote month handler failed: " + safeMsg(t));
+            }
+        });
+    }
 
-        // New reminder loop
-        scheduleReminderLoop(player);
+    private void handlePendingMonthNotification(UUID uuid, VoteMonthNotification notif) {
+        try {
+            Optional<Player> live = ProxyFeatures.getProxyInstance().getPlayer(uuid);
+            if (live.isEmpty()) {
+                worker.execute(() -> stats.releaseProcessing(notif.playerId(), notif.monthYearMonth()));
+                return;
+            }
+
+            Player target = live.get();
+
+            boolean notifyOk = false;
+            boolean rewardOk = false;
+
+            try {
+                if (notif.needsNotify()) {
+                    if (notif.rank() > 0 && notif.rank() <= 3) {
+                        sendWinnerCongrats(target, notif);
+                    } else {
+                        sendMonthResult(target, notif);
+                    }
+                }
+                notifyOk = true;
+            } catch (Exception t) {
+                feature.getLogger().warn("Vote month notify failed: " + safeMsg(t));
+            }
+
+            try {
+                if (notif.needsReward()) {
+                    grantMonthlyWinnerReward(target, notif);
+                }
+                rewardOk = true;
+            } catch (Exception t) {
+                feature.getLogger().warn("Vote month reward failed: " + safeMsg(t));
+            }
+
+            boolean finalNotify = notif.needsNotify() && notifyOk;
+
+            boolean finalReward;
+            if (notif.rank() > 0 && notif.rank() <= 3) {
+                finalReward = notif.needsReward() && rewardOk;
+            } else {
+                finalReward = finalNotify;
+            }
+
+            worker.execute(() -> stats.completeProcessing(
+                notif.playerId(),
+                notif.monthYearMonth(),
+                notif.rank(),
+                finalNotify,
+                finalReward
+            ));
+
+        } catch (Exception t) {
+            feature.getLogger().warn("Vote month handler failed: " + safeMsg(t));
+            worker.execute(() -> stats.releaseProcessing(notif.playerId(), notif.monthYearMonth()));
+        }
     }
 
     public void onPlayerDisconnect(UUID uuid) {
