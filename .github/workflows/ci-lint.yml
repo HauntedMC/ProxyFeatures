@@ -47,4 +47,4 @@ jobs:
           server-password: PACKAGES_TOKEN
 
       - name: Run Checkstyle
-        run: mvn -U -B -ntp -DskipTests checkstyle:check
+        run: mvn -B -ntp -DskipTests checkstyle:check

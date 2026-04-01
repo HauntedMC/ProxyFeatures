@@ -47,7 +47,7 @@ jobs:
           server-password: PACKAGES_TOKEN
 
       - name: Run Maven Verify
-        run: mvn -U -B -ntp verify
+        run: mvn -B -ntp verify
 
       - name: Upload JaCoCo Report
         if: always()
