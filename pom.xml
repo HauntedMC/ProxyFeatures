@@ -16,7 +16,7 @@
         <velocity.version>3.5.0-SNAPSHOT</velocity.version>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
         <mockito.version>5.14.1</mockito.version>
-        <maven.surefire.version>3.2.5</maven.surefire.version>
+        <maven.surefire.version>3.5.5</maven.surefire.version>
         <jacoco.version>0.8.12</jacoco.version>
         <checkstyle.version>13.4.0</checkstyle.version>
         <maven.enforcer.version>3.5.0</maven.enforcer.version>
@@ -211,12 +211,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.4.2</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
