@@ -14,7 +14,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <velocity.version>3.5.0-SNAPSHOT</velocity.version>
-        <junit.jupiter.version>5.10.2</junit.jupiter.version>
+        <junit.jupiter.version>6.0.3</junit.jupiter.version>
         <mockito.version>5.14.1</mockito.version>
         <maven.surefire.version>3.5.5</maven.surefire.version>
         <jacoco.version>0.8.12</jacoco.version>
