@@ -19,7 +19,7 @@
         <maven.surefire.version>3.5.5</maven.surefire.version>
         <jacoco.version>0.8.14</jacoco.version>
         <checkstyle.version>13.4.0</checkstyle.version>
-        <maven.enforcer.version>3.5.0</maven.enforcer.version>
+        <maven.enforcer.version>3.6.2</maven.enforcer.version>
     </properties>
 
     <distributionManagement>
